@@ -1,0 +1,209 @@
+import React from 'react';
+
+/* ============================================================
+   ECHO · UI system — primitives, doodle icons, companion orb
+   Ported from design_handoff_echo/prototype/components/echo-ui.jsx
+   ============================================================ */
+
+type CSS = React.CSSProperties;
+
+/* ---------- doodle icon set ---------- */
+export function Ic({ name, size = 30, stroke = 'var(--ink)', sw = 2.6, fill = 'none' }: {
+  name: string; size?: number; stroke?: string; sw?: number; fill?: string;
+}) {
+  const p = { fill: 'none', stroke, strokeWidth: sw, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  const paths: Record<string, React.ReactNode> = {
+    spark: <path d="M12 2c.6 4.5 2.5 6.4 7 7-4.5.6-6.4 2.5-7 7-.6-4.5-2.5-6.4-7-7 4.5-.6 6.4-2.5 7-7Z" {...p} fill={fill} />,
+    star: <path d="M12 3l2.5 5.3 5.8.7-4.3 4 1.1 5.8L12 21l-5.1-2.2 1.1-5.8-4.3-4 5.8-.7L12 3Z" {...p} fill={fill} />,
+    heart: <path d="M12 20s-7-4.4-9-9.2C1.6 7.2 3.6 4 7 4c2 0 3.4 1.1 5 3 1.6-1.9 3-3 5-3 3.4 0 5.4 3.2 4 6.8C19 15.6 12 20 12 20Z" {...p} fill={fill} />,
+    cloud: <path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6 9.5 4.2 4.2 0 0 0 7 18Z" {...p} fill={fill} />,
+    chat: <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V16H6.5A2.5 2.5 0 0 1 4 13.5v-7Z" {...p} fill={fill} />,
+    breeze: <g {...p} fill="none"><path d="M3 9h11a2.5 2.5 0 1 0-2.5-2.5" /><path d="M3 14h14a2.5 2.5 0 1 1-2.5 2.5" /><path d="M3 12h6" /></g>,
+    lens: <g {...p} fill="none"><circle cx="11" cy="11" r="6.4" /><path d="M11 8.6c.9-1.4 3.2-1 3.2.8 0 1.6-2.4 2.6-3.2 3.4-.8-.8-3.2-1.8-3.2-3.4 0-1.8 2.3-2.2 3.2-.8Z" /><path d="M16 16l4 4" /></g>,
+    rewind: <g {...p} fill="none"><path d="M4 12a8 8 0 1 1 2.6 5.9" /><path d="M4 7v5h5" /></g>,
+    pulse: <path d="M3 12h4l2-6 4 12 2-6h6" {...p} fill="none" />,
+    shield: <path d="M12 3l7 3v5c0 4.6-3 8-7 10-4-2-7-5.4-7-10V6l7-3Z" {...p} fill={fill} />,
+    leaf: <g {...p} fill="none"><path d="M5 19c0-7 5-12 14-13C18 13 13 19 5 19Z" /><path d="M5 19c3-4 6-6 10-7.5" /></g>,
+    wallet: <g {...p} fill="none"><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 9h14a2 2 0 0 1 2 2v3" /><circle cx="16.5" cy="13" r="1.3" fill="var(--ink)" stroke="none" /></g>,
+    ghost: <path d="M5 11a7 7 0 0 1 14 0v9l-2.3-1.6L14.3 20 12 18.3 9.7 20 7.3 18.4 5 20v-9Z" {...p} fill={fill} />,
+    db: <g {...p} fill="none"><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" /><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" /></g>,
+    check: <path d="M5 12.5l4.5 4.5L19 6.5" {...p} fill="none" />,
+    arrowR: <path d="M5 12h13M13 6l6 6-6 6" {...p} fill="none" />,
+    arrowL: <path d="M19 12H6M11 6l-6 6 6 6" {...p} fill="none" />,
+    play: <path d="M7 4.5l13 7.5-13 7.5v-15Z" {...p} fill={fill} />,
+    plus: <path d="M12 5v14M5 12h14" {...p} fill="none" />,
+    x: <path d="M6 6l12 12M18 6L6 18" {...p} fill="none" />,
+    lock: <g {...p} fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.6" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></g>,
+    clock: <g {...p} fill="none"><circle cx="12" cy="12" r="8.4" /><path d="M12 7v5l3.2 2" /></g>,
+    sun: <g {...p} fill="none"><circle cx="12" cy="12" r="4.3" /><path d="M12 2.4v2.4M12 19.2v2.4M2.4 12h2.4M19.2 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19" /></g>,
+    map: <g {...p} fill="none"><path d="M9 4 4 6v14l5-2 6 2 5-2V4l-5 2-6-2Z" /><path d="M9 4v14M15 6v14" /></g>,
+    sprout: <g {...p} fill="none"><path d="M12 21v-8" /><path d="M12 13c0-3 2-5 6-5-.2 3.5-2.5 5-6 5Z" /><path d="M12 14c0-2.4-1.6-4-4.5-4 .2 2.8 1.8 4 4.5 4Z" /></g>,
+    anchor: <g {...p} fill="none"><circle cx="12" cy="5" r="2" /><path d="M12 7v13M5 13a7 7 0 0 0 14 0M5 13H3m16 0h2" /></g>,
+    mic: <g {...p} fill="none"><rect x="9" y="3" width="6" height="11" rx="3" fill={fill} /><path d="M5.5 11a6.5 6.5 0 0 0 13 0" /><path d="M12 17.5V21M8.5 21h7" /></g>,
+    micOff: <g {...p} fill="none"><path d="M15 9.5V6a3 3 0 0 0-5.7-1.3" /><path d="M9 9v2.2a3 3 0 0 0 4.4 2.6" /><path d="M5.5 11a6.5 6.5 0 0 0 10.2 5.3M18.5 11v.4" /><path d="M12 17.5V21M8.5 21h7" /><path d="M4 4l16 16" /></g>,
+    pause: <path d="M9 5v14M15 5v14" {...p} fill="none" />,
+    stop: <rect x="6" y="6" width="12" height="12" rx="3.2" {...p} fill={fill} />,
+    keyboard: <g {...p} fill="none"><rect x="3" y="6.5" width="18" height="11" rx="3" /><path d="M7 10.2h.01M11 10.2h.01M15 10.2h.01M8 14h8" /></g>,
+    wave: <g {...p} fill="none"><path d="M3 12h0M7 8.5v7M11 5v14M15 8.5v7M19 11v2M21 12h0" /></g>,
+    sui: <path d="M12 3.2c4 5 6.2 7.7 6.2 10.8a6.2 6.2 0 0 1-12.4 0C5.8 10.9 8 8.2 12 3.2Z" {...p} fill={fill} />,
+    ear: <g {...p} fill="none"><path d="M7 9a5 5 0 0 1 10 0c0 3-2.6 3.6-3.4 5.2-.5 1-.2 2.3-1.6 3.1A2.6 2.6 0 0 1 8 15" /><path d="M9.5 9a2.5 2.5 0 0 1 5 0" /></g>,
+    home: <g {...p} fill="none"><path d="M4 11.5 12 4l8 7.5" /><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" /><path d="M10 20v-5h4v5" /></g>,
+    gear: <g {...p} fill="none"><circle cx="12" cy="12" r="3.2" /><path d="M19.4 13.5a7.5 7.5 0 0 0 0-3l1.8-1.4-1.5-2.6-2.1.8a7.5 7.5 0 0 0-2.6-1.5L14.5 3.5h-3l-.4 2.3A7.5 7.5 0 0 0 8.5 7.3l-2.1-.8-1.5 2.6 1.8 1.4a7.5 7.5 0 0 0 0 3l-1.8 1.4 1.5 2.6 2.1-.8a7.5 7.5 0 0 0 2.6 1.5l.4 2.3h3l.4-2.3a7.5 7.5 0 0 0 2.6-1.5l2.1.8 1.5-2.6-1.8-1.4Z" /></g>,
+    logout: <g {...p} fill="none"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" /><path d="M13 12h8M18 8l4 4-4 4" /></g>,
+    help: <g {...p} fill="none"><circle cx="12" cy="12" r="8.5" /><path d="M9.6 9.3a2.5 2.5 0 0 1 4.9.7c0 1.7-2.5 2-2.5 3.8" /><path d="M12 17.2v.01" /></g>,
+    bell: <g {...p} fill="none"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" /><path d="M10 19a2 2 0 0 0 4 0" /></g>,
+    moon: <path d="M20 13.5A8 8 0 1 1 10.5 4 6.5 6.5 0 0 0 20 13.5Z" {...p} fill={fill} />,
+  };
+  return <svg width={size} height={size} viewBox="0 0 24 24" className="spark">{paths[name] || null}</svg>;
+}
+
+/* ---------- companion orb ---------- */
+export type OrbState = 'idle' | 'listening' | 'thinking' | 'speaking' | 'saving' | 'paused' | 'ended';
+export function Orb({ size = 180, listening = false, state, mood = 'lav' }: {
+  size?: number; listening?: boolean; state?: OrbState; mood?: string;
+}) {
+  const st = state || (listening ? 'speaking' : 'idle');
+  const moodByState: Record<string, string> =
+    { listening: 'rose', speaking: 'peach', thinking: 'lav', saving: 'sky', paused: 'lav', idle: 'lav', ended: 'sage' };
+  const tintKey = moodByState[st] || mood;
+  const tints: Record<string, string> = { lav: 'var(--lav)', sage: 'var(--sage)', peach: 'var(--peach)', sky: 'var(--sky)', rose: 'var(--rose)' };
+  const tint = tints[tintKey] || 'var(--lav)';
+  return (
+    <div className={'orb-wrap st-' + st} style={{ width: size, height: size }}>
+      <div className="orb-aura" />
+      <div className="sound-ring s1" />
+      <div className="sound-ring s2" />
+      <div className="sound-ring s3" />
+      <div className="orb-ring" />
+      <div className="orb-ring" style={{ animationDelay: '1.3s' }} />
+      <div className="orb" style={{
+        width: size, height: size,
+        background: `radial-gradient(circle at 36% 32%, #FFFFFF 0%, #FFF4EC 14%, ${tint} 46%, var(--peach) 82%, var(--peach-deep) 100%)`,
+      }} />
+      <div className="orb-spark" style={{ ['--d']: size * 0.62 + 'px' } as CSS}><Ic name="spark" size={20} stroke="#fff" sw={2.4} fill="#fff" /></div>
+      <div className="orb-spark" style={{ ['--d']: size * 0.55 + 'px', animationDelay: '-7s', animationDuration: '18s' } as CSS}><Ic name="spark" size={14} stroke="var(--sun)" sw={2.4} fill="var(--sun)" /></div>
+    </div>
+  );
+}
+
+/* ---------- ecosystem logo marks ---------- */
+export function LogoMark({ brand, size = 20 }: { brand: 'mnemos' | 'walrus' | 'sui'; size?: number }) {
+  const sw = 2.2;
+  const marks: Record<string, { bg: string; el: React.ReactNode }> = {
+    mnemos: { bg: 'var(--lav)', el: (
+      <g fill="none" stroke="#352A1F" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 12c0-2 1.4-3.2 2.8-3.2 2.6 0 2.8 6.4 5.4 6.4 1.4 0 2.8-1.2 2.8-3.2s-1.4-3.2-2.8-3.2c-2.6 0-2.8 6.4-5.4 6.4C8.4 15.2 7 14 7 12Z" />
+      </g>) },
+    walrus: { bg: 'var(--mint)', el: (
+      <g fill="none" stroke="#352A1F" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="12" cy="7.4" rx="6" ry="2.4" />
+        <path d="M6 7.4v3.2c0 1.3 2.7 2.4 6 2.4s6-1.1 6-2.4V7.4" />
+        <path d="M6 10.6v3.2c0 1.3 2.7 2.4 6 2.4s6-1.1 6-2.4v-3.2" />
+      </g>) },
+    sui: { bg: 'var(--sky)', el: (
+      <g fill="none" stroke="#352A1F" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 4.5c3 3.4 5 5.8 5 8.4a5 5 0 0 1-10 0c0-2.6 2-5 5-8.4Z" />
+      </g>) },
+  };
+  const m = marks[brand];
+  return (
+    <span className="logo-mark" style={{ width: size, height: size, background: m.bg }} title={brand}>
+      <svg viewBox="0 0 24 24" width={size * 0.72} height={size * 0.72}>{m.el}</svg>
+    </span>
+  );
+}
+
+export function PoweredBy({ variant = 'marks', size = 20, boxed = false }: {
+  variant?: 'marks' | 'named' | 'bare'; size?: number; boxed?: boolean;
+}) {
+  const brands: ('mnemos' | 'walrus' | 'sui')[] = ['mnemos', 'walrus', 'sui'];
+  if (variant === 'bare') {
+    return (
+      <span className={'powered-logos' + (boxed ? ' boxed' : '')} title="Powered by Mnemos · Walrus · Sui">
+        <span className="marks">{brands.map(b => <LogoMark key={b} brand={b} size={size} />)}</span>
+      </span>
+    );
+  }
+  if (variant === 'named') {
+    return (
+      <span className={'powered-logos' + (boxed ? ' boxed' : '')}>
+        <span>powered by</span>
+        <span className="marks" style={{ gap: 11 }}>
+          {brands.map(b => (
+            <span key={b} className="mname"><LogoMark brand={b} size={size} /><b>{b[0].toUpperCase() + b.slice(1)}</b></span>
+          ))}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span className={'powered-logos' + (boxed ? ' boxed' : '')}>
+      <span>powered by</span>
+      <span className="marks">{brands.map(b => <LogoMark key={b} brand={b} size={size} />)}</span>
+    </span>
+  );
+}
+
+/* word-by-word reveal for spoken lines */
+export function WordReveal({ text, stagger = 0.045 }: { text: string; stagger?: number }) {
+  const words = String(text).split(' ');
+  return (
+    <span className="wr">
+      {words.map((w, i) => (
+        <span key={i} style={{ animationDelay: (i * stagger) + 's' }}>{w}{i < words.length - 1 ? ' ' : ''}</span>
+      ))}
+    </span>
+  );
+}
+
+/* ---------- decorative doodle field ---------- */
+type Doodle = { ic: string; x: string; y: string; s: number; c: string; f?: number; r?: number };
+export function Doodles({ items }: { items?: Doodle[] }) {
+  const def: Doodle[] = items || [
+    { ic: 'spark', x: '8%', y: '16%', s: 26, c: 'var(--sun)', f: 1, r: -8 },
+    { ic: 'star', x: '6%', y: '62%', s: 30, c: 'var(--sun)', f: 1, r: -12 },
+    { ic: 'heart', x: '9%', y: '82%', s: 24, c: 'var(--rose)', f: 1, r: 6 },
+    { ic: 'spark', x: '90%', y: '20%', s: 22, c: 'var(--sky-deep)', f: 1, r: 10 },
+    { ic: 'cloud', x: '86%', y: '70%', s: 40, c: 'var(--ink)', f: 1, r: 0 },
+    { ic: 'spark', x: '93%', y: '54%', s: 18, c: 'var(--lav-deep)', f: 1, r: 0 },
+  ];
+  return (
+    <div className="doodles">
+      {def.map((d, i) => (
+        <div key={i} className={'doodle ' + (d.f ? 'float' : '')}
+          style={{ left: d.x, top: d.y, ['--r']: (d.r || 0) + 'deg', animationDelay: (i * 0.7) + 's', transform: `rotate(${d.r || 0}deg)` } as CSS}>
+          <Ic name={d.ic} size={d.s} stroke={d.c} fill={d.ic === 'cloud' ? 'var(--paper)' : (d.ic === 'heart' || d.ic === 'star' || d.ic === 'spark') ? d.c : 'none'} sw={2.4} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- small building blocks ---------- */
+export function Eyebrow({ children, ic }: { children: React.ReactNode; ic?: string }) {
+  return <span className="eyebrow">{ic && <Ic name={ic} size={15} />}{children}</span>;
+}
+
+export function Chip({ children, tone = '', ic, sm, style }: {
+  children: React.ReactNode; tone?: string; ic?: string | null; sm?: boolean; style?: CSS;
+}) {
+  return <span className={`chip ${tone} ${sm ? 'sm' : ''}`} style={style}>{ic && <Ic name={ic} size={sm ? 13 : 15} />}{children}</span>;
+}
+
+export function Btn({ children, variant = 'ghost', size = '', icon, iconR, onClick, disabled, block, type }: {
+  children?: React.ReactNode; variant?: string; size?: string; icon?: string; iconR?: string;
+  onClick?: () => void; disabled?: boolean; block?: boolean; type?: 'button' | 'submit';
+}) {
+  return (
+    <button type={type || 'button'} className={`btn ${variant} ${size} ${block ? 'block' : ''}`} onClick={onClick} disabled={disabled}>
+      {icon && <Ic name={icon} size={20} />}{children}{iconR && <Ic name={iconR} size={20} />}
+    </button>
+  );
+}
+
+/* typing dots */
+export function Typing() {
+  return <div className="bubble echo" style={{ display: 'inline-flex', gap: 6, padding: '16px 20px' }}>
+    {[0, 1, 2].map(i => <span key={i} style={{ width: 9, height: 9, borderRadius: 9, background: 'var(--ink-soft)', display: 'inline-block', animation: `up2 1s ${i * 0.18}s infinite alternate` }} />)}
+  </div>;
+}

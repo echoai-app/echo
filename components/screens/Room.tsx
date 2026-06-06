@@ -1,0 +1,315 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { AppBar, SessionProgress } from '../chrome';
+import { Orb, Ic, Chip, Typing, Btn, LogoMark, type OrbState } from '../ui';
+import { RoomDecor } from './RoomDecor';
+import { useEcho, sessionMeta } from '@/lib/store';
+import { useVoice } from '@/lib/voice';
+import { getMode } from '@/lib/echo/modes';
+import type { ChatMessage, ReflectionTurn } from '@/types';
+
+const STATE_META: Record<string, { dot: string; label: string; live: boolean }> = {
+  idle: { dot: 'var(--ink-faint)', label: 'ready when you are', live: false },
+  listening: { dot: 'var(--rose-deep)', label: 'listening', live: true },
+  thinking: { dot: 'var(--lav-deep)', label: 'reflecting…', live: false },
+  speaking: { dot: 'var(--sage-deep)', label: 'Echo is speaking', live: true },
+  saving: { dot: 'var(--sky-deep)', label: 'weaving memory…', live: true },
+  paused: { dot: 'var(--ink-faint)', label: 'paused — take your time', live: false },
+};
+
+const IDLE_CHIPS = ["Work's been a lot", "I can't switch off", "Honestly, I'm exhausted"];
+
+// forming-memory chip detectors (real-time, from what's been said)
+const FORMING: { re: RegExp; label: string; ic: string; c: string }[] = [
+  { re: /\b(work|deadline|job|boss|project)\b/i, label: 'Work pressure', ic: 'pulse', c: 'var(--peach)' },
+  { re: /\b(sleep|awake|tired|rest|4am|night)\b/i, label: 'Lost sleep', ic: 'lens', c: 'var(--lav)' },
+  { re: /\b(walk|run|exercise|outside|breath|music)\b/i, label: 'Something that helped', ic: 'leaf', c: 'var(--sage)' },
+  { re: /\b(anxious|anxiety|worry|panic|nervous)\b/i, label: 'Anxiety', ic: 'pulse', c: 'var(--rose)' },
+  { re: /\b(family|partner|friend|people|alone|lonely)\b/i, label: 'Relationships', ic: 'heart', c: 'var(--sky)' },
+];
+
+function opening(feelings: string[]): string {
+  const feel = feelings.length
+    ? ` It sounds like you came in carrying ${feelings.slice(0, 2).join(' and ').toLowerCase()}.`
+    : '';
+  return `Hey — I'm really glad you're here. No rush at all; take a breath.${feel} What's sitting with you right now?`;
+}
+
+export default function Room() {
+  const { go, session, transcript, addTurn, setProposed, recalled, prefs } = useEcho();
+  const [vs, setVs] = useState<OrbState>('idle');
+  const [paused, setPaused] = useState(false);
+  const [showText, setShowText] = useState(false);
+  const [text, setText] = useState('');
+  const [showTr, setShowTr] = useState(true);
+  const trRef = useRef<HTMLDivElement>(null);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const started = useRef(false);
+
+  const busy = vs === 'listening' || vs === 'thinking' || vs === 'speaking' || vs === 'saving';
+
+  const voice = useVoice({ onResult: (t) => send(t, 'voice') });
+
+  // Opening line, once.
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    if (transcript.length === 0) {
+      const line = opening(session.feelings);
+      addTurn({ role: 'echo', text: line, source: 'voice', at: new Date().toISOString() });
+      setVs('speaking');
+      speakOrTimeout(line);
+    }
+    return () => timers.current.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => { if (trRef.current) trRef.current.scrollTop = trRef.current.scrollHeight; }, [transcript, vs, showTr]);
+
+  // If a voice listen ends with no result, settle back to idle.
+  useEffect(() => {
+    if (!voice.listening && vs === 'listening') setVs('idle');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.listening]);
+
+  const lastEcho = [...transcript].reverse().find(m => m.role === 'echo')?.text;
+
+  function speakOrTimeout(line: string, onDone?: () => void) {
+    const finish = () => { setVs('idle'); onDone?.(); };
+    if (prefs.voiceReplies && voice.ttsSupported) {
+      voice.speak(line, finish);
+    } else {
+      const dur = Math.min(4200, 1400 + line.length * 22);
+      timers.current.push(setTimeout(finish, dur));
+    }
+  }
+
+  async function send(said: string, source: 'voice' | 'text') {
+    const msg = said.trim();
+    if (!msg || vs === 'thinking' || vs === 'saving') return;
+    voice.cancelSpeech();
+    setShowText(false); setText('');
+
+    const history: ChatMessage[] = transcript.map(t => ({
+      role: t.role === 'echo' ? 'assistant' : 'user', content: t.text,
+    }));
+    addTurn({ role: 'user', text: msg, source, at: new Date().toISOString() });
+    setVs('thinking');
+
+    try {
+      const res = await fetch('/api/reflect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, mode: session.mode, history, recalled }),
+      });
+      const data = await res.json();
+      const reply: string = data.reply ?? "I'm here with you. Tell me more whenever you're ready.";
+      addTurn({ role: 'echo', text: reply, source: 'voice', at: new Date().toISOString() });
+      setVs('speaking');
+      speakOrTimeout(reply);
+    } catch {
+      const reply = "I'm here with you — take your time.";
+      addTurn({ role: 'echo', text: reply, source: 'voice', at: new Date().toISOString() });
+      setVs('speaking');
+      speakOrTimeout(reply);
+    }
+  }
+
+  const micTap = () => {
+    if (paused || vs === 'thinking' || vs === 'saving') return;
+    if (voice.supported) {
+      if (voice.listening) { voice.stopListening(); setVs('idle'); }
+      else { voice.cancelSpeech(); voice.startListening(); setVs('listening'); }
+    } else {
+      setShowText(true);
+    }
+  };
+
+  const togglePause = () => {
+    setPaused(p => {
+      const np = !p;
+      if (np) { voice.cancelSpeech(); voice.stopListening(); setVs('idle'); }
+      return np;
+    });
+  };
+
+  async function endReflection() {
+    voice.cancelSpeech(); voice.stopListening();
+    setVs('saving');
+    const turns: ReflectionTurn[] = transcript;
+    try {
+      const res = await fetch('/api/memory/propose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turns, meta: sessionMeta(session), mode: session.mode }),
+      });
+      const data = await res.json();
+      setProposed(data);
+    } catch {
+      setProposed({ summary: '', theme: '', artifacts: [], left_out: '' });
+    }
+    timers.current.push(setTimeout(() => go('memory'), 700));
+  }
+
+  const userText = transcript.filter(t => t.role === 'user').map(t => t.text).join(' ');
+  const forming = FORMING.filter(f => f.re.test(userText)).slice(0, 3);
+  const meta = (paused && vs === 'idle') ? STATE_META.paused : STATE_META[vs] ?? STATE_META.idle;
+  const idleWithChips = vs === 'idle' && !paused;
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <AppBar active="session" />
+      <SessionProgress step={1} />
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        <div className="room">
+          <div className="room-wall" />
+          <RoomDecor />
+          <div className="room-glow" />
+          <div className="room-rug" />
+
+          {/* this-session forming memory */}
+          <div className="room-panel" style={{ position: 'absolute', top: 18, left: 18, padding: '13px 15px', maxWidth: 224, zIndex: 4 }}>
+            <div className="kicker" style={{ marginBottom: 9, fontSize: 11 }}>this session</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+              {forming.length ? forming.map(f => (
+                <span key={f.label} className="forming-chip"><Ic name={f.ic} size={13} stroke="var(--ink)" /> {f.label}</span>
+              )) : <span className="muted" style={{ fontWeight: 700, fontSize: 12.5 }}>listening for what matters…</span>}
+            </div>
+          </div>
+
+          {showTr && (
+            <div style={{ position: 'absolute', top: 18, right: 372, zIndex: 4 }}>
+              <span className="chip sm deco" style={{ background: 'var(--mint)', boxShadow: '2px 3px 0 var(--ink)' }}>
+                <LogoMark brand="walrus" size={15} /> kept memories save to Walrus
+              </span>
+            </div>
+          )}
+          {!showTr && (
+            <button className="btn ghost sm" style={{ position: 'absolute', top: 14, right: 16, zIndex: 6 }} onClick={() => setShowTr(true)}>
+              <Ic name="chat" size={16} /> Transcript
+            </button>
+          )}
+
+          {/* center: bubble + orb + live feedback */}
+          <div style={{ position: 'absolute', left: 0, right: showTr ? 354 : 0, top: 64, bottom: 244, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, zIndex: 5, pointerEvents: 'none' }}>
+            {!showTr && vs === 'speaking' && lastEcho &&
+              <div className="say italic shimmer" key={lastEcho} style={{ animation: 'popIn .4s ease both', maxWidth: 440, position: 'relative', overflow: 'hidden' }}>&ldquo;{lastEcho}&rdquo;</div>}
+            {!showTr && (vs === 'idle' || vs === 'ended') && lastEcho &&
+              <div className="say italic" key={lastEcho} style={{ animation: 'popIn .4s ease both', maxWidth: 440 }}>&ldquo;{lastEcho}&rdquo;</div>}
+            {!showTr && vs === 'thinking' && <div className="say" style={{ animation: 'popIn .3s ease both' }}><Typing /></div>}
+            {vs === 'listening' &&
+              <div className="say" style={{ animation: 'popIn .3s ease both', display: 'flex', alignItems: 'center', gap: 13, pointerEvents: 'none' }}>
+                <span className="wave"><i /><i /><i /><i /><i /><i /><i /></span>
+                <span style={{ fontWeight: 700 }}>{voice.partial || "I'm listening…"}</span>
+              </div>}
+
+            <Orb size={138} state={paused ? 'paused' : vs} mood="lav" />
+
+            {(vs === 'speaking' || vs === 'listening') ? (
+              <div className={'orb-eq ' + (vs === 'listening' ? 'rose' : 'peach')}>
+                {Array.from({ length: 9 }).map((_, i) => <i key={i} />)}
+              </div>
+            ) : !(idleWithChips) && (
+              <div className="state-pill">
+                <span className={'state-dot' + (meta.live ? ' live' : '')} style={{ background: meta.dot }} />
+                {meta.label}
+              </div>
+            )}
+          </div>
+
+          {showTr && <Transcript onClose={() => setShowTr(false)} trRef={trRef} intensity={session.intensity} msgs={transcript} />}
+
+          {/* voice dock */}
+          <div className="voice-dock" style={{ left: showTr ? 'calc((100% - 354px) / 2)' : '50%', width: showTr ? 'min(560px, calc(100% - 384px))' : 'min(680px, 92%)' }}>
+            {showText &&
+              <div className="dock-bar" style={{ padding: '12px 16px', width: '100%', gap: 12 }}>
+                <input className="field" autoFocus value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send(text, 'text')} placeholder="type instead of speaking…" style={{ flex: 1 }} />
+                <Btn variant="primary" icon="arrowR" onClick={() => send(text, 'text')} />
+              </div>}
+
+            {idleWithChips &&
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <span className="muted" style={{ fontWeight: 800, fontSize: 11.5, letterSpacing: '.06em', textTransform: 'uppercase' }}>say something like…</span>
+                <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', justifyContent: 'center', maxWidth: '100%' }}>
+                  {IDLE_CHIPS.map(c => (
+                    <button key={c} className="chip chip-btn" style={{ background: 'var(--paper)' }} onClick={() => send(c, 'text')}>{c}</button>
+                  ))}
+                </div>
+              </div>}
+
+            <div className="dock-bar">
+              <div className="dock-col">
+                <button className={'ctrl-btn' + (paused ? ' on' : '')} onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}>
+                  <Ic name={paused ? 'play' : 'pause'} size={22} />
+                </button>
+                <span className="ctrl-cap">{paused ? 'Resume' : 'Pause'}</span>
+              </div>
+
+              <div className="dock-div" />
+
+              <div className="dock-col">
+                <button className={'mic-btn' + (vs === 'listening' ? ' listening' : '') + (((vs === 'thinking' || vs === 'saving') || paused) ? ' busy' : '')}
+                  onClick={micTap} disabled={(vs === 'thinking' || vs === 'saving') || paused} aria-label="Talk to Echo">
+                  <span className="mic-ring" /><span className="mic-ring r2" />
+                  {vs === 'listening'
+                    ? <span className="wave" style={{ height: 30 }}><i /><i /><i /><i /><i /></span>
+                    : <Ic name="mic" size={34} stroke="var(--ink)" />}
+                </button>
+                <span className="mic-cap">
+                  {paused ? 'Paused'
+                    : vs === 'idle' ? (voice.supported ? 'Tap to talk' : 'Tap to type')
+                      : vs === 'listening' ? 'Listening…'
+                        : vs === 'thinking' ? '…'
+                          : vs === 'speaking' ? 'Echo speaking' : '…'}
+                </span>
+              </div>
+
+              <div className="dock-div" />
+
+              <div className="dock-col">
+                <button className={'ctrl-btn' + (showText ? ' on' : '')} onClick={() => setShowText(s => !s)} aria-label="Type instead">
+                  <Ic name="keyboard" size={22} />
+                </button>
+                <span className="ctrl-cap">Type</span>
+              </div>
+
+              <div className="dock-col">
+                <button className="ctrl-btn" onClick={endReflection} aria-label="End reflection" disabled={vs === 'saving'}>
+                  <Ic name="stop" size={20} />
+                </button>
+                <span className="ctrl-cap">End</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Transcript({ msgs, onClose, trRef, intensity }: {
+  msgs: ReflectionTurn[]; onClose: () => void; trRef: React.RefObject<HTMLDivElement | null>; intensity: number;
+}) {
+  return (
+    <div className="transcript">
+      <div className="transcript-head">
+        <span className="display" style={{ fontSize: 16, display: 'inline-flex', alignItems: 'center', gap: 8 }}><Ic name="chat" size={18} /> Transcript</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Chip sm tone="peach" ic="pulse">{intensity}/10</Chip>
+          <button className="icon-btn" style={{ width: 36, height: 36 }} onClick={onClose} title="Hide transcript"><Ic name="x" size={16} /></button>
+        </div>
+      </div>
+      <div ref={trRef} style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {msgs.map((m, i) => (
+          <div key={i} className={'bubble ' + (m.role === 'echo' ? 'echo italic' : 'me')} style={{ maxWidth: '94%', fontSize: 14.5, boxShadow: '3px 4px 0 var(--ink)' }}>
+            {m.role === 'echo' ? `“${m.text}”` : m.text}
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: '12px 16px', borderTop: '3px solid var(--ink)', background: 'var(--cream)' }}>
+        <span className="muted" style={{ fontWeight: 700, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 7 }}><Ic name="ear" size={14} /> Text just supports — Echo leads by listening.</span>
+      </div>
+    </div>
+  );
+}
