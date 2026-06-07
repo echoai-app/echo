@@ -44,7 +44,7 @@ function PmToggle({ on, set, ic, label, sub }: { on: boolean; set: () => void; i
 }
 
 function ProfileMenu({ onClose }: { onClose: () => void }) {
-  const { go, prefs, setPref, setOnboarded, name, pfp, journey, setJourney } = useEcho();
+  const { go, resetTo, prefs, setPref, setOnboarded, name, pfp, journey, setJourney } = useEcho();
   const id = useIdentity();
   const { mutate: disconnect } = useDisconnectWallet();
   const navTo = (s: ScreenId) => () => { onClose(); go(s); };
@@ -71,8 +71,8 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
   const logout = () => {
     onClose();
     if (id.mode === 'wallet') { try { disconnect(); } catch { /* noop */ } }
-    setOnboarded(false);   // show the intro again after logging out
-    go('welcome');
+    setOnboarded(false);    // show the intro again after logging out
+    resetTo('welcome');     // clear history so "back" can't re-enter the app
   };
 
   return (
@@ -137,15 +137,28 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
 }
 
 /* ---------------- top app bar ---------------- */
+// Screens you navigate INTO and should be able to step back from. Home (modes)
+// is the root, and the linear session flow (setup→room→memory→debrief) has its
+// own forward/explicit nav, so they don't get a generic Back.
+const BACKABLE = new Set<ScreenId>(['recall', 'timeline', 'profile', 'account', 'privacy', 'help']);
+
 export function AppBar({ active = 'home' }: { active?: 'home' | 'journey' | 'session' }) {
-  const { go, name, pfp } = useEcho();
+  const { go, back, screen, history, name, pfp } = useEcho();
   const [pOpen, setPOpen] = useState(false);
   const nav = (id: ScreenId) => () => go(id);
+  const showBack = history.length > 0 && BACKABLE.has(screen);
   return (
     <div className="appbar">
-      <div className="brand" style={{ cursor: 'pointer' }} onClick={nav('modes')} title="Home">
-        <Orb size={38} />
-        <span style={{ letterSpacing: '-.01em' }}>ech<span style={{ color: 'var(--peach-deep)' }}>o</span></span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '0 0 auto' }}>
+        {showBack && (
+          <button className="icon-btn" onClick={back} title="Back" aria-label="Back">
+            <Ic name="arrowL" size={18} sw={2.8} />
+          </button>
+        )}
+        <div className="brand" style={{ cursor: 'pointer' }} onClick={nav('modes')} title="Home">
+          <Orb size={38} />
+          <span style={{ letterSpacing: '-.01em' }}>ech<span style={{ color: 'var(--peach-deep)' }}>o</span></span>
+        </div>
       </div>
 
       <div className="navpills">

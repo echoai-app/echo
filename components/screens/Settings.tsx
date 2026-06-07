@@ -60,9 +60,7 @@ function SettingsShell({ active, eyebrow, icon, title, sub, accent, children }: 
       <AppBar active="home" />
       <div className="screen-scroll" style={{ position: 'relative' }}>
         <Doodles />
-        <div className="screen-pad" style={{ maxWidth: 980, margin: '0 auto', position: 'relative', zIndex: 2, paddingBottom: 54 }}>
-          <button className="linkbtn up d1" style={{ marginBottom: 16 }} onClick={() => go('modes')}><Ic name="arrowL" size={16} /> Back to home</button>
-
+        <div className="screen-pad" style={{ maxWidth: 980, margin: '0 auto', position: 'relative', zIndex: 2, paddingTop: 8, paddingBottom: 54 }}>
           <div className="up d1 card card-lg" style={{ padding: 'clamp(22px,3vw,28px)', marginBottom: 20, background: 'linear-gradient(120deg, var(--paper) 0%, var(--cream) 100%)', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
             <AccentDisc icon={icon} accent={accent} />
             <div style={{ flex: 1, minWidth: 240 }}>

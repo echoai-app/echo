@@ -35,14 +35,16 @@ const SCREENS: Record<ScreenId, React.ComponentType> = {
 };
 
 export default function EchoApp() {
-  const { screen, prefs, onboarded, go } = useEcho();
+  const { screen, prefs, onboarded, name, resetTo } = useEcho();
   const [booted, setBooted] = useState(false);
 
-  // On first load, a returning (onboarded) user skips the welcome/onboarding
-  // intro and lands straight in the app. SSR + first client render show the
-  // splash, so there's no flash and no hydration mismatch.
+  // On first load, a returning user skips the welcome/onboarding intro and lands
+  // straight in the app. "Returning" = completed onboarding (flag) OR has a saved
+  // name (covers users from before the flag existed). SSR + first client render
+  // show the splash, so there's no flash and no hydration mismatch.
   useEffect(() => {
-    if (onboarded && screen === 'welcome') go('modes');
+    const returning = onboarded || name.trim() !== '';
+    if (returning && screen === 'welcome') resetTo('modes');
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setBooted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps

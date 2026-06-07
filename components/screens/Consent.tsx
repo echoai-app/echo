@@ -46,7 +46,7 @@ function AccountCard({ active, onClick, ic, tone, title, sub, body, chip, chipIc
 }
 
 export default function Consent() {
-  const { go, setAccount, setOnboarded, name, setName } = useEcho();
+  const { resetTo, setAccount, setOnboarded, name, setName } = useEcho();
   const id = useIdentity();
   const [sel, setSel] = useState<'guest' | 'wallet'>('guest');
   const [connectOpen, setConnectOpen] = useState(false);
@@ -68,7 +68,7 @@ export default function Consent() {
     if (sel === 'wallet' && !connected) { setConnectOpen(true); return; }
     setAccount(sel);
     setOnboarded(true);   // intro is done — returning users skip it next time
-    go('modes');
+    resetTo('modes');     // fresh history — can't go "back" into the intro
   };
 
   return (

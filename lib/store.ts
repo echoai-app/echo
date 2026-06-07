@@ -29,6 +29,7 @@ export interface Prefs {
 
 interface EchoState {
   screen: ScreenId;
+  history: ScreenId[];                 // back stack (session-only, not persisted)
   account: 'guest' | 'wallet';        // the user's chosen identity at consent
   onboarded: boolean;                 // completed the intro (welcome→consent) — persisted
   name: string;
@@ -48,7 +49,9 @@ interface EchoState {
   prefs: Prefs;
 
   // actions
-  go: (s: ScreenId) => void;
+  go: (s: ScreenId) => void;          // navigate forward (pushes back stack)
+  back: () => void;                   // pop the back stack
+  resetTo: (s: ScreenId) => void;     // jump and clear history (boot/logout/onboard-done)
   setAccount: (a: 'guest' | 'wallet') => void;
   setOnboarded: (b: boolean) => void;
   setName: (n: string) => void;
@@ -80,6 +83,7 @@ export const useEcho = create<EchoState>()(
   persist(
     (set) => ({
       screen: 'welcome',
+      history: [],
       account: 'guest',
       onboarded: false,
       name: '',
@@ -98,7 +102,14 @@ export const useEcho = create<EchoState>()(
 
       prefs: { voiceReplies: true, saveToWalrus: true, reducedMotion: false },
 
-      go: (screen) => set({ screen }),
+      go: (screen) => set((st) => (st.screen === screen ? {} : { screen, history: [...st.history, st.screen].slice(-25) })),
+      back: () => set((st) => {
+        if (st.history.length === 0) return { screen: 'modes' as ScreenId };
+        const history = st.history.slice();
+        const prev = history.pop() as ScreenId;
+        return { screen: prev, history };
+      }),
+      resetTo: (screen) => set({ screen, history: [] }),
       setAccount: (account) => set({ account }),
       setOnboarded: (onboarded) => set({ onboarded }),
       setName: (name) => set({ name }),
