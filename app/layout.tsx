@@ -1,11 +1,15 @@
 import type { Metadata } from 'next';
+import { Baloo_2, Nunito } from 'next/font/google';
 import './globals.css';
 import Providers from './providers';
 
+// Display + body type, self-hosted via next/font (no layout shift, no extra <link>).
+const baloo = Baloo_2({ subsets: ['latin'], weight: ['500', '600', '700', '800'], variable: '--font-display' });
+const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700', '800'], style: ['normal', 'italic'], variable: '--font-body' });
+
 export const metadata: Metadata = {
-  title: 'Echo — a reflection companion',
-  description:
-    'Echo is a calm, voice-first emotional reflection companion that remembers what matters. Powered by Mnemos memory on Walrus, keyed to your Sui identity.',
+  title: 'Echo - Your AI Companion',
+  description: 'A calm space to reflect — and be remembered.',
 };
 
 // Silences the noisy "Cannot redefine property: ethereum" error thrown when
@@ -19,15 +23,7 @@ const SUPPRESS_WALLET_ERROR = `(function(){
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={`${baloo.variable} ${nunito.variable} h-full`} suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: SUPPRESS_WALLET_ERROR }} />
         <Providers>{children}</Providers>

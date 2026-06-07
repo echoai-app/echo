@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ConnectModal, useDisconnectWallet } from '@mysten/dapp-kit';
 import { AppBar } from '../chrome';
-import { Doodles, Eyebrow, Btn, Chip, Ic, Avatar, LogoMark, PoweredBy, Orb } from '../ui';
+import { Doodles, Eyebrow, Btn, Chip, Ic, LogoMark, PoweredBy, Orb } from '../ui';
 import { useEcho, type ScreenId } from '@/lib/store';
 import { useIdentity } from '../identity';
 import { BASELINE_SAFETY_NOTE } from '@/lib/echo/safety';
@@ -178,7 +178,6 @@ export function Profile() {
 /* ================= ACCOUNT & IDENTITY ================= */
 export function Account() {
   const id = useIdentity();
-  const { account } = useEcho();
   const { mutate: disconnect } = useDisconnectWallet();
   const [connectOpen, setConnectOpen] = useState(false);
   const connected = id.mode === 'wallet';
@@ -273,7 +272,7 @@ export function Privacy() {
         <Btn variant="primary" iconR="map" onClick={() => go('timeline')}>View my journey</Btn>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 18 }}>
+      <div className="r-2" style={{ marginBottom: 18 }}>
         <div className="card" style={{ padding: 22 }}>
           <div className="display" style={{ fontSize: 17, display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}><Ic name="check" size={20} stroke="var(--sage-deep)" /> Echo keeps</div>
           <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 9, fontWeight: 600, fontSize: 14.5 }}>{DO.map((d, i) => <li key={i}>{d}</li>)}</ul>
@@ -332,7 +331,7 @@ export function Help() {
           <div className="display" style={{ fontSize: 17 }}>Still need a hand?</div>
           <div className="muted" style={{ fontWeight: 600, fontSize: 13.5 }}>Reach the team — we read every note.</div>
         </div>
-        <a className="btn primary sm" href="mailto:anasbhai8580@gmail.com?subject=Echo%20support" style={{ textDecoration: 'none' }}><Ic name="bell" size={18} /> Contact support</a>
+        <a className="btn primary sm" href="mailto:echo.gethelp@gmail.com?subject=Echo%20support" style={{ textDecoration: 'none' }}><Ic name="bell" size={18} /> Contact support</a>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>

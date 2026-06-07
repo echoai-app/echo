@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useEcho, type ScreenId } from '@/lib/store';
 import { CalmCorner } from '@/components/CalmCorner';
+import { Orb } from '@/components/ui';
 
 import Welcome from '@/components/screens/Welcome';
 import Onboarding from '@/components/screens/Onboarding';
@@ -33,8 +35,28 @@ const SCREENS: Record<ScreenId, React.ComponentType> = {
 };
 
 export default function EchoApp() {
-  const { screen, prefs } = useEcho();
+  const { screen, prefs, onboarded, go } = useEcho();
+  const [booted, setBooted] = useState(false);
+
+  // On first load, a returning (onboarded) user skips the welcome/onboarding
+  // intro and lands straight in the app. SSR + first client render show the
+  // splash, so there's no flash and no hydration mismatch.
+  useEffect(() => {
+    if (onboarded && screen === 'welcome') go('modes');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBooted(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const Active = SCREENS[screen] ?? Welcome;
+
+  if (!booted) {
+    return (
+      <div className="stage">
+        <div className="screen is-active bg-cream" style={{ display: 'grid', placeItems: 'center' }}><Orb size={76} /></div>
+      </div>
+    );
+  }
 
   return (
     <div className={'stage' + (prefs.reducedMotion ? ' calm' : '')}>

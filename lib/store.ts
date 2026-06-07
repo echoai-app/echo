@@ -30,6 +30,7 @@ export interface Prefs {
 interface EchoState {
   screen: ScreenId;
   account: 'guest' | 'wallet';        // the user's chosen identity at consent
+  onboarded: boolean;                 // completed the intro (welcome→consent) — persisted
   name: string;
   pfp: string | null;                 // data-URL avatar (persisted locally)
 
@@ -49,6 +50,7 @@ interface EchoState {
   // actions
   go: (s: ScreenId) => void;
   setAccount: (a: 'guest' | 'wallet') => void;
+  setOnboarded: (b: boolean) => void;
   setName: (n: string) => void;
   setPfp: (d: string | null) => void;
   startSession: (patch: Partial<SessionState>) => void;
@@ -79,7 +81,8 @@ export const useEcho = create<EchoState>()(
     (set) => ({
       screen: 'welcome',
       account: 'guest',
-      name: 'friend',
+      onboarded: false,
+      name: '',
       pfp: null,
 
       session: newSession(),
@@ -97,6 +100,7 @@ export const useEcho = create<EchoState>()(
 
       go: (screen) => set({ screen }),
       setAccount: (account) => set({ account }),
+      setOnboarded: (onboarded) => set({ onboarded }),
       setName: (name) => set({ name }),
       setPfp: (pfp) => set({ pfp }),
       startSession: (patch) => set({ session: { ...newSession(), ...patch }, transcript: [], proposed: null, saved: [], proof: null }),
@@ -114,10 +118,17 @@ export const useEcho = create<EchoState>()(
       name: 'echo-app',
       storage: createJSONStorage(() => localStorage),
       // Persist only durable preferences/identity — not transient session state.
-      partialize: (s) => ({ name: s.name, pfp: s.pfp, prefs: s.prefs, account: s.account }),
+      partialize: (s) => ({ name: s.name, pfp: s.pfp, prefs: s.prefs, account: s.account, onboarded: s.onboarded }),
     },
   ),
 );
+
+// Display name — capitalized first letter, friendly fallback.
+export function displayName(name: string): string {
+  const n = name.trim();
+  if (!n) return 'friend';
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}
 
 // Helper to assemble session meta for API calls.
 export function sessionMeta(s: SessionState): SessionMeta {

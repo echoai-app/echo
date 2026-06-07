@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useDisconnectWallet } from '@mysten/dapp-kit';
 import { Ic, Orb, PoweredBy, LogoMark, Avatar } from './ui';
 import { useIdentity } from './identity';
-import { useEcho, type ScreenId } from '@/lib/store';
+import { useEcho, displayName, type ScreenId } from '@/lib/store';
 
 /* ---------------- session-progress stepper ---------------- */
 const SESSION_STEPS = [
@@ -32,8 +32,19 @@ function uniqueDays(isos: string[]): number {
   return new Set(isos.map(s => s.slice(0, 10))).size;
 }
 
+function PmToggle({ on, set, ic, label, sub }: { on: boolean; set: () => void; ic: string; label: string; sub: string }) {
+  return (
+    <div className="pm-row toggle">
+      <span className="pic" style={{ background: on ? 'var(--mint)' : 'var(--cream-2)' }}><Ic name={ic} size={18} /></span>
+      <div style={{ flex: 1 }}>{label}<div className="sub">{sub}</div></div>
+      <div className={'switch' + (on ? ' on' : '')} role="switch" aria-checked={on} tabIndex={0}
+        onClick={set} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && set()} />
+    </div>
+  );
+}
+
 function ProfileMenu({ onClose }: { onClose: () => void }) {
-  const { go, prefs, setPref, name, pfp, journey } = useEcho();
+  const { go, prefs, setPref, setOnboarded, name, pfp, journey } = useEcho();
   const id = useIdentity();
   const { mutate: disconnect } = useDisconnectWallet();
   const navTo = (s: ScreenId) => () => { onClose(); go(s); };
@@ -42,18 +53,10 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
   const onWalrus = journey?.total_on_walrus ?? 0;
   const streak = journey ? uniqueDays(journey.sessions.map(s => s.when)) : 0;
 
-  const Toggle = ({ on, set, ic, label, sub }: { on: boolean; set: () => void; ic: string; label: string; sub: string }) => (
-    <div className="pm-row toggle">
-      <span className="pic" style={{ background: on ? 'var(--mint)' : 'var(--cream-2)' }}><Ic name={ic} size={18} /></span>
-      <div style={{ flex: 1 }}>{label}<div className="sub">{sub}</div></div>
-      <div className={'switch' + (on ? ' on' : '')} role="switch" aria-checked={on} tabIndex={0}
-        onClick={set} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && set()} />
-    </div>
-  );
-
   const logout = () => {
     onClose();
     if (id.mode === 'wallet') { try { disconnect(); } catch { /* noop */ } }
+    setOnboarded(false);   // show the intro again after logging out
     go('welcome');
   };
 
@@ -64,7 +67,7 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
         <button className="pm-head" onClick={navTo('profile')} style={{ width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left' }} title="View profile">
           <Avatar name={name} pfp={pfp} size={52} bg="var(--paper)" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="display" style={{ fontSize: 21 }}>{name}</div>
+            <div className="display" style={{ fontSize: 21 }}>{displayName(name)}</div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 13, marginTop: 2 }}>
               {id.mode === 'wallet'
                 ? <React.Fragment><LogoMark brand="sui" size={15} /> {id.shortAddress}</React.Fragment>
@@ -82,9 +85,9 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
 
         <div className="pm-sec">
           <div className="pm-sec-t">Preferences</div>
-          <Toggle on={prefs.voiceReplies} set={() => setPref('voiceReplies', !prefs.voiceReplies)} ic="ear" label="Voice replies" sub="Echo speaks responses aloud" />
-          <Toggle on={prefs.saveToWalrus} set={() => setPref('saveToWalrus', !prefs.saveToWalrus)} ic="anchor" label="Save memories to Walrus" sub="Review before anything is kept" />
-          <Toggle on={prefs.reducedMotion} set={() => setPref('reducedMotion', !prefs.reducedMotion)} ic="moon" label="Reduced motion" sub="Calmer, simpler animations" />
+          <PmToggle on={prefs.voiceReplies} set={() => setPref('voiceReplies', !prefs.voiceReplies)} ic="ear" label="Voice replies" sub="Echo speaks responses aloud" />
+          <PmToggle on={prefs.saveToWalrus} set={() => setPref('saveToWalrus', !prefs.saveToWalrus)} ic="anchor" label="Save memories to Walrus" sub="Review before anything is kept" />
+          <PmToggle on={prefs.reducedMotion} set={() => setPref('reducedMotion', !prefs.reducedMotion)} ic="moon" label="Reduced motion" sub="Calmer, simpler animations" />
         </div>
 
         <hr className="pm-divide" />
@@ -142,7 +145,7 @@ export function AppBar({ active = 'home' }: { active?: 'home' | 'journey' | 'ses
         <div className="profile-wrap">
           <button className="profile-trigger" onClick={() => setPOpen(o => !o)} aria-haspopup="menu" aria-expanded={pOpen}>
             <Avatar name={name} pfp={pfp} size={34} />
-            <span className="pname">{name}</span>
+            <span className="pname">{displayName(name)}</span>
             <Ic name={pOpen ? 'x' : 'arrowR'} size={14} stroke="var(--ink-soft)" sw={2.6} />
           </button>
           {pOpen && <ProfileMenu onClose={() => setPOpen(false)} />}

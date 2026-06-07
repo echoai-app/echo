@@ -6,7 +6,6 @@ import { Orb, Ic, Chip, Typing, Btn, LogoMark, type OrbState } from '../ui';
 import { RoomDecor } from './RoomDecor';
 import { useEcho, sessionMeta } from '@/lib/store';
 import { useVoice } from '@/lib/voice';
-import { getMode } from '@/lib/echo/modes';
 import type { ChatMessage, ReflectionTurn } from '@/types';
 
 const STATE_META: Record<string, { dot: string; label: string; live: boolean }> = {
@@ -47,21 +46,21 @@ export default function Room() {
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const started = useRef(false);
 
-  const busy = vs === 'listening' || vs === 'thinking' || vs === 'speaking' || vs === 'saving';
-
   const voice = useVoice({ onResult: (t) => send(t, 'voice') });
 
   // Opening line, once.
   useEffect(() => {
     if (started.current) return;
     started.current = true;
+    const t = timers.current;
     if (transcript.length === 0) {
       const line = opening(session.feelings);
       addTurn({ role: 'echo', text: line, source: 'voice', at: new Date().toISOString() });
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: kick off the opening "speaking" state on mount
       setVs('speaking');
       speakOrTimeout(line);
     }
-    return () => timers.current.forEach(clearTimeout);
+    return () => t.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -69,6 +68,7 @@ export default function Room() {
 
   // If a voice listen ends with no result, settle back to idle.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing orb state to the external speech-recognition lifecycle
     if (!voice.listening && vs === 'listening') setVs('idle');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voice.listening]);

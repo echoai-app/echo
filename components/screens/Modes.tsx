@@ -1,19 +1,20 @@
 'use client';
 
 import { AppBar } from '../chrome';
-import { Doodles, Eyebrow, Chip, Ic } from '../ui';
-import { useEcho } from '@/lib/store';
+import { Doodles, Chip, Ic } from '../ui';
+import { useEcho, displayName } from '@/lib/store';
 import { MODES, type EchoMode } from '@/lib/echo/modes';
 
-function greeting(): string {
+function timeOfDay(): { text: string; ic: string; bg: string } {
   const h = new Date().getHours();
-  if (h < 12) return 'good morning';
-  if (h < 18) return 'good afternoon';
-  return 'good evening';
+  if (h < 12) return { text: 'Good morning', ic: 'sun', bg: 'var(--sun)' };
+  if (h < 18) return { text: 'Good afternoon', ic: 'sun', bg: 'var(--peach)' };
+  return { text: 'Good evening', ic: 'moon', bg: 'var(--lav)' };
 }
 
 export default function Modes() {
   const { go, name, startSession, lastTheme, journey } = useEcho();
+  const t = timeOfDay();
   const pick = (m: EchoMode) => { startSession({ mode: m.id, modeTitle: m.title }); go('setup'); };
   const reflections = journey?.sessions.length ?? 0;
 
@@ -23,11 +24,15 @@ export default function Modes() {
       <div className="screen-scroll" style={{ position: 'relative' }}>
         <Doodles />
         <div className="screen-pad" style={{ maxWidth: 1180, margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div className="up d1" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', marginBottom: 28 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Eyebrow ic="sun">{greeting()}, {name}</Eyebrow>
-              <h2 className="display" style={{ fontSize: 'clamp(30px,4vw,44px)' }}>How do you want to reflect?</h2>
-              <p className="lede" style={{ maxWidth: 540 }}>Pick a doorway — there&apos;s no wrong one. You can always change tack once you&apos;re inside.</p>
+          <div className="up d1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', marginBottom: 30 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+              <div style={{ width: 66, height: 66, flex: '0 0 66px', borderRadius: 20, border: '3px solid var(--ink)', display: 'grid', placeItems: 'center', background: t.bg, boxShadow: '3px 4px 0 var(--ink)' }}>
+                <Ic name={t.ic} size={34} sw={2.4} />
+              </div>
+              <div>
+                <h2 className="display" style={{ fontSize: 'clamp(28px,3.8vw,42px)', lineHeight: 1.04 }}>{t.text}, <span style={{ color: 'var(--peach-deep)' }}>{displayName(name)}</span>.</h2>
+                <p className="lede" style={{ marginTop: 6, maxWidth: 520 }}>How do you want to reflect today? There&apos;s no wrong doorway.</p>
+              </div>
             </div>
             <div className="card" style={{ background: 'var(--paper)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 13, flex: '0 0 auto' }}>
               <div className="mode-ic deco" style={{ width: 46, height: 46, background: 'var(--mint)' }}><Ic name="leaf" size={24} /></div>
@@ -38,7 +43,7 @@ export default function Modes() {
             </div>
           </div>
 
-          <div className="up d2" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
+          <div className="up d2 r-3">
             {MODES.map((m) => (
               <div key={m.id} className="mode-card clickable" tabIndex={0} role="button" style={{ background: m.color }} onClick={() => pick(m)} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && pick(m)}>
                 <div className="mode-ic deco"><Ic name={m.ic} size={36} sw={2.3} /></div>

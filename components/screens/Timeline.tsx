@@ -47,6 +47,18 @@ function patternsFrom(j: Journey): string[] {
   return out.slice(0, 3);
 }
 
+function JStat({ n, label, ic, bg }: { n: number; label: string; ic: string; bg: string }) {
+  return (
+    <div className="card" style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div className="mem-ic deco" style={{ width: 50, height: 50, flex: '0 0 50px', background: bg }}><Ic name={ic} size={26} /></div>
+      <div>
+        <div className="display" style={{ fontSize: 28, lineHeight: 1 }}>{n}</div>
+        <div className="muted" style={{ fontWeight: 700, fontSize: 12.5 }}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function Timeline() {
   const { go, journey, setJourney, proof } = useEcho();
   const id = useIdentity();
@@ -73,6 +85,7 @@ export default function Timeline() {
 
   const j = journey;
   const hasData = (j?.sessions.length ?? 0) > 0;
+  const streak = j ? new Set(j.sessions.map(s => s.when.slice(0, 10))).size : 0;
   const trendVals = j?.intensity_trend.map(t => t.value) ?? [];
   const trendLabels = j?.intensity_trend.map(t => relTime(t.when).replace(' days ago', 'd').replace('Just now', 'now').replace('Today', 'now').replace('Yesterday', '1d')) ?? [];
   const trendDelta = trendVals.length >= 2 ? `${trendVals[0]} → ${trendVals[trendVals.length - 1]}` : null;
@@ -87,9 +100,18 @@ export default function Timeline() {
             <div>
               <Eyebrow ic="map">your journey · {j?.sessions.length ?? 0} reflection{(j?.sessions.length ?? 0) === 1 ? '' : 's'}</Eyebrow>
               <h2 className="display" style={{ marginTop: 10 }}>How you&apos;ve been, over time.</h2>
+              <p className="lede" style={{ marginTop: 8, maxWidth: 540 }}>Everything here was distilled from your reflections and recalled from Walrus — only what you chose to keep.</p>
             </div>
             {(j?.total_on_walrus ?? 0) > 0 && <ProofBadge onClick={() => setShowProof(true)} pending={proof?.pending} />}
           </div>
+
+          {hasData && j && (
+            <div className="up d2 r-3" style={{ marginBottom: 18 }}>
+              <JStat n={j.sessions.length} label="reflections" ic="pulse" bg="var(--peach)" />
+              <JStat n={streak} label="day streak" ic="leaf" bg="var(--sage)" />
+              <JStat n={j.total_on_walrus} label="memories on Walrus" ic="db" bg="var(--mint)" />
+            </div>
+          )}
 
           {!hasData ? (
             <div className="up d2 card" style={{ padding: 30, display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -102,7 +124,7 @@ export default function Timeline() {
             </div>
           ) : j && (
             <>
-              <div className="up d2" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 18, marginBottom: 18 }}>
+              <div className="up d2 r-2" style={{ marginBottom: 18 }}>
                 <div className="card" style={{ padding: 24 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <span className="display" style={{ fontSize: 19 }}>Intensity over time</span>
@@ -129,7 +151,7 @@ export default function Timeline() {
                 </div>
               )}
 
-              <div className="up d4" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 18, marginBottom: 30 }}>
+              <div className="up d4 r-2" style={{ marginBottom: 30 }}>
                 <div className="card" style={{ padding: 24 }}>
                   <span className="display" style={{ fontSize: 19 }}>Sessions</span>
                   <div style={{ position: 'relative', marginTop: 18, paddingLeft: 12 }}>

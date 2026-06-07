@@ -50,7 +50,7 @@ export default function Debrief() {
           </div>
 
           {/* structured report */}
-          <div className="up d2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 18 }}>
+          <div className="up d2 r-2" style={{ marginBottom: 18 }}>
             <Panel title="Situation" ic="clock" c="var(--sky)">
               <p style={{ margin: 0, fontWeight: 600, fontSize: 15.5 }}>{find('context') || find('summary') || summaryLine}</p>
             </Panel>

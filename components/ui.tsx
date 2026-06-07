@@ -80,8 +80,11 @@ export function Orb({ size = 180, listening = false, state, mood = 'lav' }: {
         width: size, height: size,
         background: `radial-gradient(circle at 36% 32%, #FFFFFF 0%, #FFF4EC 14%, ${tint} 46%, var(--peach) 82%, var(--peach-deep) 100%)`,
       }} />
-      <div className="orb-spark" style={{ ['--d']: size * 0.62 + 'px' } as CSS}><Ic name="spark" size={20} stroke="#fff" sw={2.4} fill="#fff" /></div>
-      <div className="orb-spark" style={{ ['--d']: size * 0.55 + 'px', animationDelay: '-7s', animationDuration: '18s' } as CSS}><Ic name="spark" size={14} stroke="var(--sun)" sw={2.4} fill="var(--sun)" /></div>
+      {/* centered white sparkle — matches the Echo logo mark */}
+      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', zIndex: 2, pointerEvents: 'none' }}>
+        <Ic name="spark" size={Math.round(size * 0.5)} stroke="#fff" sw={2} fill="#fff" />
+      </div>
+      <div className="orb-spark" style={{ ['--d']: size * 0.6 + 'px', animationDelay: '-7s', animationDuration: '18s' } as CSS}><Ic name="spark" size={Math.max(8, Math.round(size * 0.1))} stroke="var(--sun)" sw={2.4} fill="var(--sun)" /></div>
     </div>
   );
 }
@@ -102,11 +105,11 @@ export function LogoMark({ brand, size = 20 }: { brand: 'mnemos' | 'walrus' | 's
           stroke="url(#echoMnemos)" strokeWidth="4.4" strokeLinecap="round" strokeLinejoin="round" />
         <circle cx="20" cy="20" r="3.1" fill="url(#echoMnemos)" />
       </svg>) },
-    // Walrus — the real WAL token glyph, white on teal.
-    walrus: { bg: '#5FD3C2', el: (
-      <svg viewBox="0 0 1500 1500" width={g} height={g} aria-hidden>
-        <path fill="#0E3B36" d="M614.42,952l44.23-487.38h182.69l44.22,487.38,24.85,4.77c23.76-55.53,89.35-251.26,105.71-492.15h213.88l-164.92,630.77h-258.81l-43.5-315.39h-25.53l-43.5,315.39h-258.82l-164.92-630.77h213.88c16.36,240.89,81.95,436.62,105.71,492.16l24.84-4.77h0Z" />
-      </svg>) },
+    // Walrus — the official white WAL token mark, centered on black.
+    walrus: { bg: '#000000', el: (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src="/brand/walrus-token.png" alt="Walrus" style={{ width: '76%', height: '76%', objectFit: 'contain', display: 'block' }} />
+    ) },
     // Sui — the real droplet, white on Sui blue.
     sui: { bg: '#4DA2FF', el: (
       <svg viewBox="0 0 783 1000" width={g * 0.78} height={g} aria-hidden>

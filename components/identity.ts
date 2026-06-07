@@ -40,6 +40,8 @@ export function useIdentity(): Identity {
   const [guestId, setGuestId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Resolve the guest id only on the client (localStorage is unavailable during SSR).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGuestId(loadGuestId());
   }, []);
 

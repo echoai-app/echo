@@ -34,14 +34,16 @@ export function useVoice(opts: {
   const [partial, setPartial] = useState('');
   const recRef = useRef<any>(null);
   const onResultRef = useRef(onResult);
-  onResultRef.current = onResult;
+  // Keep the latest callback without re-creating the recognizer each render.
+  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const w = window as AnyWindow;
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    let sttOk = false;
     if (SR) {
-      setSupported(true);
+      sttOk = true;
       const rec = new SR();
       rec.continuous = false;
       rec.interimResults = true;
@@ -64,7 +66,11 @@ export function useVoice(opts: {
       rec.onerror = () => setListening(false);
       recRef.current = rec;
     }
-    setTtsSupported(typeof window.speechSynthesis !== 'undefined');
+    const tts = typeof window.speechSynthesis !== 'undefined';
+    // One-time browser capability detection (external system) — not a render loop.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSupported(sttOk);
+    setTtsSupported(tts);
     return () => {
       try { recRef.current?.abort?.(); } catch { /* noop */ }
       try { window.speechSynthesis?.cancel?.(); } catch { /* noop */ }
