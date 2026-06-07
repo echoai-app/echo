@@ -2,16 +2,26 @@
 
 import React, { useEffect, useState } from 'react';
 import { ConnectModal } from '@mysten/dapp-kit';
-import { Doodles, Eyebrow, Btn, Chip, Ic } from '../ui';
+import { Doodles, Eyebrow, Btn, Chip, Ic, Orb } from '../ui';
 import { useEcho } from '@/lib/store';
 import { useIdentity } from '../identity';
 import { BASELINE_SAFETY_NOTE } from '@/lib/echo/safety';
 
 const PROMISES = [
-  { ic: 'check', t: "You choose what's saved", d: 'Nothing is remembered until you review and approve it.' },
-  { ic: 'leaf', t: 'Only meaningful insights', d: 'Echo keeps reflections and patterns — never raw, casual chatter.' },
-  { ic: 'shield', t: 'Yours to forget', d: 'You can revisit or delete any saved memory, any time.' },
+  { ic: 'check', tone: 'var(--sage)', t: "You choose what's saved", d: 'Nothing is remembered until you review and approve it.' },
+  { ic: 'leaf', tone: 'var(--peach)', t: 'Only meaningful insights', d: 'Echo keeps reflections and patterns — never raw, casual chatter.' },
+  { ic: 'shield', tone: 'var(--sky)', t: 'Yours to forget', d: 'You can revisit or delete any saved memory, any time.' },
 ];
+
+function SectionLabel({ children, note }: { children: React.ReactNode; note?: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '30px 0 16px' }}>
+      <span className="kicker">{children}</span>
+      <span style={{ flex: 1, height: 2.5, background: 'var(--cream-3)', borderRadius: 9 }} />
+      {note && <span className="muted" style={{ fontWeight: 700, fontSize: 13 }}>{note}</span>}
+    </div>
+  );
+}
 
 function AccountCard({ active, onClick, ic, tone, title, sub, body, chip, chipIc, chipTone }: {
   active: boolean; onClick: () => void; ic: string; tone: string; title: string; sub: string;
@@ -41,12 +51,12 @@ export default function Consent() {
   const [sel, setSel] = useState<'guest' | 'wallet'>('guest');
   const [connectOpen, setConnectOpen] = useState(false);
   const [nm, setNm] = useState(name);
+  const [confirmed, setConfirmed] = useState(false);
 
   // When a wallet connects, reflect it in the selection.
   // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local UI choice to the external wallet-connection state
   useEffect(() => { if (id.mode === 'wallet') setSel('wallet'); }, [id.mode]);
 
-  const [confirmed, setConfirmed] = useState(false);
   const connected = id.mode === 'wallet';
   const named = nm.trim().length > 0;
 
@@ -65,42 +75,44 @@ export default function Consent() {
     <div className="bg-lavwash" style={{ height: '100%', overflowY: 'auto', position: 'relative' }}>
       <Doodles />
       <ConnectModal open={connectOpen} onOpenChange={setConnectOpen} trigger={<span aria-hidden style={{ display: 'none' }} />} />
-      <div className="screen-pad" style={{ maxWidth: 1040, margin: '0 auto', position: 'relative', zIndex: 2, paddingTop: 56, paddingBottom: 40 }}>
+      <div className="screen-pad" style={{ maxWidth: 1040, margin: '0 auto', position: 'relative', zIndex: 2, paddingTop: 52, paddingBottom: 44 }}>
         <div className="up d1" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
           <Eyebrow ic="db">how your memory works</Eyebrow>
           <h2 className="display">Before we begin.</h2>
-          <p className="lede" style={{ maxWidth: 640 }}>Echo is a calm place to reflect and understand yourself — guided gently, and remembered over time. Here&apos;s how your memories work, and how to keep them.</p>
+          <p className="lede" style={{ maxWidth: 620 }}>Echo is a calm place to reflect and understand yourself — guided gently, and remembered over time. Here&apos;s how your memories work, and how to keep them.</p>
         </div>
 
-        <div className="up d2 card" style={{ marginTop: 26, padding: 22, display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', background: 'var(--paper)' }}>
-          <div style={{ width: 50, height: 50, borderRadius: 14, border: '2.6px solid var(--ink)', display: 'grid', placeItems: 'center', background: 'var(--peach)', flex: '0 0 50px' }}><Ic name="heart" size={26} /></div>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <div className="kicker" style={{ marginBottom: 8 }}>first — what should Echo call you?</div>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', maxWidth: 420 }}>
+        {/* name — the warm welcome */}
+        <div className="up d2 card card-lg" style={{ marginTop: 28, padding: 'clamp(22px,3vw,28px)', display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap', background: 'linear-gradient(120deg, var(--paper) 0%, var(--cream) 100%)' }}>
+          <Orb size={68} />
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <h3 className="display" style={{ fontSize: 'clamp(20px,2.4vw,26px)', margin: 0 }}>What should Echo call you?</h3>
+            <p className="muted" style={{ fontWeight: 600, fontSize: 13.5, margin: '4px 0 12px' }}>Echo will greet you by this — you can change it any time.</p>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', maxWidth: 440 }}>
               <input className={'field-edit' + (confirmed ? ' ok' : '')} autoFocus value={nm} maxLength={32} placeholder="your name or nickname"
                 onChange={e => { setNm(e.target.value); setConfirmed(false); }}
                 onKeyDown={e => e.key === 'Enter' && confirmName()} style={{ flex: 1 }} />
-              <button className={'tick-btn' + (confirmed ? ' on' : '')} disabled={!named} onClick={confirmName}
-                title="Confirm name" aria-label="Confirm name">
+              <button className={'tick-btn' + (confirmed ? ' on' : '')} disabled={!named} onClick={confirmName} title="Confirm name" aria-label="Confirm name">
                 <Ic name="check" size={24} sw={3.2} stroke={confirmed ? '#fff' : 'var(--ink)'} />
               </button>
             </div>
-            {confirmed && <div style={{ marginTop: 8, fontWeight: 700, fontSize: 13.5, color: 'var(--sage-deep)', display: 'inline-flex', alignItems: 'center', gap: 7 }}><Ic name="spark" size={14} stroke="var(--sage-deep)" fill="var(--sage-deep)" /> Lovely to meet you, {nm.trim()}.</div>}
+            {confirmed && <div style={{ marginTop: 10, fontWeight: 700, fontSize: 13.5, color: 'var(--sage-deep)', display: 'inline-flex', alignItems: 'center', gap: 7 }}><Ic name="spark" size={14} stroke="var(--sage-deep)" fill="var(--sage-deep)" /> Lovely to meet you, {nm.trim()}.</div>}
           </div>
         </div>
 
-        <div className="up d2 r-3" style={{ marginTop: 22 }}>
+        <SectionLabel note="consent-first, always">your privacy promises</SectionLabel>
+        <div className="up d2 r-3">
           {PROMISES.map((p, k) => (
             <div key={k} className="tile" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 11 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, border: '2.5px solid var(--ink)', display: 'grid', placeItems: 'center', background: ['var(--sage)', 'var(--peach)', 'var(--sky)'][k] }}><Ic name={p.ic} size={26} /></div>
+              <div style={{ width: 50, height: 50, borderRadius: 14, border: '2.6px solid var(--ink)', display: 'grid', placeItems: 'center', background: p.tone, boxShadow: '2px 3px 0 var(--ink)' }}><Ic name={p.ic} size={26} /></div>
               <div className="display" style={{ fontSize: 19 }}>{p.t}</div>
               <div className="muted" style={{ fontWeight: 600, fontSize: 14.5, lineHeight: 1.45 }}>{p.d}</div>
             </div>
           ))}
         </div>
 
-        <div className="up d3" style={{ marginTop: 30 }}>
-          <div className="kicker" style={{ marginBottom: 12 }}>how should your memories live?</div>
+        <SectionLabel>how should your memories live?</SectionLabel>
+        <div className="up d3">
           <div className="r-2">
             <AccountCard active={sel === 'guest'} onClick={() => setSel('guest')} ic="ghost" tone="var(--cream-2)"
               title="Guest" sub="Just exploring" body="Memories stay tied to this browser for now. Nothing is signed by a wallet." chip="No wallet needed" />

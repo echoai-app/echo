@@ -1,20 +1,24 @@
 'use client';
 
+import React from 'react';
 import { AppBar } from '../chrome';
 import { Doodles, Chip, Ic } from '../ui';
 import { useEcho, displayName } from '@/lib/store';
 import { MODES, type EchoMode } from '@/lib/echo/modes';
 
-function timeOfDay(): { text: string; ic: string; bg: string } {
+type CSS = React.CSSProperties;
+
+function greetCtx() {
   const h = new Date().getHours();
-  if (h < 12) return { text: 'Good morning', ic: 'sun', bg: 'var(--sun)' };
-  if (h < 18) return { text: 'Good afternoon', ic: 'sun', bg: 'var(--peach)' };
-  return { text: 'Good evening', ic: 'moon', bg: 'var(--lav)' };
+  const day = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  if (h < 12) return { text: 'Good morning', ic: 'sun', bg: 'var(--sun)', period: 'morning', sub: 'A fresh start — how are you arriving today?', day };
+  if (h < 18) return { text: 'Good afternoon', ic: 'sun', bg: 'var(--peach)', period: 'afternoon', sub: 'A good moment to pause and check in.', day };
+  return { text: 'Good evening', ic: 'moon', bg: 'var(--lav)', period: 'evening', sub: 'Let’s unwind and reflect on your day.', day };
 }
 
 export default function Modes() {
   const { go, name, startSession, lastTheme, journey } = useEcho();
-  const t = timeOfDay();
+  const t = greetCtx();
   const pick = (m: EchoMode) => { startSession({ mode: m.id, modeTitle: m.title }); go('setup'); };
   const reflections = journey?.sessions.length ?? 0;
 
@@ -24,25 +28,38 @@ export default function Modes() {
       <div className="screen-scroll" style={{ position: 'relative' }}>
         <Doodles />
         <div className="screen-pad" style={{ maxWidth: 1180, margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div className="up d1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', marginBottom: 30 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-              <div style={{ width: 66, height: 66, flex: '0 0 66px', borderRadius: 20, border: '3px solid var(--ink)', display: 'grid', placeItems: 'center', background: t.bg, boxShadow: '3px 4px 0 var(--ink)' }}>
-                <Ic name={t.ic} size={34} sw={2.4} />
+
+          {/* greeting hero */}
+          <div className="up d1 card card-lg" style={{ background: 'linear-gradient(120deg, var(--paper) 0%, var(--cream) 100%)', padding: 'clamp(22px,3vw,30px)', marginBottom: 26, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, position: 'relative', zIndex: 1 }}>
+              <div style={{ position: 'relative', width: 78, height: 78, flex: '0 0 78px', display: 'grid', placeItems: 'center' }}>
+                <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid var(--ink)', background: `radial-gradient(circle at 38% 32%, var(--paper), ${t.bg} 82%)`, boxShadow: '3px 4px 0 var(--ink)' }} />
+                <Ic name={t.ic} size={40} sw={2.3} stroke="var(--ink)" />
+                <span className="doodle float" style={{ top: '-8%', right: '-8%', ['--r']: '0deg' } as CSS}><Ic name="spark" size={17} stroke="var(--sun)" fill="var(--sun)" sw={2.2} /></span>
               </div>
               <div>
-                <h2 className="display" style={{ fontSize: 'clamp(28px,3.8vw,42px)', lineHeight: 1.04 }}>{t.text}, <span style={{ color: 'var(--peach-deep)' }}>{displayName(name)}</span>.</h2>
-                <p className="lede" style={{ marginTop: 6, maxWidth: 520 }}>How do you want to reflect today? There&apos;s no wrong doorway.</p>
+                <div className="kicker" style={{ marginBottom: 6 }}>{t.day} · {t.period}</div>
+                <h2 className="display" style={{ fontSize: 'clamp(30px,4vw,46px)', lineHeight: 1.02 }}>{t.text}, <span style={{ color: 'var(--peach-deep)' }}>{displayName(name)}</span>.</h2>
+                <p className="lede" style={{ marginTop: 6, maxWidth: 480 }}>{t.sub}</p>
               </div>
             </div>
-            <div className="card" style={{ background: 'var(--paper)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 13, flex: '0 0 auto' }}>
-              <div className="mode-ic deco" style={{ width: 46, height: 46, background: 'var(--mint)' }}><Ic name="leaf" size={24} /></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 13, background: 'var(--mint)', border: '2.8px solid var(--ink)', borderRadius: 18, padding: '13px 18px', boxShadow: '3px 4px 0 var(--ink)', flex: '0 0 auto', position: 'relative', zIndex: 1 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 13, border: '2.5px solid var(--ink)', display: 'grid', placeItems: 'center', background: 'var(--paper)', flex: '0 0 46px' }}><Ic name="leaf" size={24} /></div>
               <div>
-                <div className="muted" style={{ fontWeight: 800, fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase' }}>{reflections > 0 ? `${reflections} reflection${reflections === 1 ? '' : 's'}` : 'a fresh start'}</div>
-                <div className="display" style={{ fontSize: 17 }}>{reflections > 0 ? 'You keep showing up.' : 'Glad you came.'}</div>
+                <div className="display" style={{ fontSize: 24, lineHeight: 1 }}>{reflections}</div>
+                <div className="muted" style={{ fontWeight: 800, fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase' }}>reflection{reflections === 1 ? '' : 's'} kept</div>
               </div>
             </div>
           </div>
 
+          {/* section label */}
+          <div className="up d2" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <span className="kicker">how do you want to reflect?</span>
+            <span style={{ flex: 1, height: 2.5, background: 'var(--cream-3)', borderRadius: 9 }} />
+            <span className="muted" style={{ fontWeight: 700, fontSize: 13 }}>there’s no wrong doorway</span>
+          </div>
+
+          {/* mode grid */}
           <div className="up d2 r-3">
             {MODES.map((m) => (
               <div key={m.id} className="mode-card clickable" tabIndex={0} role="button" style={{ background: m.color }} onClick={() => pick(m)} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && pick(m)}>
