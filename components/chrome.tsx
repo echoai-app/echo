@@ -143,7 +143,10 @@ export function AppBar({ active = 'home' }: { active?: 'home' | 'journey' | 'ses
   const nav = (id: ScreenId) => () => go(id);
   return (
     <div className="appbar">
-      <div className="brand" style={{ cursor: 'pointer' }} onClick={nav('modes')} title="Home"><Orb size={32} /> echo</div>
+      <div className="brand" style={{ cursor: 'pointer' }} onClick={nav('modes')} title="Home">
+        <Orb size={38} />
+        <span style={{ letterSpacing: '-.01em' }}>ech<span style={{ color: 'var(--peach-deep)' }}>o</span></span>
+      </div>
 
       <div className="navpills">
         <button className={'navpill' + (active === 'home' ? ' on' : '')} onClick={nav('modes')}>

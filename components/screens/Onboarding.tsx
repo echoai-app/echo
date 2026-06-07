@@ -27,7 +27,7 @@ export default function Onboarding() {
     <div className="bg-cream2" style={{ height: '100%', display: 'grid', placeItems: 'center', position: 'relative' }}>
       <Doodles />
 
-      <div className="card card-lg" key={i} style={{ width: 'min(940px,92vw)', background: c.color, padding: 'clamp(26px,4vw,40px)', position: 'relative', zIndex: 2, minHeight: 388, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+      <div className="card card-lg" key={i} style={{ width: 'min(940px,92vw)', background: c.color, padding: 'clamp(26px,4vw,40px)', position: 'relative', zIndex: 2, minHeight: 424, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
         {/* big faint step number watermark */}
         <div style={{ position: 'absolute', right: 'clamp(10px,3vw,40px)', top: -18, fontFamily: 'var(--display)', fontWeight: 800, fontSize: 'clamp(150px,22vw,240px)', color: 'rgba(53,42,31,.07)', lineHeight: 1, pointerEvents: 'none', zIndex: 0, userSelect: 'none' }}>{c.num}</div>
 
