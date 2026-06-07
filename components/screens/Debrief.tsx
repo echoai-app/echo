@@ -77,17 +77,24 @@ export default function Debrief() {
           <div className="up d3 card" style={{ padding: 24, marginBottom: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               <span className="display" style={{ fontSize: 20 }}>{did ? `Echo will remember ${saved.length} ${saved.length === 1 ? 'thing' : 'things'}` : 'Nothing was saved this time'}</span>
-              {did && proof && <ProofBadge onClick={() => setShowProof(true)} pending={proof.pending} />}
+              {did && proof && <ProofBadge onClick={() => setShowProof(true)} pending={proof.pending} sui={!!proof.sui_registry} />}
             </div>
             {did ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {saved.map(m => {
                   const km = kindMeta(m.kind);
+                  const onWalrus = m.blob_id && !m.blob_id.startsWith('local-');
                   return (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                       <div className="mem-ic" style={{ width: 38, height: 38, flex: '0 0 38px', background: km.color }}><Ic name={km.ic} size={20} /></div>
                       <Chip sm>{m.type}</Chip>
-                      <span style={{ fontWeight: 600, fontSize: 15 }}>{m.text}</span>
+                      <span style={{ fontWeight: 600, fontSize: 15, flex: 1, minWidth: 120 }}>{m.text}</span>
+                      {onWalrus
+                        ? <a href={`https://walruscan.com/${m.proof?.sui_registry?.network ?? 'testnet'}/blob/${m.blob_id}`} target="_blank" rel="noreferrer"
+                            className="chip sm mono" style={{ textDecoration: 'none', fontSize: 11, color: 'var(--ink)', background: 'var(--mint)' }} title={m.blob_id}>
+                            <Ic name="db" size={12} /> {m.blob_id.slice(0, 6)}…{m.blob_id.slice(-4)} ↗
+                          </a>
+                        : <span className="chip sm" style={{ fontSize: 11, background: 'var(--cream-2)' }}>syncing</span>}
                     </div>
                   );
                 })}

@@ -75,6 +75,13 @@ export interface VectorIndex {
 // ─── Walrus proof (the verifiable receipt) ───────────────────────────────────
 // Surfaced in the Debrief proof card. `pending` = stored locally/optimistically
 // while Walrus testnet finalizes (graceful fallback — Echo never blocks on it).
+export interface SuiRegistryProof {
+  digest: string;          // the on-chain transaction digest (wallet-signed)
+  object_id: string;       // the user-owned MemoryPointer object id
+  index_blob_id: string;   // the Walrus index blob the pointer now points to
+  network: string;         // 'testnet' | 'mainnet' | …
+}
+
 export interface WalrusProof {
   blob_id: string;
   sui_object?: string;
@@ -86,6 +93,8 @@ export interface WalrusProof {
   certified: boolean;
   pending: boolean;       // true when Walrus hasn't confirmed yet (local fallback)
   aggregator_url?: string;
+  // Set only after a real wallet-signed Sui transaction registers the pointer.
+  sui_registry?: SuiRegistryProof | null;
 }
 
 // ─── Reflection artifact (candidate in Memory review) ────────────────────────

@@ -1,13 +1,14 @@
 'use client';
 
-import { Ic, Btn } from './ui';
+import { Ic, Btn, LogoMark } from './ui';
+import { suiscanTxUrl, suiscanObjectUrl } from '@/lib/sui/registry';
 import type { WalrusProof } from '@/types';
 
-export function ProofBadge({ onClick, pending }: { onClick: () => void; pending?: boolean }) {
+export function ProofBadge({ onClick, pending, sui }: { onClick: () => void; pending?: boolean; sui?: boolean }) {
   return (
     <button className={'proof-badge' + (pending ? ' pending' : '')} onClick={onClick}>
       <span className={'proof-dot' + (pending ? ' pending' : '')} />
-      {pending ? 'Saved · syncing to Walrus' : 'Saved to Walrus'} <Ic name="arrowR" size={13} />
+      {pending ? 'Saved · syncing to Walrus' : sui ? 'Walrus + Sui proof' : 'Saved to Walrus'} <Ic name="arrowR" size={13} />
     </button>
   );
 }
@@ -34,7 +35,7 @@ export function ProofModal({ open, onClose, proof, count }: {
           <div style={{ width: 56, height: 56, borderRadius: 16, border: '3px solid var(--ink)', display: 'grid', placeItems: 'center', background: 'var(--paper)', boxShadow: '2px 3px 0 var(--ink)' }}><Ic name="anchor" size={30} /></div>
           <div style={{ flex: 1 }}>
             <div className="display" style={{ fontSize: 22 }}>{pending ? 'Saving to Walrus' : 'Stored on Walrus'}</div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink-soft)' }}>{count} reflection {count === 1 ? 'memory' : 'memories'} · {pending ? 'finalizing on testnet…' : 'verifiable & portable'}</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink-soft)' }}>{count} reflection {count === 1 ? 'memory' : 'memories'} · {pending ? 'finalizing on testnet…' : proof.sui_registry ? 'verifiable on Walrus + Sui' : 'verifiable & portable'}</div>
           </div>
           <button onClick={onClose} className="chip" style={{ cursor: 'pointer', boxShadow: '2px 3px 0 var(--ink)' }}><Ic name="x" size={16} /></button>
         </div>
@@ -44,6 +45,21 @@ export function ProofModal({ open, onClose, proof, count }: {
           <div className="proof-row"><span className="k">Stored at epoch</span><span className="v">{proof.epoch ?? '—'} {proof.expiry != null && <span className="muted" style={{ fontWeight: 600 }}>· through {proof.expiry}</span>}</span></div>
           <div className="proof-row"><span className="k">Size · cost</span><span className="v">{proof.size ?? '—'}{proof.cost ? ` · ${proof.cost}` : ''}</span></div>
           <div className="proof-row"><span className="k">Status</span><span className="v" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><span className={'proof-dot' + (pending ? ' pending' : '')} /> {pending ? 'Syncing' : proof.certified ? 'Certified' : 'Stored'}</span></div>
+
+          {/* on-chain pointer — only shown after a real wallet-signed Sui tx */}
+          {proof.sui_registry && (
+            <div style={{ marginTop: 14, border: '2.5px solid var(--ink)', borderRadius: 16, overflow: 'hidden' }}>
+              <div style={{ background: 'var(--sky)', padding: '10px 14px', borderBottom: '2.5px solid var(--ink)', display: 'flex', alignItems: 'center', gap: 9, fontWeight: 800, fontSize: 13.5 }}>
+                <LogoMark brand="sui" size={18} /> Pointer registered on Sui · {proof.sui_registry.network}
+              </div>
+              <div style={{ padding: '4px 14px 10px' }}>
+                <div className="proof-row"><span className="k">Sui tx</span><a className="v mono" style={{ fontSize: 12.5, color: 'var(--ink)' }} href={suiscanTxUrl(proof.sui_registry.digest)} target="_blank" rel="noreferrer">{short(proof.sui_registry.digest)} ↗</a></div>
+                {proof.sui_registry.object_id && <div className="proof-row"><span className="k">Pointer object</span><a className="v mono" style={{ fontSize: 12.5, color: 'var(--ink)' }} href={suiscanObjectUrl(proof.sui_registry.object_id)} target="_blank" rel="noreferrer">{short(proof.sui_registry.object_id)} ↗</a></div>}
+                <div className="proof-row"><span className="k">Points to index</span><span className="v mono" style={{ fontSize: 12 }}>{short(proof.sui_registry.index_blob_id)}</span></div>
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
             {walruscan
               ? <a href={walruscan} target="_blank" rel="noreferrer" className="btn sm block" style={{ textDecoration: 'none' }}><Ic name="db" size={18} /> View on Walruscan</a>

@@ -1,21 +1,26 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { AppBar, SessionProgress } from '../chrome';
 import { Doodles, Eyebrow, Btn, Chip, Ic, Orb } from '../ui';
 import { useEcho, sessionMeta } from '@/lib/store';
 import { useIdentity } from '../identity';
 import { kindMeta } from '@/lib/echo/artifacts';
-import type { ReflectionArtifact } from '@/types';
+import { registryEnabled, getMemoryPointer, buildRegisterTx, SUI_NETWORK } from '@/lib/sui/registry';
+import type { ReflectionArtifact, WalrusProof } from '@/types';
 
 interface Item extends ReflectionArtifact { keep: boolean }
 
-function SavingBar() {
+function SavingBar({ phase }: { phase: 'walrus' | 'sui' }) {
+  const msg = phase === 'sui'
+    ? 'Registering your memory pointer on Sui — approve in your wallet…'
+    : 'Encoding reflection · erasure-coding across Walrus nodes…';
   return (
-    <div className="card" style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 16, background: 'var(--mint)' }}>
+    <div className="card" style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 16, background: phase === 'sui' ? 'var(--sky)' : 'var(--mint)' }}>
       <Orb size={40} state="saving" />
       <div style={{ flex: 1 }}>
-        <div className="display" style={{ fontSize: 16 }}>Encoding reflection · erasure-coding across Walrus nodes…</div>
+        <div className="display" style={{ fontSize: 16 }}>{msg}</div>
         <div style={{ height: 12, borderRadius: 9, border: '2.5px solid var(--ink)', marginTop: 8, overflow: 'hidden', background: 'var(--paper)' }}>
           <div style={{ height: '100%', background: 'var(--sage-deep)', width: '92%', animation: 'savefill 1.6s ease forwards' }} />
         </div>
@@ -28,20 +33,27 @@ function SavingBar() {
 export default function MemoryReview() {
   const { go, session, proposed, setSaved } = useEcho();
   const id = useIdentity();
+  const account = useCurrentAccount();
+  const client = useSuiClient();
+  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
+
   const initial = useMemo<Item[]>(
     () => (proposed?.artifacts ?? []).map(a => ({ ...a, keep: a.kind !== 'context' })),
     [proposed],
   );
   const [items, setItems] = useState<Item[]>(initial);
   const [saving, setSaving] = useState(false);
+  const [phase, setPhase] = useState<'walrus' | 'sui'>('walrus');
   const keepCount = items.filter(i => i.keep).length;
   const toggle = (id_: string) => setItems(its => its.map(i => i.id === id_ ? { ...i, keep: !i.keep } : i));
   const leftOut = proposed?.left_out;
+  const willSign = id.mode === 'wallet' && registryEnabled();
 
   const save = async () => {
     if (keepCount === 0 || saving) return;
-    setSaving(true);
+    setSaving(true); setPhase('walrus');
     const approved = items.filter(i => i.keep).map(({ keep, ...rest }) => { void keep; return rest; });
+
     try {
       const res = await fetch('/api/memory/commit', {
         method: 'POST',
@@ -58,12 +70,35 @@ export default function MemoryReview() {
         }),
       });
       const data = await res.json();
-      setSaved(data.saved ?? [], data.proof ?? null);
+      let proof: WalrusProof | null = data.proof ?? null;
+      const indexBlobId: string | undefined = data.index_blob_id;
+
+      // ── On-chain pointer: wallet signs a Sui tx registering the index blob ──
+      // Only when a wallet is connected, the package is configured, and Walrus
+      // actually returned a real index blob. Failure/rejection → no Sui claim.
+      if (account?.address && registryEnabled() && proof && indexBlobId && !indexBlobId.startsWith('local-')) {
+        setPhase('sui');
+        try {
+          const existing = await getMemoryPointer(client, account.address);
+          const tx = buildRegisterTx(indexBlobId, existing?.objectId);
+          const signed = await signAndExecute({ transaction: tx });
+          let objectId = existing?.objectId ?? '';
+          try {
+            const txRes = await client.waitForTransaction({ digest: signed.digest, options: { showObjectChanges: true } });
+            const created = txRes.objectChanges?.find(c => c.type === 'created' && c.objectType.includes('::memory_registry::MemoryPointer'));
+            if (created && created.type === 'created') objectId = created.objectId;
+          } catch { /* digest still valid even if we couldn't read changes */ }
+          proof = { ...proof, sui_registry: { digest: signed.digest, object_id: objectId, index_blob_id: indexBlobId, network: SUI_NETWORK } };
+        } catch {
+          // wallet rejected or tx failed — keep the Walrus proof, claim no pointer
+        }
+      }
+
+      setSaved(data.saved ?? [], proof);
     } catch {
       setSaved([], null);
     }
-    // brief beat so the "writing to Walrus" state is felt
-    setTimeout(() => go('debrief'), 900);
+    setTimeout(() => go('debrief'), 600);
   };
 
   const empty = items.length === 0;
@@ -117,15 +152,15 @@ export default function MemoryReview() {
               </div>
 
               <div className="up d3" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 26, flexWrap: 'wrap', gap: 14 }}>
-                <span className="safety"><Ic name="db" size={15} /> {keepCount} {keepCount === 1 ? 'memory' : 'memories'} → {id.mode === 'wallet' ? 'Walrus (signed by your wallet)' : 'Walrus (guest blob)'}</span>
+                <span className="safety"><Ic name="db" size={15} /> {keepCount} {keepCount === 1 ? 'memory' : 'memories'} → Walrus{willSign ? ' · then a Sui pointer you sign' : id.mode === 'wallet' ? '' : ' · guest session'}</span>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <Btn onClick={() => { setSaved([], null); go('debrief'); }}>Skip saving</Btn>
                   <Btn variant="primary" icon="db" onClick={save} disabled={saving || keepCount === 0}>
-                    {saving ? 'Writing to Walrus…' : `Save ${keepCount} to Walrus`}
+                    {saving ? (phase === 'sui' ? 'Sign on Sui…' : 'Writing to Walrus…') : `Save ${keepCount} to Walrus`}
                   </Btn>
                 </div>
               </div>
-              {saving && <div className="up" style={{ marginTop: 16 }}><SavingBar /></div>}
+              {saving && <div className="up" style={{ marginTop: 16 }}><SavingBar phase={phase} /></div>}
             </>
           )}
         </div>

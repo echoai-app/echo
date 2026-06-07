@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useCurrentAccount, useSuiClient } from '@mysten/dapp-kit';
 import { AppBar } from '../chrome';
 import { Doodles, Eyebrow, Btn, Chip, Ic, Orb } from '../ui';
 import { ProofBadge } from '../proof';
 import { useEcho } from '@/lib/store';
 import { useIdentity } from '../identity';
 import { kindMeta } from '@/lib/echo/artifacts';
+import { registryEnabled, getMemoryPointer } from '@/lib/sui/registry';
 import type { RecalledMemory } from '@/types';
 
 function bubbleText(recalled: RecalledMemory[]): string {
@@ -22,13 +24,31 @@ function bubbleText(recalled: RecalledMemory[]): string {
 export default function Recall() {
   const { go, recalled, setRecalled, lastTheme, startSession } = useEcho();
   const id = useIdentity();
+  const account = useCurrentAccount();
+  const client = useSuiClient();
   const [show, setShow] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [recovered, setRecovered] = useState(false);
 
   useEffect(() => {
     if (!id.ready || !id.userId) return;
     let cancelled = false;
     (async () => {
+      // Wallet recovery: wallet → on-chain MemoryPointer → Walrus index blob →
+      // rehydrate the index so recall works on a fresh device/deploy.
+      if (id.mode === 'wallet' && account?.address && registryEnabled()) {
+        try {
+          const ptr = await getMemoryPointer(client, account.address);
+          if (ptr?.indexBlobId) {
+            const r = await fetch('/api/memory/restore', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: id.userId, index_blob_id: ptr.indexBlobId }),
+            });
+            const rj = await r.json().catch(() => ({}));
+            if (!cancelled && rj?.ok) setRecovered(true);
+          }
+        } catch { /* fall through to local recall */ }
+      }
       try {
         const url = `/api/recall?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}&context=${encodeURIComponent(lastTheme)}`;
         const res = await fetch(url);
@@ -107,7 +127,7 @@ export default function Recall() {
           )}
 
           <div className="up d4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 30 }}>
-            <span className="safety"><Ic name="anchor" size={15} /> Recalled from Walrus · {id.mode === 'wallet' ? 'signed by your wallet' : 'guest blob'}</span>
+            <span className="safety"><Ic name="anchor" size={15} /> Recalled from Walrus · {recovered ? 'via your Sui pointer' : id.mode === 'wallet' ? 'your wallet' : 'guest session'}</span>
             <div style={{ display: 'flex', gap: 12 }}>
               <Btn icon="map" onClick={() => go('timeline')}>See my journey</Btn>
               <Btn variant="primary" iconR="arrowR" onClick={pickUp}>Pick up where we left off</Btn>

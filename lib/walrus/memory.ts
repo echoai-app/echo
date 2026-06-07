@@ -228,11 +228,16 @@ export interface BatchItemResult {
   spec: MemorySpec;
 }
 
+export interface BatchResult {
+  results: BatchItemResult[];
+  indexBlobId: string | null;   // Walrus blob id of the saved index (when flushed)
+}
+
 export async function storeMemoriesBatch(
   user_id: string,
   specs: MemorySpec[],
   opts?: { flushIndex?: boolean },
-): Promise<BatchItemResult[]> {
+): Promise<BatchResult> {
   const now = new Date().toISOString();
 
   const writes = await Promise.allSettled(specs.map(async (spec) => {
@@ -304,16 +309,36 @@ export async function storeMemoriesBatch(
     }
   });
 
+  let indexBlobId: string | null = indexCache.get(user_id)?.blobId ?? null;
   if (indexChanged) {
     // Update the in-memory cache AND the fast local file synchronously so
     // recall/journey see the new memories immediately (across worker requests).
-    indexCache.set(user_id, { index, blobId: indexCache.get(user_id)?.blobId ?? null });
+    indexCache.set(user_id, { index, blobId: indexBlobId });
     await saveIndexLocal(user_id, index);
     if (opts?.flushIndex !== false) {
-      try { await saveIndex(user_id, index); } catch { /* local copy already written */ }
+      // Flush the durable index to Walrus and capture its blob id — this is the
+      // id the on-chain MemoryPointer will register.
+      try { indexBlobId = await saveIndex(user_id, index); } catch { /* local copy already written */ }
     }
   }
-  return results;
+  return { results, indexBlobId };
+}
+
+/** Recover a user's memory index from a Walrus blob id (read from their on-chain
+ *  MemoryPointer). Rehydrates the local index so recall/journey work on a fresh
+ *  device/deploy. */
+export async function restoreIndexFromBlob(user_id: string, blobId: string): Promise<{ ok: boolean; entries: number }> {
+  try {
+    const index = await walrusFetchJSON<VectorIndex>(blobId);
+    if (!index || !Array.isArray(index.entries)) return { ok: false, entries: 0 };
+    index.user_id = user_id;
+    indexCache.set(user_id, { index, blobId });
+    await saveIndexLocal(user_id, index);
+    await writeRegistry(user_id, blobId);
+    return { ok: true, entries: index.entries.length };
+  } catch {
+    return { ok: false, entries: 0 };
+  }
 }
 
 /** Persist the (cached) vector index to Walrus. Call from `after()` so a commit

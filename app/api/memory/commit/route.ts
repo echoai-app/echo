@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse, after } from 'next/server';
-import { storeMemoriesBatch, persistIndex, findDuplicateMemory, type MemorySpec } from '@/lib/walrus/memory';
+import { NextRequest, NextResponse } from 'next/server';
+import { storeMemoriesBatch, findDuplicateMemory, type MemorySpec } from '@/lib/walrus/memory';
 import { themeTagsFor } from '@/lib/echo/text';
 import { ensureWorkspaceId } from '@/lib/workspace';
 import type { ReflectionArtifact, SavedArtifact, WalrusProof, SessionMeta } from '@/types';
@@ -74,10 +74,11 @@ export async function POST(req: NextRequest) {
   } : null;
 
   const allSpecs = sessionSpec ? [...artifactSpecs, sessionSpec] : artifactSpecs;
-  // Defer the durable index write so the user isn't blocked on it — the
-  // in-memory index is updated synchronously, so recall/journey work right away.
-  const results = allSpecs.length ? await storeMemoriesBatch(user_id, allSpecs, { flushIndex: false }) : [];
-  if (results.length) after(() => persistIndex(user_id));
+  // Flush the durable index synchronously so we can return its Walrus blob id —
+  // the client registers that id on-chain (the MemoryPointer) right after.
+  const { results, indexBlobId } = allSpecs.length
+    ? await storeMemoriesBatch(user_id, allSpecs, { flushIndex: true })
+    : { results: [], indexBlobId: null };
 
   // Map artifact results back to SavedArtifacts (the session summary is last).
   const saved: SavedArtifact[] = fresh.map((art, i) => {
@@ -93,5 +94,5 @@ export async function POST(req: NextRequest) {
   const walrusOk = results.some(r => r.ok);
   const proof = saved.find(s => !s.proof.pending)?.proof ?? saved[0]?.proof ?? pendingProof(session_id);
 
-  return NextResponse.json({ saved, proof, total: saved.length, walrusOk, workspace_id });
+  return NextResponse.json({ saved, proof, total: saved.length, walrusOk, workspace_id, index_blob_id: indexBlobId });
 }
