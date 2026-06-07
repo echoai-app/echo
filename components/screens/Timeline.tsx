@@ -8,6 +8,7 @@ import { useEcho } from '@/lib/store';
 import { useIdentity } from '../identity';
 import { kindMeta } from '@/lib/echo/artifacts';
 import { themeColor } from '@/lib/echo/text';
+import { AccentDisc } from './Settings';
 import type { Journey } from '@/types';
 
 function relTime(iso: string): string {
@@ -96,11 +97,14 @@ export default function Timeline() {
       <div className="screen-scroll" style={{ position: 'relative' }}>
         <Doodles />
         <div className="screen-pad" style={{ maxWidth: 1120, margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div className="up d1" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, flexWrap: 'wrap', gap: 14 }}>
-            <div>
-              <Eyebrow ic="map">your journey · {j?.sessions.length ?? 0} reflection{(j?.sessions.length ?? 0) === 1 ? '' : 's'}</Eyebrow>
-              <h2 className="display" style={{ marginTop: 10 }}>How you&apos;ve been, over time.</h2>
-              <p className="lede" style={{ marginTop: 8, maxWidth: 540 }}>Everything here was distilled from your reflections and recalled from Walrus — only what you chose to keep.</p>
+          <div className="up d1 card card-lg" style={{ padding: 'clamp(22px,3vw,28px)', marginBottom: 20, background: 'linear-gradient(120deg, var(--paper) 0%, var(--cream) 100%)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+              <AccentDisc icon="map" accent="var(--lav)" />
+              <div>
+                <Eyebrow ic="map">your journey · {j?.sessions.length ?? 0} reflection{(j?.sessions.length ?? 0) === 1 ? '' : 's'}</Eyebrow>
+                <h2 className="display" style={{ marginTop: 6 }}>How you&apos;ve been, over time.</h2>
+                <p className="lede" style={{ marginTop: 6, maxWidth: 500 }}>Everything here was distilled from your reflections and recalled from Walrus — only what you chose to keep.</p>
+              </div>
             </div>
             {(j?.total_on_walrus ?? 0) > 0 && <ProofBadge onClick={() => setShowProof(true)} pending={proof?.pending} />}
           </div>

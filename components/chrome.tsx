@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDisconnectWallet } from '@mysten/dapp-kit';
 import { Ic, Orb, PoweredBy, LogoMark, Avatar } from './ui';
 import { useIdentity } from './identity';
@@ -44,10 +44,25 @@ function PmToggle({ on, set, ic, label, sub }: { on: boolean; set: () => void; i
 }
 
 function ProfileMenu({ onClose }: { onClose: () => void }) {
-  const { go, prefs, setPref, setOnboarded, name, pfp, journey } = useEcho();
+  const { go, prefs, setPref, setOnboarded, name, pfp, journey, setJourney } = useEcho();
   const id = useIdentity();
   const { mutate: disconnect } = useDisconnectWallet();
   const navTo = (s: ScreenId) => () => { onClose(); go(s); };
+
+  // Load real stats when the menu opens (if we haven't already).
+  useEffect(() => {
+    if (journey || !id.ready || !id.userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/journey?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}`);
+        const data = await res.json();
+        if (!cancelled) setJourney(data);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id.ready, id.userId]);
 
   const reflections = journey?.sessions.length ?? 0;
   const onWalrus = journey?.total_on_walrus ?? 0;

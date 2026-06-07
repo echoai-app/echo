@@ -41,6 +41,16 @@ const TABS: { id: ScreenId; label: string; ic: string }[] = [
   { id: 'help', label: 'Help & support', ic: 'help' },
 ];
 
+export function AccentDisc({ icon, accent, size = 74 }: { icon: string; accent: string; size?: number }) {
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flex: `0 0 ${size}px`, display: 'grid', placeItems: 'center' }}>
+      <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid var(--ink)', background: `radial-gradient(circle at 38% 32%, var(--paper), ${accent} 82%)`, boxShadow: '3px 4px 0 var(--ink)' }} />
+      <Ic name={icon} size={Math.round(size * 0.48)} sw={2.2} stroke="var(--ink)" />
+      <span className="doodle float" style={{ top: '-8%', right: '-8%', ['--r']: '0deg' } as React.CSSProperties}><Ic name="spark" size={15} stroke="var(--sun)" fill="var(--sun)" sw={2.2} /></span>
+    </div>
+  );
+}
+
 function SettingsShell({ active, eyebrow, icon, title, sub, accent, children }: {
   active: ScreenId; eyebrow: string; icon: string; title: string; sub: string; accent: string; children: React.ReactNode;
 }) {
@@ -50,16 +60,17 @@ function SettingsShell({ active, eyebrow, icon, title, sub, accent, children }: 
       <AppBar active="home" />
       <div className="screen-scroll" style={{ position: 'relative' }}>
         <Doodles />
-        <div className="screen-pad" style={{ maxWidth: 960, margin: '0 auto', position: 'relative', zIndex: 2, paddingBottom: 50 }}>
-          <button className="linkbtn up d1" style={{ marginBottom: 14 }} onClick={() => go('modes')}><Ic name="arrowL" size={16} /> Back to home</button>
-          <div className="up d1" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4 }}>
-            <div className="tile" style={{ width: 60, height: 60, display: 'grid', placeItems: 'center', background: accent, flex: '0 0 60px' }}><Ic name={icon} size={30} /></div>
-            <div>
+        <div className="screen-pad" style={{ maxWidth: 980, margin: '0 auto', position: 'relative', zIndex: 2, paddingBottom: 54 }}>
+          <button className="linkbtn up d1" style={{ marginBottom: 16 }} onClick={() => go('modes')}><Ic name="arrowL" size={16} /> Back to home</button>
+
+          <div className="up d1 card card-lg" style={{ padding: 'clamp(22px,3vw,28px)', marginBottom: 20, background: 'linear-gradient(120deg, var(--paper) 0%, var(--cream) 100%)', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+            <AccentDisc icon={icon} accent={accent} />
+            <div style={{ flex: 1, minWidth: 240 }}>
               <Eyebrow ic="gear">{eyebrow}</Eyebrow>
               <h2 className="display" style={{ marginTop: 6 }}>{title}</h2>
+              <p className="lede" style={{ marginTop: 6, maxWidth: 560 }}>{sub}</p>
             </div>
           </div>
-          <p className="lede up d1" style={{ maxWidth: 600, marginTop: 8 }}>{sub}</p>
 
           <div className="set-tabs up d2">
             {TABS.map(t => (
@@ -134,7 +145,7 @@ export function Profile() {
   return (
     <SettingsShell active="profile" eyebrow="this is you" icon="heart" title="My profile" accent="var(--mint)"
       sub="A calm corner that's yours. Set how Echo greets you — it stays on this device.">
-      <div className="card" style={{ padding: 26, marginBottom: 18, display: 'flex', gap: 26, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="card card-lg" style={{ padding: 'clamp(22px,3vw,28px)', marginBottom: 18, display: 'flex', gap: 26, alignItems: 'center', flexWrap: 'wrap', background: 'linear-gradient(120deg, var(--mint) 0%, var(--cream) 120%)' }}>
         <div className="pfp-edit" style={{ background: pfp ? 'var(--paper)' : 'var(--sage)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {pfp ? <img src={pfp} alt="profile" /> : (name[0]?.toUpperCase() || 'E')}
@@ -143,7 +154,7 @@ export function Profile() {
         </div>
         <div style={{ flex: 1, minWidth: 240 }}>
           <div className="kicker" style={{ marginBottom: 8 }}>what should Echo call you?</div>
-          <input className="field-edit" value={name} maxLength={32} onChange={e => setName(e.target.value || 'friend')} placeholder="your name" />
+          <input className="field-edit" value={name} maxLength={32} onChange={e => setName(e.target.value || 'friend')} placeholder="your name" style={{ maxWidth: 400 }} />
           <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
             <Chip sm ic={id.mode === 'wallet' ? 'sui' : 'ghost'} tone={id.mode === 'wallet' ? 'sage' : ''}>
               {id.mode === 'wallet' ? `Wallet · ${id.shortAddress}` : 'Guest session'}
@@ -307,7 +318,7 @@ export function Help() {
   return (
     <SettingsShell active="help" eyebrow="we’re here for you" icon="help" title="Help & support" accent="var(--sun)"
       sub="A few things worth knowing — and where to turn if you need more than reflection.">
-      <div className="card" style={{ padding: 24, marginBottom: 18, background: 'var(--peachwash, var(--cream-2))', display: 'flex', gap: 16, alignItems: 'center' }}>
+      <div className="card card-lg" style={{ padding: 24, marginBottom: 18, background: 'linear-gradient(120deg, #FBE2D4 0%, var(--cream) 120%)', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <Orb size={56} />
         <div>
           <div className="display" style={{ fontSize: 18 }}>Echo is a reflection companion — not medical care.</div>
