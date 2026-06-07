@@ -454,6 +454,8 @@ h3.display{font-size:clamp(22px,2.3vw,30px);margin:0;}
   font-weight:700;font-size:12.5px;color:var(--ink-soft);padding:8px 6px;border-radius:99px;border:2px solid transparent;
   cursor:pointer;background:none;transition:background .15s ease,color .15s ease;white-space:nowrap;}
 .calm-tab.on{background:var(--paper);color:var(--ink);border-color:var(--ink);box-shadow:1.5px 2px 0 var(--ink);}
+/* fixed-height content area so the popup never resizes between tabs */
+.calm-body{min-height:262px;display:flex;flex-direction:column;justify-content:center;}
 .ground-num{width:78px;height:78px;border-radius:50%;border:3px solid var(--ink);display:grid;place-items:center;
   font-family:var(--display);font-weight:800;font-size:40px;box-shadow:3px 4px 0 var(--ink);margin:8px auto 0;
   transition:background .3s ease;}

@@ -111,6 +111,7 @@ export function CalmCorner() {
                 <button className={'calm-tab' + (tab === 'affirm' ? ' on' : '')} onClick={() => setTab('affirm')}><Ic name="heart" size={15} /> Affirm</button>
               </div>
 
+              <div className="calm-body">
               {tab === 'breathe' && (
                 <>
                   <div className="breathe-stage">
@@ -149,6 +150,7 @@ export function CalmCorner() {
                   </button>
                 </div>
               )}
+              </div>
 
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16, paddingTop: 12, borderTop: '2.5px dashed var(--cream-3)' }}>
                 <button className="linkbtn" style={{ fontSize: 13.5 }} onClick={() => setTab('support')}>
