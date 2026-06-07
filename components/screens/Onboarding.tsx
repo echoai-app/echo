@@ -25,23 +25,32 @@ export default function Onboarding() {
       <div style={{ position: 'absolute', top: 30, left: 0, right: 0, display: 'grid', placeItems: 'center', zIndex: 3 }}>
         <div className="pdots">{ONBOARD.map((_, k) => <span key={k} className={'pdot ' + (k === i ? 'on' : '')} />)}</div>
       </div>
-      <div className="card card-lg" key={i} style={{ width: 'min(880px,90vw)', background: c.color, padding: 30, position: 'relative', zIndex: 2 }}>
-        <div className="up" style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 30, alignItems: 'center' }}>
-          <div className="tile" style={{ aspectRatio: '1', display: 'grid', placeItems: 'center', background: 'var(--paper)' }}>
-            <Ic name={c.ic} size={84} sw={2.2} />
+      <div className="card card-lg" key={i} style={{ width: 'min(900px,92vw)', background: c.color, padding: 32, position: 'relative', zIndex: 2, minHeight: 372, display: 'flex', alignItems: 'center' }}>
+        <div className="up" style={{ display: 'grid', gridTemplateColumns: '210px 1fr', gap: 32, alignItems: 'center', width: '100%' }}>
+          <div className="tile" style={{ width: 210, height: 210, display: 'grid', placeItems: 'center', background: 'var(--paper)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(circle at 50% 38%, ${c.color}55, transparent 70%)` }} />
+            <Ic name={c.ic} size={92} sw={2.1} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Eyebrow>{c.tag}</Eyebrow>
-            <h2 className="display">{c.title}</h2>
-            <p style={{ margin: 0, fontSize: 18.5, lineHeight: 1.55, fontWeight: 600 }}>{c.body}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <Eyebrow ic={c.ic}>{c.tag}</Eyebrow>
+            <h2 className="display" style={{ fontSize: 'clamp(26px,3.4vw,40px)' }}>{c.title}</h2>
+            <p style={{ margin: 0, fontSize: 17.5, lineHeight: 1.55, fontWeight: 600, maxWidth: 460 }}>{c.body}</p>
             {c.loop && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 2 }}>
-                {LOOP_STEPS.map((s, k) => (
-                  <React.Fragment key={s}>
-                    <span className="chip" style={{ background: k === LOOP_STEPS.length - 1 ? 'var(--sun)' : 'var(--paper)', fontSize: 13.5 }}>{s}</span>
-                    {k < LOOP_STEPS.length - 1 && <Ic name="arrowR" size={14} stroke="var(--ink-soft)" />}
-                  </React.Fragment>
-                ))}
+              <div className="tile" style={{ background: 'var(--paper)', padding: '16px 18px', marginTop: 4, boxShadow: '3px 4px 0 var(--ink)' }}>
+                <div className="kicker" style={{ marginBottom: 12, fontSize: 11 }}>the reflection loop</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '9px 7px', alignItems: 'center' }}>
+                  {LOOP_STEPS.map((s, k) => {
+                    const last = k === LOOP_STEPS.length - 1;
+                    return (
+                      <React.Fragment key={s}>
+                        <span className="chip sm" style={{ background: last ? 'var(--sun)' : 'var(--cream-2)', fontSize: 13, padding: '7px 13px', boxShadow: '1.5px 2px 0 var(--ink)' }}>
+                          {last && <Ic name="sprout" size={13} />}{s}
+                        </span>
+                        {!last && <Ic name="arrowR" size={13} stroke="var(--ink-faint)" sw={2.8} />}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

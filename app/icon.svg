@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="echoOrb" cx="38%" cy="32%" r="72%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="16%" stop-color="#FFF4EC"/>
+      <stop offset="48%" stop-color="#CBBCEE"/>
+      <stop offset="82%" stop-color="#F4B89A"/>
+      <stop offset="100%" stop-color="#ED9C74"/>
+    </radialGradient>
+  </defs>
+  <!-- echo ripples -->
+  <path d="M50 20a20 20 0 0 1 0 24" fill="none" stroke="#352A1F" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+  <path d="M55 15a28 28 0 0 1 0 34" fill="none" stroke="#352A1F" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+  <!-- companion orb -->
+  <circle cx="27" cy="32" r="19" fill="url(#echoOrb)" stroke="#352A1F" stroke-width="3.4"/>
+  <!-- sparkle -->
+  <path d="M24 24c.4 3 1.7 4.3 4.7 4.7-3 .4-4.3 1.7-4.7 4.7-.4-3-1.7-4.3-4.7-4.7 3-.4 4.3-1.7 4.7-4.7Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0.6"/>
+</svg>

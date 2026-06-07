@@ -333,9 +333,9 @@ h3.display{font-size:clamp(22px,2.3vw,30px);margin:0;}
 
 /* ---------- recommended badge on mode cards ---------- */
 .mode-card{position:relative;}
-.rec-badge{position:absolute;top:-13px;left:18px;font-family:var(--display);font-weight:800;font-size:11px;
+.rec-badge{position:absolute;top:14px;right:14px;font-family:var(--display);font-weight:800;font-size:11px;
   letter-spacing:.05em;text-transform:uppercase;background:var(--sun);border:2.5px solid var(--ink);
-  border-radius:99px;padding:4px 12px;box-shadow:2px 3px 0 var(--ink);z-index:3;display:inline-flex;align-items:center;gap:5px;}
+  border-radius:99px;padding:4px 11px;box-shadow:2px 3px 0 var(--ink);z-index:3;display:inline-flex;align-items:center;gap:5px;}
 
 /* progress dots */
 .pdots{display:flex;gap:9px;align-items:center;}
@@ -384,21 +384,59 @@ h3.display{font-size:clamp(22px,2.3vw,30px);margin:0;}
 .is-active .up.d4{animation-delay:.3s;}
 .is-active .up.d5{animation-delay:.38s;}
 
-/* ---------- flow jump menu (demo aid) ---------- */
-.jump-btn{position:fixed;left:18px;bottom:18px;z-index:60;width:50px;height:50px;border-radius:50%;
-  border:var(--b) solid var(--ink);background:var(--sun);box-shadow:var(--shadow);display:grid;place-items:center;}
-.flow-jump{position:fixed;left:18px;bottom:80px;z-index:60;width:300px;max-height:70vh;overflow-y:auto;
-  background:var(--paper);border:var(--b) solid var(--ink);border-radius:22px;box-shadow:var(--shadow-lg);padding:12px;
+/* ---------- calm corner (grounding companion) ---------- */
+.calm-btn{position:fixed;left:18px;bottom:18px;z-index:60;width:56px;height:56px;border-radius:50%;
+  border:var(--b) solid var(--ink);background:var(--lav);box-shadow:var(--shadow);display:grid;place-items:center;
+  transition:transform .15s ease,box-shadow .15s ease;}
+.calm-btn:hover{transform:translateY(-2px);box-shadow:6px 8px 0 var(--ink);}
+.calm-btn:active{transform:translateY(1px);box-shadow:2px 2px 0 var(--ink);}
+.calm-pop{position:fixed;left:18px;bottom:86px;z-index:61;width:308px;background:var(--paper);
+  border:var(--b) solid var(--ink);border-radius:26px;box-shadow:var(--shadow-lg);padding:20px;
   transform-origin:bottom left;animation:up .25s both;}
-.jump-item{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:12px;font-weight:700;font-size:14.5px;cursor:pointer;}
-.jump-item:hover{background:var(--cream-2);}
-.jump-item .n{width:24px;height:24px;border-radius:7px;border:2px solid var(--ink);display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px;}
-.jump-item.on{background:var(--sun);border:2.5px solid var(--ink);}
-.jump-sec{font-weight:800;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);padding:11px 11px 5px;}
+.breathe-ring{width:128px;height:128px;border-radius:50%;margin:8px auto 6px;display:grid;place-items:center;
+  background:radial-gradient(circle at 38% 32%,#FFFFFF 0%,#FFF4EC 16%,var(--lav) 52%,var(--sky) 100%);
+  border:3px solid var(--ink);box-shadow:0 0 34px 6px rgba(203,188,238,.45);
+  transition:transform 1s ease-in-out;}
+.breathe-phase{font-family:var(--display);font-weight:800;font-size:16px;color:var(--ink);text-align:center;}
+.calm-affirm{background:var(--cream-2);border:2.5px solid var(--ink);border-radius:16px;padding:13px 15px;
+  font-weight:700;font-size:14.5px;line-height:1.45;box-shadow:2px 3px 0 var(--ink);display:flex;gap:9px;align-items:flex-start;}
+.calm .breathe-ring{transition:none;}
 
 /* safety strip */
 .safety{display:inline-flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;color:var(--ink-soft);
   background:var(--cream-2);border:2.5px solid var(--ink);border-radius:99px;padding:7px 15px;}
+
+/* ---------- settings / profile pages ---------- */
+.set-tabs{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0 24px;}
+.set-tab{display:inline-flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;font-size:14.5px;
+  color:var(--ink-soft);padding:9px 16px;border-radius:99px;border:2.5px solid var(--ink);background:var(--paper);
+  box-shadow:2px 3px 0 var(--ink);cursor:pointer;transition:transform .12s ease,background .15s ease,color .15s ease;}
+.set-tab:hover{transform:translateY(-2px);color:var(--ink);}
+.set-tab.on{background:var(--sun);color:var(--ink);}
+.copy-field{display:flex;align-items:center;gap:10px;border:2.5px solid var(--ink);border-radius:14px;background:var(--cream);
+  padding:10px 12px;box-shadow:inset 0 2px 0 rgba(53,42,31,.05);}
+.copy-field .mono{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;}
+.copy-btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--display);font-weight:700;font-size:13px;
+  border:2.5px solid var(--ink);border-radius:10px;background:var(--paper);padding:7px 12px;box-shadow:1.5px 2px 0 var(--ink);
+  cursor:pointer;white-space:nowrap;transition:transform .12s ease;}
+.copy-btn:hover{transform:translateY(-1px);}
+.copy-btn.done{background:var(--sage);}
+.field-edit{font-family:var(--display);font-weight:700;font-size:20px;border:2.5px solid var(--ink);border-radius:12px;
+  padding:11px 14px;background:var(--paper);box-shadow:inset 0 2px 0 rgba(53,42,31,.05);color:var(--ink);width:100%;}
+.field-edit:focus{outline:none;box-shadow:0 0 0 3px var(--lav);}
+.faq{border:2.5px solid var(--ink);border-radius:16px;background:var(--paper);box-shadow:2px 3px 0 var(--ink);overflow:hidden;}
+.faq+.faq{margin-top:12px;}
+.faq summary{list-style:none;cursor:pointer;padding:15px 18px;font-family:var(--display);font-weight:700;font-size:16px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.faq summary::-webkit-details-marker{display:none;}
+.faq[open] summary{border-bottom:2.5px solid var(--cream-3);}
+.faq .fa{margin:0;padding:14px 18px;font-weight:600;font-size:15px;line-height:1.55;color:var(--ink-soft);}
+.pfp-edit{position:relative;width:120px;height:120px;border-radius:50%;border:3px solid var(--ink);box-shadow:var(--shadow);
+  overflow:hidden;background:var(--sage);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:46px;}
+.pfp-edit img{width:100%;height:100%;object-fit:cover;}
+.pfp-cam{position:absolute;right:-4px;bottom:-4px;width:42px;height:42px;border-radius:50%;border:3px solid var(--ink);
+  background:var(--sun);display:grid;place-items:center;box-shadow:2px 3px 0 var(--ink);cursor:pointer;transition:transform .12s ease;}
+.pfp-cam:hover{transform:translateY(-2px);}
 
 /* doorway/mode card */
 .mode-card{border:var(--b) solid var(--ink);border-radius:26px;box-shadow:var(--shadow-lg);padding:26px;

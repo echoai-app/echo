@@ -86,29 +86,37 @@ export function Orb({ size = 180, listening = false, state, mood = 'lav' }: {
   );
 }
 
-/* ---------- ecosystem logo marks ---------- */
+/* ---------- ecosystem logo marks (real brand glyphs in sticker circles) ---------- */
 export function LogoMark({ brand, size = 20 }: { brand: 'mnemos' | 'walrus' | 'sui'; size?: number }) {
-  const sw = 2.2;
+  const g = size * 0.66;
   const marks: Record<string, { bg: string; el: React.ReactNode }> = {
-    mnemos: { bg: 'var(--lav)', el: (
-      <g fill="none" stroke="#352A1F" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M7 12c0-2 1.4-3.2 2.8-3.2 2.6 0 2.8 6.4 5.4 6.4 1.4 0 2.8-1.2 2.8-3.2s-1.4-3.2-2.8-3.2c-2.6 0-2.8 6.4-5.4 6.4C8.4 15.2 7 14 7 12Z" />
-      </g>) },
-    walrus: { bg: 'var(--mint)', el: (
-      <g fill="none" stroke="#352A1F" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-        <ellipse cx="12" cy="7.4" rx="6" ry="2.4" />
-        <path d="M6 7.4v3.2c0 1.3 2.7 2.4 6 2.4s6-1.1 6-2.4V7.4" />
-        <path d="M6 10.6v3.2c0 1.3 2.7 2.4 6 2.4s6-1.1 6-2.4v-3.2" />
-      </g>) },
-    sui: { bg: 'var(--sky)', el: (
-      <g fill="none" stroke="#352A1F" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 4.5c3 3.4 5 5.8 5 8.4a5 5 0 0 1-10 0c0-2.6 2-5 5-8.4Z" />
-      </g>) },
+    // Mnemos — the real memory-loop mark (cyan→indigo→violet gradient).
+    mnemos: { bg: 'var(--paper)', el: (
+      <svg viewBox="0 0 40 40" width={g} height={g} fill="none" aria-hidden>
+        <defs>
+          <linearGradient id="echoMnemos" x1="4" y1="6" x2="36" y2="34" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#06b6d4" /><stop offset="0.52" stopColor="#6366f1" /><stop offset="1" stopColor="#a855f7" />
+          </linearGradient>
+        </defs>
+        <path d="M20 20 C 18 10.5 7.5 10.5 7.5 20 C 7.5 29.5 18 29.5 20 20 C 22 10.5 32.5 10.5 32.5 20 C 32.5 29.5 22 29.5 20 20 Z"
+          stroke="url(#echoMnemos)" strokeWidth="4.4" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="20" cy="20" r="3.1" fill="url(#echoMnemos)" />
+      </svg>) },
+    // Walrus — the real WAL token glyph, white on teal.
+    walrus: { bg: '#5FD3C2', el: (
+      <svg viewBox="0 0 1500 1500" width={g} height={g} aria-hidden>
+        <path fill="#0E3B36" d="M614.42,952l44.23-487.38h182.69l44.22,487.38,24.85,4.77c23.76-55.53,89.35-251.26,105.71-492.15h213.88l-164.92,630.77h-258.81l-43.5-315.39h-25.53l-43.5,315.39h-258.82l-164.92-630.77h213.88c16.36,240.89,81.95,436.62,105.71,492.16l24.84-4.77h0Z" />
+      </svg>) },
+    // Sui — the real droplet, white on Sui blue.
+    sui: { bg: '#4DA2FF', el: (
+      <svg viewBox="0 0 783 1000" width={g * 0.78} height={g} aria-hidden>
+        <path fillRule="evenodd" clipRule="evenodd" fill="#FFFFFF" d="M626.027 417.029C666.817 468.244 691.209 533.014 691.209 603.469C691.209 673.925 666.076 740.673 624.214 792.176L620.588 796.626L619.641 790.981C618.817 786.201 617.869 781.34 616.757 776.478C595.785 684.349 527.471 605.365 415.03 541.378C339.095 498.28 295.626 446.448 284.213 387.487C276.838 349.375 282.318 311.098 292.907 278.301C303.496 245.545 319.235 218.063 332.626 201.541L376.383 148.06C384.046 138.666 398.426 138.666 406.09 148.06L626.068 417.029H626.027ZM695.206 363.59L402.01 5.12968C396.407 -1.70989 385.942 -1.70989 380.338 5.12968L87.184 363.59L86.2363 364.784C32.3026 431.738 0 516.821 0 609.444C0 825.138 175.151 1000 391.174 1000C607.198 1000 782.349 825.138 782.349 609.444C782.349 516.821 750.046 431.738 696.112 364.826L695.165 363.631L695.206 363.59ZM157.351 415.876L183.556 383.779L184.339 389.712C184.957 394.409 185.74 399.106 186.646 403.844C203.622 492.883 264.23 567.088 365.546 624.565C453.637 674.708 504.934 732.35 519.684 795.554C525.864 821.924 526.936 847.881 524.258 870.584L524.093 871.985L522.816 872.603C483.055 892.009 438.351 902.927 391.133 902.927C225.459 902.927 91.1394 768.855 91.1394 603.428C91.1394 532.396 115.902 467.172 157.269 415.793L157.351 415.876Z" />
+      </svg>) },
   };
   const m = marks[brand];
   return (
-    <span className="logo-mark" style={{ width: size, height: size, background: m.bg }} title={brand}>
-      <svg viewBox="0 0 24 24" width={size * 0.72} height={size * 0.72}>{m.el}</svg>
+    <span className="logo-mark" style={{ width: size, height: size, background: m.bg }} title={brand[0].toUpperCase() + brand.slice(1)}>
+      {m.el}
     </span>
   );
 }
@@ -198,6 +206,20 @@ export function Btn({ children, variant = 'ghost', size = '', icon, iconR, onCli
     <button type={type || 'button'} className={`btn ${variant} ${size} ${block ? 'block' : ''}`} onClick={onClick} disabled={disabled}>
       {icon && <Ic name={icon} size={20} />}{children}{iconR && <Ic name={iconR} size={20} />}
     </button>
+  );
+}
+
+/* avatar — uploaded pfp image or the name initial */
+export function Avatar({ name, pfp, size = 42, bg = 'var(--sage)', className = 'avatar' }: {
+  name?: string; pfp?: string | null; size?: number; bg?: string; className?: string;
+}) {
+  return (
+    <div className={className} style={{ width: size, height: size, background: bg, overflow: 'hidden', padding: 0 }}>
+      {pfp
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img src={pfp} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : (name?.[0]?.toUpperCase() || 'E')}
+    </div>
   );
 }
 

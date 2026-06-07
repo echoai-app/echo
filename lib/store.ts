@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   ReflectionTurn, SavedArtifact, WalrusProof, RecalledMemory, Journey, SessionMeta,
 } from '@/types';
@@ -8,7 +9,8 @@ import type { ProposeResult } from '@/lib/echo/extractor';
 
 export type ScreenId =
   | 'welcome' | 'onboard' | 'consent' | 'modes' | 'setup'
-  | 'room' | 'memory' | 'debrief' | 'recall' | 'timeline';
+  | 'room' | 'memory' | 'debrief' | 'recall' | 'timeline'
+  | 'profile' | 'account' | 'privacy' | 'help';
 
 export interface SessionState {
   session_id: string;
@@ -29,6 +31,7 @@ interface EchoState {
   screen: ScreenId;
   account: 'guest' | 'wallet';        // the user's chosen identity at consent
   name: string;
+  pfp: string | null;                 // data-URL avatar (persisted locally)
 
   session: SessionState;
   transcript: ReflectionTurn[];
@@ -47,6 +50,7 @@ interface EchoState {
   go: (s: ScreenId) => void;
   setAccount: (a: 'guest' | 'wallet') => void;
   setName: (n: string) => void;
+  setPfp: (d: string | null) => void;
   startSession: (patch: Partial<SessionState>) => void;
   patchSession: (patch: Partial<SessionState>) => void;
   setTranscript: (t: ReflectionTurn[]) => void;
@@ -70,38 +74,50 @@ function newSession(): SessionState {
   };
 }
 
-export const useEcho = create<EchoState>((set) => ({
-  screen: 'welcome',
-  account: 'guest',
-  name: 'friend',
+export const useEcho = create<EchoState>()(
+  persist(
+    (set) => ({
+      screen: 'welcome',
+      account: 'guest',
+      name: 'friend',
+      pfp: null,
 
-  session: newSession(),
-  transcript: [],
+      session: newSession(),
+      transcript: [],
 
-  proposed: null,
-  saved: [],
-  proof: null,
+      proposed: null,
+      saved: [],
+      proof: null,
 
-  recalled: [],
-  journey: null,
-  lastTheme: 'work deadlines & lost sleep',
+      recalled: [],
+      journey: null,
+      lastTheme: 'work deadlines & lost sleep',
 
-  prefs: { voiceReplies: true, saveToWalrus: true, reducedMotion: false },
+      prefs: { voiceReplies: true, saveToWalrus: true, reducedMotion: false },
 
-  go: (screen) => set({ screen }),
-  setAccount: (account) => set({ account }),
-  setName: (name) => set({ name }),
-  startSession: (patch) => set({ session: { ...newSession(), ...patch }, transcript: [], proposed: null, saved: [], proof: null }),
-  patchSession: (patch) => set((st) => ({ session: { ...st.session, ...patch } })),
-  setTranscript: (transcript) => set({ transcript }),
-  addTurn: (t) => set((st) => ({ transcript: [...st.transcript, t] })),
-  setProposed: (proposed) => set({ proposed }),
-  setSaved: (saved, proof) => set({ saved, proof }),
-  setRecalled: (recalled) => set({ recalled }),
-  setJourney: (journey) => set({ journey }),
-  setPref: (k, v) => set((st) => ({ prefs: { ...st.prefs, [k]: v } })),
-  resetSession: () => set({ session: newSession(), transcript: [], proposed: null, saved: [], proof: null }),
-}));
+      go: (screen) => set({ screen }),
+      setAccount: (account) => set({ account }),
+      setName: (name) => set({ name }),
+      setPfp: (pfp) => set({ pfp }),
+      startSession: (patch) => set({ session: { ...newSession(), ...patch }, transcript: [], proposed: null, saved: [], proof: null }),
+      patchSession: (patch) => set((st) => ({ session: { ...st.session, ...patch } })),
+      setTranscript: (transcript) => set({ transcript }),
+      addTurn: (t) => set((st) => ({ transcript: [...st.transcript, t] })),
+      setProposed: (proposed) => set({ proposed }),
+      setSaved: (saved, proof) => set({ saved, proof }),
+      setRecalled: (recalled) => set({ recalled }),
+      setJourney: (journey) => set({ journey }),
+      setPref: (k, v) => set((st) => ({ prefs: { ...st.prefs, [k]: v } })),
+      resetSession: () => set({ session: newSession(), transcript: [], proposed: null, saved: [], proof: null }),
+    }),
+    {
+      name: 'echo-app',
+      storage: createJSONStorage(() => localStorage),
+      // Persist only durable preferences/identity — not transient session state.
+      partialize: (s) => ({ name: s.name, pfp: s.pfp, prefs: s.prefs, account: s.account }),
+    },
+  ),
+);
 
 // Helper to assemble session meta for API calls.
 export function sessionMeta(s: SessionState): SessionMeta {
