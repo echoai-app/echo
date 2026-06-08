@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AppBar, SessionProgress } from '../chrome';
+import { SessionBar } from '../chrome';
 import { Doodles, Eyebrow, Btn, Ic } from '../ui';
 import { useEcho } from '@/lib/store';
 import { getMode } from '@/lib/echo/modes';
@@ -32,8 +32,7 @@ export default function Setup() {
 
   return (
     <div className="bg-cream" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <AppBar active="session" />
-      <SessionProgress step={0} />
+      <SessionBar step={0} />
       <div className="screen-scroll" style={{ position: 'relative' }}>
         <Doodles />
         <div className="screen-pad" style={{ maxWidth: 860, margin: '0 auto', position: 'relative', zIndex: 2 }}>
@@ -73,9 +72,9 @@ export default function Setup() {
             <Toggle on={remember} set={setRemember} />
           </div>
 
-          <div className="up d5" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 26 }}>
-            <Btn icon="arrowL" onClick={() => go('modes')}>Back</Btn>
+          <div className="up d5" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 32 }}>
             <Btn variant="primary" size="lg" iconR="arrowR" onClick={begin}>Begin reflection</Btn>
+            <span className="muted" style={{ fontWeight: 700, fontSize: 13 }}>take your time — there&apos;s no wrong way to start</span>
           </div>
         </div>
       </div>

@@ -27,6 +27,52 @@ export function SessionProgress({ step = 0 }: { step?: number }) {
   );
 }
 
+/* ---------------- locked-in session chrome (Setup → Debrief) ---------------- */
+// Replaces the full AppBar during a reflection so the person is "in the room",
+// not browsing — no nav pills, no profile menu. Slim brand + progress + a clear
+// exit-to-home, with a gentle confirm when an in-progress conversation would be
+// lost (risk), or a direct exit when nothing is at stake (Setup / Debrief).
+function ExitConfirm({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onStay(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onStay]);
+  return (
+    <div className="exit-scrim" onClick={onStay}>
+      <div className="exit-card" role="dialog" aria-modal="true" aria-label="Leave reflection" onClick={e => e.stopPropagation()}>
+        <div className="exit-ic"><Ic name="heart" size={30} stroke="var(--ink)" fill="var(--paper)" /></div>
+        <h3 className="display" style={{ fontSize: 24, margin: '0 0 8px' }}>Leave this reflection?</h3>
+        <p className="muted" style={{ fontWeight: 600, fontSize: 15, lineHeight: 1.5, margin: 0 }}>
+          We haven&apos;t saved anything yet — your conversation won&apos;t be kept. You can always begin again whenever you&apos;re ready.
+        </p>
+        <div className="exit-actions">
+          <button className="btn ghost" onClick={onStay}><Ic name="arrowL" size={18} /> Stay a little</button>
+          <button className="btn" style={{ background: 'var(--rose)' }} onClick={onLeave}>Leave to home</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SessionBar({ step = 0, risk = false }: { step?: number; risk?: boolean }) {
+  const { resetTo, resetSession } = useEcho();
+  const [confirm, setConfirm] = useState(false);
+  const leave = () => { resetSession(); resetTo('modes'); };
+  return (
+    <React.Fragment>
+      <div className="session-bar">
+        <div className="session-brand" title="Echo"><EchoLogo size={30} /><span>ech<span style={{ color: 'var(--peach-deep)' }}>o</span></span></div>
+        <SessionProgress step={step} />
+        <button className="session-exit" onClick={() => (risk ? setConfirm(true) : leave())} title="Leave to home" aria-label="Leave to home">
+          <Ic name="x" size={16} sw={2.9} /><span>Exit</span>
+        </button>
+      </div>
+      {confirm && <ExitConfirm onStay={() => setConfirm(false)} onLeave={leave} />}
+    </React.Fragment>
+  );
+}
+
 /* ---------------- profile dropdown ---------------- */
 function uniqueDays(isos: string[]): number {
   return new Set(isos.map(s => s.slice(0, 10))).size;

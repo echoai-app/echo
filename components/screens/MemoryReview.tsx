@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
-import { AppBar, SessionProgress } from '../chrome';
+import { SessionBar } from '../chrome';
 import { Doodles, Eyebrow, Btn, Chip, Ic, Orb } from '../ui';
 import { useEcho, sessionMeta } from '@/lib/store';
 import { useIdentity } from '../identity';
@@ -105,8 +105,7 @@ export default function MemoryReview() {
 
   return (
     <div className="bg-cream" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <AppBar active="session" />
-      <SessionProgress step={2} />
+      <SessionBar step={2} risk />
       <div className="screen-scroll" style={{ position: 'relative' }}>
         <Doodles />
         <div className="screen-pad" style={{ maxWidth: 880, margin: '0 auto', position: 'relative', zIndex: 2 }}>

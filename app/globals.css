@@ -327,6 +327,30 @@ h3.display{font-size:clamp(22px,2.3vw,30px);margin:0;}
 .pconn.filled{background:var(--sage-deep);}
 @media (max-width:760px){.pstep .plabel{display:none;}.pstep{padding:5px;}.pconn{width:16px;}}
 
+/* ---------- locked-in session bar (Setup → Debrief) ---------- */
+.session-bar{display:flex;align-items:center;gap:14px;flex:0 0 auto;position:relative;z-index:8;
+  padding:10px clamp(14px,3vw,28px);background:var(--paper);border-bottom:var(--b) solid var(--ink);}
+.session-bar .session-brand{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:800;
+  font-size:21px;letter-spacing:-.01em;flex:0 0 auto;}
+.session-bar .progress-strip{flex:1;padding:0;background:none;border:none;z-index:auto;}
+.session-exit{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;font-family:var(--display);font-weight:800;
+  font-size:14px;color:var(--ink);border:2.8px solid var(--ink);border-radius:99px;padding:8px 16px 8px 12px;
+  background:var(--cream-2);box-shadow:2px 3px 0 var(--ink);cursor:pointer;
+  transition:transform .12s ease,box-shadow .12s ease,background .15s ease;}
+.session-exit:hover{transform:translateY(-2px);box-shadow:3px 5px 0 var(--ink);background:var(--rose);}
+.session-exit:active{transform:translateY(1px);box-shadow:1px 2px 0 var(--ink);}
+@media (max-width:620px){.session-exit span,.session-brand span{display:none;}}
+
+/* leave-reflection confirm */
+.exit-scrim{position:fixed;inset:0;z-index:60;background:rgba(53,42,31,.36);backdrop-filter:blur(3px);
+  display:grid;place-items:center;padding:24px;animation:exitFade .18s ease;}
+.exit-card{background:var(--paper);border:var(--b) solid var(--ink);border-radius:28px;box-shadow:var(--shadow-lg);
+  width:100%;max-width:430px;padding:32px 30px;text-align:center;animation:popIn .3s ease both;}
+.exit-ic{width:64px;height:64px;border-radius:50%;border:var(--b) solid var(--ink);background:var(--rose);
+  display:grid;place-items:center;margin:0 auto 18px;box-shadow:3px 4px 0 var(--ink);}
+.exit-actions{display:flex;gap:12px;justify-content:center;margin-top:26px;flex-wrap:wrap;}
+@keyframes exitFade{from{opacity:0}to{opacity:1}}
+
 /* ---------- welcome hero (typographic, playful) ---------- */
 .hero-badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;font-size:14px;
   background:var(--paper);border:2.8px solid var(--ink);border-radius:99px;padding:8px 17px;box-shadow:2px 3px 0 var(--ink);}

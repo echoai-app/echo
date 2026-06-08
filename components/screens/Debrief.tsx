@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AppBar, SessionProgress } from '../chrome';
+import { SessionBar } from '../chrome';
 import { Doodles, Eyebrow, Btn, Chip, Ic, EchoLogo } from '../ui';
 import { ProofBadge, ProofModal } from '../proof';
 import { useEcho } from '@/lib/store';
@@ -32,8 +32,7 @@ export default function Debrief() {
 
   return (
     <div className="bg-cream2" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <AppBar active="session" />
-      <SessionProgress step={3} />
+      <SessionBar step={3} />
       <div className="screen-scroll" style={{ position: 'relative' }}>
         <Doodles />
         <div className="screen-pad" style={{ maxWidth: 1000, margin: '0 auto', position: 'relative', zIndex: 2 }}>

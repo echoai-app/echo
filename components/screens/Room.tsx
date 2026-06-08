@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AppBar, SessionProgress } from '../chrome';
+import { SessionBar } from '../chrome';
 import { Orb, Ic, Chip, Typing, Btn, LogoMark, type OrbState } from '../ui';
 import { RoomDecor } from './RoomDecor';
 import { useEcho, sessionMeta } from '@/lib/store';
@@ -159,8 +159,7 @@ export default function Room() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <AppBar active="session" />
-      <SessionProgress step={1} />
+      <SessionBar step={1} risk />
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
         <div className="room">
           <div className="room-wall" />
