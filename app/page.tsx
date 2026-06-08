@@ -35,18 +35,26 @@ const SCREENS: Record<ScreenId, React.ComponentType> = {
 };
 
 export default function EchoApp() {
-  const { screen, prefs, onboarded, name, resetTo } = useEcho();
+  const { screen, prefs } = useEcho();
   const [booted, setBooted] = useState(false);
 
   // On first load, a returning user skips the welcome/onboarding intro and lands
   // straight in the app. "Returning" = completed onboarding (flag) OR has a saved
-  // name (covers users from before the flag existed). SSR + first client render
-  // show the splash, so there's no flash and no hydration mismatch.
+  // name (covers users from before the flag existed). We must read the store via
+  // getState() AFTER localStorage rehydration finishes — the first-render closure
+  // still holds the pre-hydration defaults (onboarded=false), which is exactly why
+  // reloads used to dump returning users back through the whole intro. SSR + first
+  // client render show the splash, so there's no flash and no hydration mismatch.
   useEffect(() => {
-    const returning = onboarded || name.trim() !== '';
-    if (returning && screen === 'welcome') resetTo('modes');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setBooted(true);
+    const decide = () => {
+      const st = useEcho.getState();
+      const returning = st.onboarded || st.name.trim() !== '';
+      if (returning && st.screen === 'welcome') st.resetTo('modes');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBooted(true);
+    };
+    if (useEcho.persist.hasHydrated()) decide();
+    else return useEcho.persist.onFinishHydration(decide);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
