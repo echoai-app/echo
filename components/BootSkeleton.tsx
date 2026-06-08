@@ -1,6 +1,6 @@
 'use client';
 
-import { Orb } from './ui';
+import { EchoLogo } from './ui';
 
 // Shown for the brief moment between first paint and store-hydration, in place
 // of the old bare orb. It mirrors the Home (modes) layout — appbar, greeting
@@ -13,7 +13,7 @@ export default function BootSkeleton() {
         {/* appbar — keep the live orb wordmark, skeleton the rest */}
         <div className="appbar">
           <div className="brand">
-            <Orb size={36} />
+            <EchoLogo size={38} />
             <span className="sk-brandword">ech<span style={{ color: 'var(--peach-deep)' }}>o</span></span>
           </div>
           <div className="sk sk-pillrow" />

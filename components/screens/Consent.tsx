@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ConnectModal } from '@mysten/dapp-kit';
-import { Doodles, Eyebrow, Btn, Chip, Ic, Orb } from '../ui';
+import { Doodles, Eyebrow, Btn, Chip, Ic, EchoLogo } from '../ui';
 import { useEcho } from '@/lib/store';
 import { useIdentity } from '../identity';
 import { BASELINE_SAFETY_NOTE } from '@/lib/echo/safety';
@@ -84,7 +84,7 @@ export default function Consent() {
 
         {/* name — the warm welcome */}
         <div className="up d2 card card-lg" style={{ marginTop: 28, padding: 'clamp(22px,3vw,28px)', display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap', background: 'linear-gradient(120deg, var(--paper) 0%, var(--cream) 100%)' }}>
-          <Orb size={68} />
+          <EchoLogo size={72} />
           <div style={{ flex: 1, minWidth: 260 }}>
             <h3 className="display" style={{ fontSize: 'clamp(20px,2.4vw,26px)', margin: 0 }}>What should Echo call you?</h3>
             <p className="muted" style={{ fontWeight: 600, fontSize: 13.5, margin: '4px 0 12px' }}>Echo will greet you by this — you can change it any time.</p>

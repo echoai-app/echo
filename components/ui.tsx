@@ -89,6 +89,25 @@ export function Orb({ size = 180, listening = false, state, mood = 'lav' }: {
   );
 }
 
+/* ---------- Echo brand mark — the gradient ring logo ---------- */
+// The static identity mark used wherever Echo brands itself (header, boot,
+// onboarding, etc.). The animated <Orb> stays for the *live* companion moments
+// (voice room, listening, saving). Asset is a trimmed, transparent PNG so it
+// sits cleanly on any background.
+export function EchoLogo({ size = 40, className, style }: { size?: number; className?: string; style?: CSS }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/echo-logo.png"
+      alt="Echo"
+      width={size}
+      height={size}
+      className={className}
+      style={{ width: size, height: size, objectFit: 'contain', display: 'block', flex: '0 0 auto', ...style }}
+    />
+  );
+}
+
 /* ---------- ecosystem logo marks (real brand glyphs in sticker circles) ---------- */
 export function LogoMark({ brand, size = 20 }: { brand: 'mnemos' | 'walrus' | 'sui'; size?: number }) {
   const g = size * 0.66;

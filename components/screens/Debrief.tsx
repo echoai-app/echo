@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AppBar, SessionProgress } from '../chrome';
-import { Doodles, Eyebrow, Btn, Chip, Ic, Orb } from '../ui';
+import { Doodles, Eyebrow, Btn, Chip, Ic, EchoLogo } from '../ui';
 import { ProofBadge, ProofModal } from '../proof';
 import { useEcho } from '@/lib/store';
 import { kindMeta } from '@/lib/echo/artifacts';
@@ -40,7 +40,7 @@ export default function Debrief() {
           {/* verdict */}
           <div className="up d1 card card-lg" style={{ background: 'var(--sage)', padding: 28, marginBottom: 18 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 22, alignItems: 'center' }}>
-              <div className="tile" style={{ width: 88, height: 88, display: 'grid', placeItems: 'center', background: 'var(--paper)' }}><Orb size={62} state="ended" /></div>
+              <div className="tile" style={{ width: 88, height: 88, display: 'grid', placeItems: 'center', background: 'var(--paper)' }}><EchoLogo size={64} /></div>
               <div>
                 <Eyebrow>your reflection · gathered</Eyebrow>
                 <h2 className="display" style={{ margin: '10px 0 8px' }}>You let some weight down.</h2>

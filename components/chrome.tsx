@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useDisconnectWallet } from '@mysten/dapp-kit';
-import { Ic, Orb, PoweredBy, LogoMark, Avatar } from './ui';
+import { Ic, EchoLogo, PoweredBy, LogoMark, Avatar } from './ui';
 import { useIdentity } from './identity';
 import { useEcho, displayName, type ScreenId } from '@/lib/store';
 
@@ -156,7 +156,7 @@ export function AppBar({ active = 'home' }: { active?: 'home' | 'journey' | 'ses
           </button>
         )}
         <div className="brand" style={{ cursor: 'pointer' }} onClick={nav('modes')} title="Home">
-          <Orb size={38} />
+          <EchoLogo size={40} />
           <span style={{ letterSpacing: '-.01em' }}>ech<span style={{ color: 'var(--peach-deep)' }}>o</span></span>
         </div>
       </div>

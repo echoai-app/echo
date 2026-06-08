@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Ic, Orb } from './ui';
+import { Ic, EchoLogo } from './ui';
 import { useEcho } from '@/lib/store';
 
 /* The Calm Corner — a small grounding companion in the bottom-left.
@@ -81,7 +81,7 @@ export function CalmCorner() {
       {open && (
         <div className="calm-pop" role="dialog" aria-label="Calm corner">
           <div className="calm-head">
-            <Orb size={34} />
+            <EchoLogo size={36} />
             <div>
               <div className="display" style={{ fontSize: 18, lineHeight: 1 }}>Calm corner</div>
               <div className="muted" style={{ fontWeight: 700, fontSize: 12 }}>{tab === 'support' ? 'we’re here for you' : 'a quick reset, anytime'}</div>

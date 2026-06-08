@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ConnectModal, useDisconnectWallet } from '@mysten/dapp-kit';
 import { AppBar } from '../chrome';
-import { Doodles, Eyebrow, Btn, Chip, Ic, LogoMark, PoweredBy, Orb } from '../ui';
+import { Doodles, Eyebrow, Btn, Chip, Ic, LogoMark, PoweredBy, EchoLogo } from '../ui';
 import { useEcho, type ScreenId } from '@/lib/store';
 import { useIdentity } from '../identity';
 import { BASELINE_SAFETY_NOTE } from '@/lib/echo/safety';
@@ -317,7 +317,7 @@ export function Help() {
     <SettingsShell active="help" eyebrow="we’re here for you" icon="help" title="Help & support" accent="var(--sun)"
       sub="A few things worth knowing — and where to turn if you need more than reflection.">
       <div className="card card-lg" style={{ padding: 24, marginBottom: 18, background: 'linear-gradient(120deg, #FBE2D4 0%, var(--cream) 120%)', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Orb size={56} />
+        <EchoLogo size={60} />
         <div>
           <div className="display" style={{ fontSize: 18 }}>Echo is a reflection companion — not medical care.</div>
           <p className="muted" style={{ margin: '4px 0 0', fontWeight: 600, fontSize: 14, lineHeight: 1.5 }}>{BASELINE_SAFETY_NOTE}</p>
