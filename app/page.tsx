@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useEcho, type ScreenId } from '@/lib/store';
 import { CalmCorner } from '@/components/CalmCorner';
-import { Orb } from '@/components/ui';
+import BootSkeleton from '@/components/BootSkeleton';
 
 import Welcome from '@/components/screens/Welcome';
 import Onboarding from '@/components/screens/Onboarding';
@@ -60,13 +60,7 @@ export default function EchoApp() {
 
   const Active = SCREENS[screen] ?? Welcome;
 
-  if (!booted) {
-    return (
-      <div className="stage">
-        <div className="screen is-active bg-cream" style={{ display: 'grid', placeItems: 'center' }}><Orb size={76} /></div>
-      </div>
-    );
-  }
+  if (!booted) return <BootSkeleton />;
 
   return (
     <div className={'stage' + (prefs.reducedMotion ? ' calm' : '')}>
