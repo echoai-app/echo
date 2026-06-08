@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SessionBar } from '../chrome';
 import { Orb, Ic, Chip, Typing, Btn, LogoMark, type OrbState } from '../ui';
-import { RoomDecor } from './RoomDecor';
+import { ReflectionScene } from './ReflectionScene';
 import { useEcho, sessionMeta } from '@/lib/store';
 import { useVoice } from '@/lib/voice';
 import type { ChatMessage, ReflectionTurn } from '@/types';
@@ -162,10 +162,7 @@ export default function Room() {
       <SessionBar step={1} risk />
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
         <div className="room">
-          <div className="room-wall" />
-          <RoomDecor />
-          <div className="room-glow" />
-          <div className="room-rug" />
+          <ReflectionScene state={paused ? 'paused' : vs} />
 
           {/* this-session forming memory */}
           <div className="room-panel" style={{ position: 'absolute', top: 18, left: 18, padding: '13px 15px', maxWidth: 224, zIndex: 4 }}>
