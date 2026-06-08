@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Echo — a calm, voice-first emotional reflection companion. Product layer on the Mnemos memory engine, persisted on Walrus.",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
