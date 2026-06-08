@@ -5,7 +5,7 @@ import { ensureWorkspaceId } from '@/lib/workspace';
 import type { ReflectionArtifact, SavedArtifact, WalrusProof, SessionMeta } from '@/types';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 interface CommitBody {
   user_id: string;
