@@ -1,22 +1,25 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
-import type { OrbState } from '../ui';
+import React, { useEffect, useRef, useState } from 'react';
+import { Ic, type OrbState } from '../ui';
 
 type CSS = React.CSSProperties;
 
 /* ============================================================================
-   ReflectionScene — the immersive "you're in the room" stage behind the orb.
+   ReflectionScene — the immersive "you're seated in the room" stage.
 
-   A first-person cozy room rendered in Echo's doodle style: you're sitting next
-   to a doodle companion on a couch, a warm light between you. Mouse movement
-   drives per-layer parallax + a subtle 3D tilt, so the room has real depth and
-   feels alive. Pure SVG + GPU transforms — no WebGL. Honors reduced motion.
+   A first-person cozy room in Echo's doodle style: you're seated at a small
+   table across from a friendly doodle companion, warm light between you. You
+   can LOOK AROUND by dragging (mouse or touch) — the view is fixed at seated
+   eye level, clamped so you can't spin away, with a "Reset view". Pure CSS
+   pseudo-3D (perspective + layered parallax) — no WebGL, so it can't crash a
+   GPU and always renders. Honors reduced motion.
    ========================================================================== */
 
 const INK = '#352A1F';
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
-// One parallax layer. `d` = depth (px of travel at full cursor deflection):
+// One parallax layer. `d` = depth (px of travel at full look deflection):
 // bigger = closer to you = moves more.
 function Pf({ d, className = '', style, children }: {
   d: number; className?: string; style?: CSS; children?: React.ReactNode;
@@ -36,52 +39,38 @@ function Companion({ state }: { state: OrbState }) {
       <div className="companion-lean">
         <div className="companion-figure">
           <svg viewBox="0 0 240 250" width="100%" aria-hidden>
-            {/* seat shadow */}
             <ellipse cx="120" cy="236" rx="78" ry="13" fill="rgba(53,42,31,.12)" />
-
             {/* body / cozy sweater */}
             <path d="M52 168 q68 -34 136 0 q12 46 4 78 q-72 16 -144 0 q-8 -32 4 -78 Z"
               fill="var(--lav)" stroke={INK} strokeWidth="4.5" strokeLinejoin="round" />
-            {/* sweater fold hints */}
             <path d="M86 196 q34 14 68 0" fill="none" stroke="var(--lav-deep)" strokeWidth="3" strokeLinecap="round" />
             {/* arms resting in lap */}
             <path d="M58 182 q-14 36 18 54 q22 10 44 10 q22 0 44 -10 q32 -18 18 -54"
               fill="var(--lav)" stroke={INK} strokeWidth="4.5" strokeLinejoin="round" />
-            {/* hands */}
             <circle cx="98" cy="232" r="13" fill="#F6D9C0" stroke={INK} strokeWidth="4" />
             <circle cx="142" cy="232" r="13" fill="#F6D9C0" stroke={INK} strokeWidth="4" />
-
-            {/* head group — bobs / tilts with state */}
+            {/* head — bobs / tilts with state */}
             <g className="companion-head">
-              {/* hair back */}
               <path d="M58 96 q62 -64 124 0 q6 30 -2 50 q-60 -26 -120 0 q-8 -20 -2 -50 Z"
                 fill="var(--ink-soft)" stroke={INK} strokeWidth="4.5" strokeLinejoin="round" />
-              {/* face */}
               <circle cx="120" cy="104" r="52" fill="#F8E4D2" stroke={INK} strokeWidth="4.5" />
-              {/* hair front sweep */}
               <path d="M70 84 q22 -34 58 -30 q-26 12 -30 34 q-16 -8 -28 -4 Z"
                 fill="var(--ink-soft)" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
-              {/* cheeks */}
               <circle cx="92" cy="116" r="8.5" fill="var(--rose)" opacity=".55" />
               <circle cx="148" cy="116" r="8.5" fill="var(--rose)" opacity=".55" />
-              {/* eyes (blink) */}
               <g className="companion-eyes">
                 <circle cx="100" cy="100" r="6" fill={INK} />
                 <circle cx="140" cy="100" r="6" fill={INK} />
-                {/* eye sparkle */}
                 <circle cx="102" cy="98" r="1.8" fill="#fff" />
                 <circle cx="142" cy="98" r="1.8" fill="#fff" />
               </g>
-              {/* brows (lift when listening) */}
               <g className="companion-brows" stroke={INK} strokeWidth="3.4" strokeLinecap="round">
                 <path d="M91 86 q9 -5 18 0" />
                 <path d="M131 86 q9 -5 18 0" />
               </g>
-              {/* soft mouth (talks when speaking) */}
               <path className="companion-mouth" d="M108 126 q12 12 24 0" fill="none" stroke={INK} strokeWidth="4" strokeLinecap="round" />
             </g>
-
-            {/* tiny thought dots (only while thinking) */}
+            {/* thought dots (only while reflecting) */}
             <g className="companion-think">
               <circle cx="186" cy="64" r="4" fill="var(--lav-deep)" />
               <circle cx="198" cy="50" r="5.5" fill="var(--lav-deep)" />
@@ -96,39 +85,66 @@ function Companion({ state }: { state: OrbState }) {
 
 export function ReflectionScene({ state = 'idle' }: { state?: OrbState }) {
   const root = useRef<HTMLDivElement>(null);
+  const surface = useRef<HTMLDivElement>(null);
+  // All look-state in a ref so dragging never triggers React re-renders.
+  const view = useRef({ drag: false, lx: 0, ly: 0, tx: 0, ty: 0, cx: 0, cy: 0 });
+  const [hintGone, setHintGone] = useState(false);
 
-  // Mouse-driven parallax: write smoothed --mx/--my (-1..1) onto the root.
+  // Smooth render loop: lerp toward the dragged target + a gentle idle drift,
+  // and write --mx/--my onto the scene root. Drag handlers just set the target.
   useEffect(() => {
     const el = root.current;
     if (!el || typeof window === 'undefined') return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let tx = 0, ty = 0, cx = 0, cy = 0, raf = 0;
-    const onMove = (e: MouseEvent) => {
-      tx = (e.clientX / window.innerWidth - 0.5) * 2;
-      ty = (e.clientY / window.innerHeight - 0.5) * 2;
-    };
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let raf = 0;
     const tick = () => {
-      cx += (tx - cx) * 0.055;
-      cy += (ty - cy) * 0.055;
-      el.style.setProperty('--mx', cx.toFixed(4));
-      el.style.setProperty('--my', cy.toFixed(4));
+      const v = view.current;
+      v.cx += (v.tx - v.cx) * 0.09;
+      v.cy += (v.ty - v.cy) * 0.09;
+      const t = performance.now() * 0.0004;
+      const dx = reduce ? 0 : Math.sin(t) * 0.05;
+      const dy = reduce ? 0 : Math.cos(t * 0.7) * 0.035;
+      el.style.setProperty('--mx', (v.cx + dx).toFixed(4));
+      el.style.setProperty('--my', (v.cy + dy).toFixed(4));
       raf = requestAnimationFrame(tick);
     };
-    window.addEventListener('mousemove', onMove, { passive: true });
     raf = requestAnimationFrame(tick);
-    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(raf); };
+    return () => cancelAnimationFrame(raf);
   }, []);
 
+  const onDown = (e: React.PointerEvent) => {
+    const v = view.current;
+    v.drag = true; v.lx = e.clientX; v.ly = e.clientY;
+    surface.current?.setPointerCapture(e.pointerId);
+    surface.current?.classList.add('grabbing');
+    if (!hintGone) setHintGone(true);
+  };
+  const onMove = (e: React.PointerEvent) => {
+    const v = view.current;
+    if (!v.drag) return;
+    const w = window.innerWidth, h = window.innerHeight;
+    v.tx = clamp(v.tx + (e.clientX - v.lx) / (w * 0.5), -1, 1);
+    v.ty = clamp(v.ty + (e.clientY - v.ly) / (h * 0.8), -0.55, 0.55);
+    v.lx = e.clientX; v.ly = e.clientY;
+  };
+  const onUp = (e: React.PointerEvent) => {
+    view.current.drag = false;
+    surface.current?.releasePointerCapture(e.pointerId);
+    surface.current?.classList.remove('grabbing');
+  };
+  const reset = () => { view.current.tx = 0; view.current.ty = 0; };
+
   return (
-    <div className="scene-3d" ref={root} aria-hidden>
+    <div className="scene-3d" ref={root}>
+      {/* drag-to-look surface (sits over the room, under the dock/panels) */}
+      <div ref={surface} className="scene-drag" onPointerDown={onDown} onPointerMove={onMove}
+        onPointerUp={onUp} onPointerCancel={onUp} aria-hidden />
+
       <div className="scene-tilt">
         <div className="scene-drift">
 
-          {/* back wall + floor */}
           <Pf d={5} className="scene-wall" />
           <div className="scene-floorline" />
-
-          {/* warm ambient glow (behind the orb) */}
           <Pf d={18} className="scene-glow" />
 
           {/* window with a sunset (left, far) */}
@@ -147,6 +163,15 @@ export function ReflectionScene({ state = 'idle' }: { state?: OrbState }) {
               <line x1="20" y1="74" x2="120" y2="74" stroke={INK} strokeWidth="3" />
               <rect x="2" y="138" width="136" height="13" rx="5" fill="#E3C397" stroke={INK} strokeWidth="4" />
             </svg>
+          </Pf>
+
+          {/* memory notes pinned to the wall (mid-far) */}
+          <Pf d={22} style={{ left: '23%', top: '8%', width: 'clamp(118px,15vw,176px)' }}>
+            <div className="wall-notes">
+              <div className="wall-note n1">a walk helped</div>
+              <div className="wall-note n2">one small step</div>
+              <div className="wall-note n3">you showed up</div>
+            </div>
           </Pf>
 
           {/* shelf · frame · plant (right, far) */}
@@ -173,43 +198,33 @@ export function ReflectionScene({ state = 'idle' }: { state?: OrbState }) {
           {/* the couch you share (mid) */}
           <Pf d={28} className="scene-couch" style={{ left: '50%', bottom: '11%', width: 'min(660px,80%)', ['--tx']: '-50%' } as CSS}>
             <svg viewBox="0 0 480 210" width="100%">
-              {/* back cushions */}
               <rect x="26" y="20" width="428" height="104" rx="30" fill="var(--peach)" stroke={INK} strokeWidth="5" />
               <line x1="240" y1="26" x2="240" y2="118" stroke={INK} strokeWidth="3.5" opacity=".5" />
-              {/* seat */}
               <rect x="8" y="104" width="464" height="78" rx="26" fill="var(--peach-deep)" stroke={INK} strokeWidth="5" />
-              {/* arms */}
               <rect x="0" y="84" width="46" height="104" rx="22" fill="var(--peach)" stroke={INK} strokeWidth="5" />
               <rect x="434" y="84" width="46" height="104" rx="22" fill="var(--peach)" stroke={INK} strokeWidth="5" />
-              {/* "your" cushion (right, empty — first person) */}
               <rect x="300" y="112" width="150" height="62" rx="20" fill="var(--sun)" stroke={INK} strokeWidth="4" opacity=".9" />
             </svg>
           </Pf>
 
-          {/* the doodle companion, sitting next to you (left of centre) */}
+          {/* the doodle companion, across the table (left of centre) */}
           <Pf d={33} style={{ left: '27%', bottom: '13%', width: 'clamp(180px,22vw,262px)', ['--tx']: '-50%' } as CSS}>
             <Companion state={state} />
           </Pf>
 
-          {/* rug under the moment */}
           <Pf d={38} className="scene-rug" />
 
-          {/* coffee table + two steaming mugs (front) */}
+          {/* small cozy table + two steaming mugs (front) */}
           <Pf d={46} style={{ left: '50%', bottom: '4%', width: 'min(360px,52%)', ['--tx']: '-50%' } as CSS}>
             <svg viewBox="0 0 320 150" width="100%">
-              {/* steam */}
               <g className="scene-steam" fill="none" stroke="var(--ink-faint)" strokeWidth="3.4" strokeLinecap="round">
                 <path d="M96 44 q-7 -10 0 -20 q7 -10 0 -20" />
                 <path d="M232 44 q7 -10 0 -20 q-7 -10 0 -20" />
               </g>
-              {/* mugs */}
-              <g>
-                <rect x="78" y="44" width="40" height="34" rx="9" fill="var(--sage)" stroke={INK} strokeWidth="4.5" />
-                <path d="M118 52 q14 2 14 14 q0 12 -14 12" fill="none" stroke={INK} strokeWidth="4.5" />
-                <rect x="206" y="44" width="40" height="34" rx="9" fill="var(--sky)" stroke={INK} strokeWidth="4.5" />
-                <path d="M206 52 q-14 2 -14 14 q0 12 14 12" fill="none" stroke={INK} strokeWidth="4.5" />
-              </g>
-              {/* table top + legs */}
+              <rect x="78" y="44" width="40" height="34" rx="9" fill="var(--sage)" stroke={INK} strokeWidth="4.5" />
+              <path d="M118 52 q14 2 14 14 q0 12 -14 12" fill="none" stroke={INK} strokeWidth="4.5" />
+              <rect x="206" y="44" width="40" height="34" rx="9" fill="var(--sky)" stroke={INK} strokeWidth="4.5" />
+              <path d="M206 52 q-14 2 -14 14 q0 12 14 12" fill="none" stroke={INK} strokeWidth="4.5" />
               <ellipse cx="160" cy="98" rx="150" ry="30" fill="#E3C397" stroke={INK} strokeWidth="5" />
               <ellipse cx="160" cy="92" rx="150" ry="28" fill="#F0D9B4" stroke={INK} strokeWidth="4" />
               <rect x="44" y="112" width="9" height="30" rx="4" fill={INK} />
@@ -257,8 +272,17 @@ export function ReflectionScene({ state = 'idle' }: { state?: OrbState }) {
 
         </div>
       </div>
-      {/* vignette sits above the parallax (no travel) for depth framing */}
+
       <div className="scene-vignette" />
+
+      {/* look-around hint (fades on first drag) + reset view */}
+      {!hintGone && <div className="scene-hint"><Ic name="lens" size={15} /> drag to look around</div>}
+      <button className="scene-reset" onClick={reset} title="Reset view" aria-label="Reset view">
+        <Ic name="rewind" size={16} sw={2.7} /> <span>Reset view</span>
+      </button>
+
+      {/* unobtrusive positioning note */}
+      <div className="scene-note">Echo is for reflection &amp; self-awareness — not medical or crisis care.</div>
     </div>
   );
 }
