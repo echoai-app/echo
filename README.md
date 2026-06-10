@@ -24,14 +24,16 @@
 
 > ### For judges — Echo in 30 seconds
 >
-> Most AI companions **forget you** the moment a chat ends. Echo is a calm reflection companion that helps you talk through how you feel, then keeps **only the memories you approve** — as **durable Walrus blobs** pointed to by a **wallet-signed Sui object**. The result is memory that is **portable, verifiable, and user-owned**: come back days later, on any browser, and Echo recalls your context.
+> AI agents are **stateless** — they forget everything between sessions, and their memory is locked inside whatever app they run in. Echo proves the alternative: an AI reflection companion whose memory lives on **Mnemos**, a verifiable agent-memory layer built on **Walrus + Sui**. Approved memories are durable Walrus blobs; a **wallet-signed Sui MemoryPointer** always references the latest memory index; a **second agent** reads the same shared memory and writes artifacts back; and **anyone can inspect or recover the memory with zero Echo backend** — if Echo's servers vanished tomorrow, your memories wouldn't.
 >
 > | | |
 > |---|---|
-> | **What** | A guided emotional-reflection companion (powered by the reusable **Mnemos** memory engine) |
-> | **Walrus** | Stores every approved memory artifact + the memory index as verifiable blobs |
-> | **Sui** | A wallet-owned `MemoryRegistry` pointer to the **latest** Walrus index blob — signed by the user |
-> | **Proof** | Each save returns a card with Walrus blob IDs (Walruscan), a Sui tx digest, and the pointer object ID |
+> | **What** | Echo — an emotional-reflection **agent** with persistent, user-owned memory (the flagship app on the **Mnemos** memory layer) |
+> | **Walrus** | Every approved memory artifact + the memory index + agent-generated reports live as verifiable blobs |
+> | **Sui** | A wallet-owned `MemoryRegistry` pointer to the **latest** Walrus index blob — updated only by wallet-signed txs |
+> | **Multi-agent** | The **Insight agent** reads the same Walrus memory Echo writes and stores its report back as a durable artifact |
+> | **Tooling** | The **[Memory Inspector](https://echoai-app.vercel.app/inspect)** — inspect any wallet's agent memory, fully client-side (Sui RPC + Walrus aggregator, no backend) |
+> | **Proof** | Each save returns Walrus blob IDs (Walruscan), the Sui tx digest, and the pointer object ID — [or verify by curl](#verify-it-with-curl--no-echo-backend-involved) |
 > | **Honest scope** | A reflection & journaling aid — **not** therapy, diagnosis, or a crisis service |
 
 ---
@@ -117,6 +119,44 @@ Wallet  →  Sui MemoryRegistry (MemoryPointer)  →  latest Walrus index blob
 ```
 
 > Walrus makes memory **durable**; Sui makes it **owned and recoverable**. Together they make it **portable and verifiable**.
+
+### Verify it with curl — no Echo backend involved
+
+The whole memory chain is recoverable without Echo existing. These commands run against a **real demo wallet** — copy-paste them:
+
+```bash
+# 1) Wallet → MemoryPointer (straight from Sui RPC)
+curl -s https://fullnode.testnet.sui.io -H 'Content-Type: application/json' -d '{
+  "jsonrpc":"2.0","id":1,"method":"suix_getOwnedObjects",
+  "params":["0x6cb2c7e04bebba1dc343b40bba8bd8c98d22d57db1c13cb4751fd9eb144540ba",
+    {"filter":{"StructType":"0xec0f4d2bfb1eb7d8e4b5df2cd110f326301ace269b421188594ef8937bfb1715::memory_registry::MemoryPointer"},
+     "options":{"showContent":true}},null,5]}'
+# → content.fields.index_blob_id  (the latest Walrus memory index)
+
+# 2) Pointer → memory index (straight from the Walrus aggregator)
+curl -s https://aggregator.walrus-testnet.walrus.space/v1/blobs/Di2n1R1RoCeLgOVa0DubcKcDFHeS2t5NGz3aMu4UXzA
+# → { "entries": [ { "blob_id": …, "summary": …, … } ] }
+
+# 3) Index → any memory artifact
+curl -s https://aggregator.walrus-testnet.walrus.space/v1/blobs/<any entries[].blob_id from step 2>
+```
+
+Prefer a UI? The **[Memory Inspector](https://echoai-app.vercel.app/inspect?address=0x6cb2c7e04bebba1dc343b40bba8bd8c98d22d57db1c13cb4751fd9eb144540ba)** does exactly these reads, client-side, with links to Suiscan/Walruscan for every hop.
+
+---
+
+## Built for the Walrus track — point by point
+
+The track asks for agents with **persistent, verifiable memory**, **multi-agent / artifact-driven workflows**, and **tooling to inspect and manage agent memory on Walrus**. Echo + Mnemos answers each directly:
+
+| Track ask | What Echo ships |
+|---|---|
+| Long-term agent memory, portable across sessions | Approved memories → Walrus blobs; index → Walrus; pointer → wallet-owned Sui object; recall restores **Sui → Walrus** on any device |
+| Multi-agent coordination over shared context | The **Insight agent** reads the same Walrus memory Echo writes (two agents, one verifiable memory layer) |
+| Artifact-driven workflows | Insight reports are **stored back to Walrus** as durable `insight_report` artifacts in the shared index |
+| Tooling to inspect/debug/manage agent memory | The **[Memory Inspector](https://echoai-app.vercel.app/inspect)** — trustless, client-side memory explorer for any wallet |
+| Not locked into a single platform | The `curl` proof above: full recovery with **zero Echo infrastructure** |
+| Reusable beyond one app | **Mnemos** is the engine layer — the same memory substrate can back any agent (SDK on the roadmap) |
 
 ---
 
@@ -339,12 +379,12 @@ Use **Chrome or Edge** for real voice. The app runs in **guest mode** with just 
 
 ## 15. Roadmap
 
+- [ ] **[Seal](https://github.com/MystenLabs/seal) encryption** — encrypt memory blobs with a wallet-derived key so memory is publicly *available* but privately *readable* (top priority; today's testnet blobs are public demo data, stated plainly at consent)
+- [ ] **MemWal adapter** — let Mnemos use [MemWal (Walrus Memory)](https://github.com/MystenLabs) as a pluggable backend, so agents on either layer share the same durable memory
+- [ ] **Walrus Quilt** batching for small artifacts (Echo stores many tiny blobs — Quilt is the natural storage optimization)
 - [ ] Memory **deletion & export** (user-initiated)
-- [ ] Stronger **privacy controls** (per-artifact visibility, encryption-at-rest options)
-- [ ] **Cross-device dashboard** for your memory journey
-- [ ] More **reflection modes**
-- [ ] **Mainnet** deployment
-- [ ] **Mnemos SDK** so other apps can reuse the Walrus + Sui memory layer
+- [ ] **Mainnet** deployment (Move package + Walrus mainnet)
+- [ ] **Mnemos SDK** so any agent framework can adopt the Walrus + Sui memory layer
 
 ---
 
@@ -363,6 +403,10 @@ Echo demonstrates how **Walrus** can give AI agents **durable, verifiable memory
 | Walrus + Sui proof card — every link verifiable | Return & recall — with "selected because" reasons |
 |---|---|
 | ![Proof card](docs/proof.png) | ![Recall](docs/recall.png) |
+
+| Memory Inspector — trustless, client-side | Insight agent — a 2nd agent on the shared memory |
+|---|---|
+| ![Memory Inspector](docs/inspector.png) | ![Insight agent](docs/insight.png) |
 
 | Landing | Memory journey over time |
 |---|---|

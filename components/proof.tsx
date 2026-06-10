@@ -119,6 +119,7 @@ export function ProofModal({ open, onClose, proof, count }: {
           </div>
           <div className="muted tc" style={{ fontWeight: 600, fontSize: 12.5, marginTop: 12 }}>
             {pending ? 'Your words are kept safe locally and sync to Walrus when testnet confirms.' : 'Only shown when real storage succeeds. Your words stay yours.'}
+            {!pending && <>{' '}· <a href="/inspect" style={{ color: 'var(--ink)', fontWeight: 800 }}>open the Memory Inspector ↗</a></>}
           </div>
         </div>
       </div>

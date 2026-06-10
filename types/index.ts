@@ -4,7 +4,9 @@
 // and keyed to a Sui wallet (or a guest identity).
 
 // Structural blob type (how it's stored).
-export type MemoryBlobType = 'reflection_artifact' | 'session_summary' | 'embedding_index';
+//  insight_report — produced by the Insight agent (a second agent that reads
+//  the same Walrus memory Echo writes, and stores its report back into it).
+export type MemoryBlobType = 'reflection_artifact' | 'session_summary' | 'embedding_index' | 'insight_report';
 
 // Semantic kind of a reflection artifact (what it means to the user).
 //  trigger    — a stressor / what set this off

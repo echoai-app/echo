@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useCurrentAccount, useSuiClient } from '@mysten/dapp-kit';
 import { AppBar } from '../chrome';
 import { Doodles, Eyebrow, Btn, Chip, Ic } from '../ui';
 import { ProofBadge, ProofModal } from '../proof';
@@ -8,8 +9,112 @@ import { useEcho } from '@/lib/store';
 import { useIdentity } from '../identity';
 import { kindMeta } from '@/lib/echo/artifacts';
 import { themeColor } from '@/lib/echo/text';
+import { registryEnabled, getMemoryPointer } from '@/lib/sui/registry';
 import { AccentDisc } from './Settings';
 import type { Journey } from '@/types';
+
+interface InsightReport {
+  title: string; period: string; patterns: string[];
+  what_helped: string[]; gentle_suggestion: string; closing_note: string;
+}
+interface InsightResult {
+  ok: boolean; reason?: string; report?: InsightReport;
+  sources?: number; blob_id?: string | null; walrusOk?: boolean; index_blob_id?: string | null;
+}
+
+/* The Insight agent — a SECOND agent in the workflow. It reads the same
+   persistent Walrus memory Echo writes, synthesizes a report across sessions,
+   and stores that report back to Walrus as a durable artifact. */
+function InsightAgentCard() {
+  const id = useIdentity();
+  const account = useCurrentAccount();
+  const client = useSuiClient();
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<InsightResult | null>(null);
+
+  const run = async () => {
+    if (busy || !id.userId) return;
+    setBusy(true); setRes(null);
+    try {
+      // wallet mode: ride the on-chain pointer along so a cold serverless
+      // instance can restore the shared memory before the agent reads it
+      let indexBlobId: string | undefined;
+      if (id.mode === 'wallet' && account?.address && registryEnabled()) {
+        try { indexBlobId = (await getMemoryPointer(client, account.address))?.indexBlobId; } catch { /* local memory may still work */ }
+      }
+      const r = await fetch('/api/insight', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: id.userId, workspace_id: id.workspaceId, index_blob_id: indexBlobId }),
+      });
+      setRes(await r.json());
+    } catch {
+      setRes({ ok: false, reason: 'failed' });
+    }
+    setBusy(false);
+  };
+
+  const rep = res?.ok ? res.report : undefined;
+  return (
+    <div className="up d2 card" style={{ padding: 24, marginBottom: 18, background: 'linear-gradient(120deg, var(--sky) 0%, var(--paper) 130%)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="mem-ic deco" style={{ width: 50, height: 50, flex: '0 0 50px', background: 'var(--paper)' }}><Ic name="lens" size={26} /></div>
+          <div>
+            <span className="display" style={{ fontSize: 19 }}>The Insight agent</span>
+            <p className="muted" style={{ margin: '2px 0 0', fontWeight: 700, fontSize: 13 }}>a second agent that reads the same Walrus memory Echo writes — and stores its report back</p>
+          </div>
+        </div>
+        <Btn variant="primary" icon={busy ? undefined : 'spark'} onClick={run} disabled={busy}>
+          {busy ? 'Reading your shared memory…' : rep ? 'Run it again' : 'Generate insight report'}
+        </Btn>
+      </div>
+
+      {res && !res.ok && (
+        <p style={{ margin: '14px 0 0', fontWeight: 600, fontSize: 14.5 }}>
+          {res.reason === 'no_memories'
+            ? 'No saved memories to read yet — finish a reflection and keep a few, then come back.'
+            : 'The agent couldn’t run just now — try again in a moment.'}
+        </p>
+      )}
+
+      {rep && (
+        <div className="card" style={{ marginTop: 16, padding: 22, background: 'var(--paper)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <span className="display" style={{ fontSize: 21 }}>{rep.title}</span>
+            <Chip sm>{rep.period}</Chip>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+            {rep.patterns.map((p, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <Ic name="lens" size={16} stroke="var(--lav-deep)" /> <span style={{ fontWeight: 600, fontSize: 15, flex: 1 }}>{p}</span>
+              </div>
+            ))}
+            {rep.what_helped.map((p, i) => (
+              <div key={'h' + i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <Ic name="leaf" size={16} stroke="var(--sage-deep)" /> <span style={{ fontWeight: 600, fontSize: 15, flex: 1 }}>{p}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <Ic name="sprout" size={16} stroke="var(--peach-deep)" /> <span style={{ fontWeight: 700, fontSize: 15, flex: 1 }}>{rep.gentle_suggestion}</span>
+            </div>
+            <p className="muted" style={{ margin: '4px 0 0', fontWeight: 600, fontSize: 14, fontStyle: 'italic' }}>&ldquo;{rep.closing_note}&rdquo;</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 14, flexWrap: 'wrap' }}>
+            <span className="muted" style={{ fontWeight: 800, fontSize: 11.5, letterSpacing: '.05em', textTransform: 'uppercase' }}>read {res?.sources} memories ·</span>
+            {res?.walrusOk && res?.blob_id ? (
+              <a className="chip sm mono" style={{ textDecoration: 'none', fontSize: 11, color: 'var(--ink)', background: 'var(--mint)' }}
+                href={`https://walruscan.com/testnet/blob/${res.blob_id}`} target="_blank" rel="noreferrer" title={res.blob_id}>
+                <Ic name="db" size={12} /> report stored on Walrus ↗
+              </a>
+            ) : (
+              <span className="chip sm" style={{ fontSize: 11, background: 'var(--cream-2)' }}>report generated · storage syncing</span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function relTime(iso: string): string {
   const d = (Date.now() - new Date(iso).getTime()) / 86_400_000;
@@ -116,6 +221,8 @@ export default function Timeline() {
               <JStat n={j.total_on_walrus} label="memories on Walrus" ic="db" bg="var(--mint)" />
             </div>
           )}
+
+          {hasData && <InsightAgentCard />}
 
           {!hasData ? (
             <div className="up d2 card" style={{ padding: 30, marginBottom: 30, display: 'flex', alignItems: 'center', gap: 20 }}>
