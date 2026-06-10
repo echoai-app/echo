@@ -41,3 +41,5 @@ next-env.d.ts
 
 # Move build artifacts (bytecode) — keep Move.lock + Published.toml
 move/**/build/
+
+.vercel

@@ -1,19 +1,21 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Ic, type OrbState } from '../ui';
+import { useEcho } from '@/lib/store';
+import type { Room3DApi } from '../reflection/ImmersiveRoom3D';
 
 type CSS = React.CSSProperties;
 
 /* ============================================================================
    ReflectionScene — the immersive "you're seated in the room" stage.
 
-   A first-person cozy room in Echo's doodle style: you're seated at a small
-   table across from a friendly doodle companion, warm light between you. You
-   can LOOK AROUND by dragging (mouse or touch) — the view is fixed at seated
-   eye level, clamped so you can't spin away, with a "Reset view". Pure CSS
-   pseudo-3D (perspective + layered parallax) — no WebGL, so it can't crash a
-   GPU and always renders. Honors reduced motion.
+   Default experience: a REAL 3D room (Three.js / R3F, lazy client-only chunk —
+   see components/reflection/ImmersiveRoom3D.tsx) with drag-to-look. The CSS
+   pseudo-3D room below remains as the automatic fallback whenever WebGL is
+   unavailable, the renderer crashes/loses context, or the user prefers
+   reduced motion / calm mode.
    ========================================================================== */
 
 const INK = '#352A1F';
@@ -83,7 +85,7 @@ function Companion({ state }: { state: OrbState }) {
   );
 }
 
-export function ReflectionScene({ state = 'idle' }: { state?: OrbState }) {
+function CssReflectionScene({ state = 'idle' }: { state?: OrbState }) {
   const root = useRef<HTMLDivElement>(null);
   const surface = useRef<HTMLDivElement>(null);
   // All look-state in a ref so dragging never triggers React re-renders.
@@ -282,6 +284,65 @@ export function ReflectionScene({ state = 'idle' }: { state?: OrbState }) {
       </button>
 
       {/* unobtrusive positioning note */}
+      <div className="scene-note">Echo is for reflection &amp; self-awareness — not medical or crisis care.</div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   3D-first wrapper — real Three.js room by default, CSS room as fallback.
+   ========================================================================== */
+
+// Lazy client-only chunk: three/R3F never load on first paint or for fallback users.
+const ImmersiveRoom3D = dynamic(() => import('../reflection/ImmersiveRoom3D'), {
+  ssr: false,
+  loading: () => <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#ECE4F6 0%,#EFE7F3 52%,#F3E6D2 52%,#F7EAD6 100%)' }} />,
+});
+
+function webglOK(): boolean {
+  try {
+    const c = document.createElement('canvas');
+    return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl')));
+  } catch { return false; }
+}
+
+// If the 3D canvas throws for any reason, swap to the CSS room instead of crashing.
+class SceneBoundary extends React.Component<{ onFail: () => void; children: React.ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { this.props.onFail(); }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
+export function ReflectionScene({ state = 'idle' }: { state?: OrbState }) {
+  const calm = useEcho(s => s.prefs.reducedMotion);
+  const [mode, setMode] = useState<'boot' | '3d' | 'css'>('boot');
+  const [hintGone, setHintGone] = useState(false);
+  const api = useRef<Room3DApi | null>(null);
+
+  useEffect(() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setMode(reduce || calm || !webglOK() ? 'css' : '3d');
+  }, [calm]);
+
+  if (mode === 'css') return <CssReflectionScene state={state} />;
+  if (mode === 'boot') {
+    return <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#ECE4F6 0%,#EFE7F3 52%,#F3E6D2 52%,#F7EAD6 100%)' }} />;
+  }
+
+  return (
+    <div style={{ position: 'absolute', inset: 0 }} onPointerDownCapture={() => { if (!hintGone) setHintGone(true); }}>
+      <SceneBoundary onFail={() => setMode('css')}>
+        <ImmersiveRoom3D state={state} apiRef={api} onFail={() => setMode('css')} />
+      </SceneBoundary>
+
+      <div className="scene-vignette" style={{ zIndex: 4 }} />
+
+      {!hintGone && <div className="scene-hint"><Ic name="lens" size={15} /> drag to look around</div>}
+      <button className="scene-reset" onClick={() => api.current?.reset()} title="Reset view" aria-label="Reset view">
+        <Ic name="rewind" size={16} sw={2.7} /> <span>Reset view</span>
+      </button>
+
       <div className="scene-note">Echo is for reflection &amp; self-awareness — not medical or crisis care.</div>
     </div>
   );
