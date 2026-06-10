@@ -27,8 +27,6 @@ export default function Setup() {
   const [feels, setFeels] = useState<string[]>(session.feelings || []);
   const [intensity, setIntensity] = useState(session.intensity || 6);
   const [remember, setRemember] = useState(session.remember);
-  // warm the 3D-room chunk while they pick feelings — the room then opens instantly
-  useEffect(() => { import('@/components/reflection/ImmersiveRoom3D'); }, []);
   const toggle = (k: string) => setFeels(f => f.includes(k) ? f.filter(x => x !== k) : [...f, k]);
   const begin = () => { patchSession({ feelings: feels, intensity, remember }); go('room'); };
 

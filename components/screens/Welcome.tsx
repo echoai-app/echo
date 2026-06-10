@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Doodles, Btn, Ic, LogoMark, PoweredBy, EchoLogo } from '../ui';
+import { Doodles, Btn, Ic, PoweredBy, EchoLogo } from '../ui';
 import { useEcho } from '@/lib/store';
 
 export default function Welcome() {
@@ -22,11 +22,9 @@ export default function Welcome() {
         { ic: 'cloud', x: '84%', y: '78%', s: 38, c: 'var(--ink)', f: 1, r: 0 },
       ]} />
 
-      <div className="tc" style={{ flex: 1, position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, maxWidth: 660, margin: '0 auto', width: '100%' }}>
-        <span className="hero-badge up d1"><Ic name="spark" size={15} stroke="var(--peach-deep)" fill="var(--peach-deep)" /> your AI reflection companion</span>
-
-        <div className="up d2" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-          <EchoLogo size={84} style={{ filter: 'drop-shadow(0 10px 22px rgba(237,156,116,.35))', animation: 'breathe 4.5s ease-in-out infinite' }} />
+      <div className="tc" style={{ flex: 1, position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 26, maxWidth: 660, margin: '0 auto', width: '100%' }}>
+        <div className="up d2" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22 }}>
+          <EchoLogo size={88} style={{ filter: 'drop-shadow(0 10px 22px rgba(237,156,116,.35))', animation: 'breathe 4.5s ease-in-out infinite' }} />
           <span className="wm">
             <h1 className="display" style={{ fontSize: 'clamp(74px,13vw,154px)', letterSpacing: '-.04em', margin: 0 }}>
               ech<span style={{ color: 'var(--peach-deep)' }}>o</span>
@@ -35,20 +33,12 @@ export default function Welcome() {
               <path d="M5 11 Q 52 2 100 9 T 195 8" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
             </svg>
           </span>
-          <p style={{ margin: '6px 0 0', fontWeight: 700, fontSize: 'clamp(18px,2.4vw,23px)', maxWidth: 480, lineHeight: 1.4, color: 'var(--ink)' }}>
-            Think out loud. Notice your patterns.<br />Be <span style={{ color: 'var(--peach-deep)' }}>remembered</span>.
+          <p style={{ margin: '8px 0 0', fontWeight: 700, fontSize: 'clamp(17px,2.2vw,21px)', maxWidth: 420, lineHeight: 1.45, color: 'var(--ink-soft)' }}>
+            The AI companion that <span style={{ color: 'var(--peach-deep)' }}>remembers you</span>.
           </p>
         </div>
 
-        <div className="up d3 hero-feat">
-          <span>Evidence-informed</span>
-          <span className="dot" />
-          <span>Remembers you</span>
-          <span className="dot" />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><LogoMark brand="walrus" size={16} /> Yours on Walrus</span>
-        </div>
-
-        <div className="up d4" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginTop: 6 }}>
+        <div className="up d4" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginTop: 4 }}>
           <Btn variant="primary" size="lg" icon="play" onClick={() => go('onboard')}>Begin reflecting</Btn>
           <button className="linkbtn" onClick={() => go('recall')}>
             <Ic name="rewind" size={16} /> I&apos;ve been here before

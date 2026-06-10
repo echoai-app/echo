@@ -132,6 +132,9 @@ function Companion3D({ state }: { state: OrbState }) {
   const aura = useRef<THREE.Mesh>(null);
   const waveArm = useRef<THREE.Group>(null);
   const waveT0 = useRef(-1);
+  const legs = useRef<THREE.Group>(null);
+  const gate = useRef(0);
+  const talk = useRef(0);
 
   useFrame((st, dt) => {
     const t = st.clock.elapsedTime;
@@ -172,19 +175,21 @@ function Companion3D({ state }: { state: OrbState }) {
     if (brows.current) {
       brows.current.position.y = damp(brows.current.position.y, state === 'listening' ? 0.035 : 0, 8, dt);
     }
-    // ── talking: the mouth actually OPENS — layered cadence with natural pauses
+    // ── talking: the mouth actually OPENS — every layer damped so nothing snaps
     if (openMouth.current && smile.current) {
-      let open = 0;
-      if (state === 'speaking') {
-        const syllables = Math.max(0, Math.sin(t * 9.2) * 0.6 + Math.sin(t * 13.7 + 1.3) * 0.5);
-        const phrase = Math.sin(t * 1.6) > -0.45 ? 1 : 0.12; // breath pauses between phrases
-        open = Math.min(1, syllables * phrase * 1.5);
-      }
-      const o = damp(openMouth.current.scale.y, Math.max(0.001, open), 18, dt);
-      openMouth.current.scale.set(1 - o * 0.18, o, 1);
+      // phrase gate eases in/out (no hard jumps between phrases)
+      gate.current = damp(gate.current, state === 'speaking' ? (Math.sin(t * 1.6) > -0.45 ? 1 : 0.12) : 0, 6, dt);
+      const syllables = Math.max(0, Math.sin(t * 8.6) * 0.6 + Math.sin(t * 13.1 + 1.3) * 0.5);
+      talk.current = damp(talk.current, Math.min(1, syllables * gate.current * 1.5), 14, dt);
+      const o = Math.max(0.001, talk.current);
+      openMouth.current.scale.set(1 - o * 0.15, o, 1);
       // the resting smile fades out while the mouth is open
-      const s = damp(smile.current.scale.x, open > 0.18 ? 0.001 : 1, 16, dt);
+      const s = damp(smile.current.scale.x, talk.current > 0.12 ? 0.001 : 1, 12, dt);
       smile.current.scale.set(s, s, s);
+    }
+    // legs swing like a kid on a too-big couch
+    if (legs.current) {
+      legs.current.rotation.x = Math.sin(t * 1.05) * 0.085;
     }
     // thought dots while reflecting / saving
     if (think.current) {
@@ -245,17 +250,31 @@ function Companion3D({ state }: { state: OrbState }) {
             <Toon color={skin} />
             <Outlines thickness={0.015} color={INK} />
           </mesh>
-          {/* little feet */}
-          <mesh position={[-0.16, 0.42, 0.4]} scale={[1, 0.7, 1.3]}>
-            <sphereGeometry args={[0.09, 16, 12]} />
-            <Toon color={skin} />
-            <Outlines thickness={0.015} color={INK} />
-          </mesh>
-          <mesh position={[0.16, 0.42, 0.4]} scale={[1, 0.7, 1.3]}>
-            <sphereGeometry args={[0.09, 16, 12]} />
-            <Toon color={skin} />
-            <Outlines thickness={0.015} color={INK} />
-          </mesh>
+          {/* legs — dangling over the couch edge, swinging gently */}
+          <group ref={legs} position={[0, 0.62, 0.22]}>
+            {[-1, 1].map(s => (
+              <group key={s} position={[s * 0.17, 0, 0]}>
+                {/* thigh */}
+                <mesh position={[0, -0.04, 0.12]} rotation={[1.25, 0, s * 0.06]} castShadow>
+                  <capsuleGeometry args={[0.105, 0.26, 6, 12]} />
+                  <Toon color="#CBBCEE" />
+                  <Outlines thickness={0.018} color={INK} />
+                </mesh>
+                {/* shin hanging down */}
+                <mesh position={[0, -0.26, 0.26]} rotation={[0.18, 0, 0]}>
+                  <capsuleGeometry args={[0.08, 0.24, 6, 12]} />
+                  <Toon color={skin} />
+                  <Outlines thickness={0.014} color={INK} />
+                </mesh>
+                {/* cozy sock foot */}
+                <mesh position={[0, -0.42, 0.32]} scale={[1, 0.78, 1.45]}>
+                  <sphereGeometry args={[0.092, 16, 12]} />
+                  <Toon color="#FFFDF8" />
+                  <Outlines thickness={0.014} color={INK} />
+                </mesh>
+              </group>
+            ))}
+          </group>
 
           {/* head */}
           <group ref={head} position={[0, 1.52, 0]}>
@@ -431,30 +450,44 @@ function Clouds() {
 
 /* ---------------- fireplace — flicker, warmth, the heart of the room ---------------- */
 function Fireplace() {
-  const flames = useRef<(THREE.Mesh | null)[]>([]);
+  const { gl } = useThree();
+  const flames = useRef<(THREE.Group | null)[]>([]);
   const embers = useRef<(THREE.Mesh | null)[]>([]);
   const glow = useRef<THREE.PointLight>(null);
+  const glowPlane = useRef<THREE.Mesh>(null);
+  const stokeT = useRef(-10);
+  const wantStoke = useRef(false);
   useFrame((st) => {
     const t = st.clock.elapsedTime;
+    if (wantStoke.current) { stokeT.current = t; wantStoke.current = false; }
+    // a click on the hearth stokes the fire for a moment
+    const se = t - stokeT.current;
+    const stoke = se > 0 && se < 1.6 ? Math.sin((se / 1.6) * Math.PI) * 0.7 : 0;
     flames.current.forEach((f, i) => {
       if (!f) return;
-      const n = Math.sin(t * (6 + i * 1.7) + i * 2.1) * 0.5 + Math.sin(t * (11 + i) + i) * 0.5;
-      f.scale.y = 0.85 + n * 0.22;
-      f.scale.x = 1 - n * 0.08;
-      f.rotation.y = t * (0.6 + i * 0.2);
-      f.position.x = (i - 1) * 0.1 + Math.sin(t * 3 + i * 2) * 0.012;
+      const n = Math.sin(t * (5.5 + i * 1.7) + i * 2.1) * 0.5 + Math.sin(t * (10.5 + i * 1.3) + i) * 0.35;
+      f.scale.y = (0.82 + n * 0.26) * (1 + stoke * 0.6);
+      f.scale.x = (1 - n * 0.1) * (1 + stoke * 0.15);
+      f.rotation.z = Math.sin(t * (3.2 + i) + i * 2) * 0.07;
+      f.position.x = (i - 1) * 0.11 + Math.sin(t * 2.6 + i * 2) * 0.014;
     });
     embers.current.forEach((m, i) => {
       if (!m) return;
-      const p = (t * (0.22 + i * 0.05) + i * 0.31) % 1;
-      m.position.y = 0.5 + p * 0.55;
-      m.position.x = (i - 1.5) * 0.06 + Math.sin(p * 9 + i * 2) * 0.03;
-      (m.material as THREE.MeshBasicMaterial).opacity = 0.85 * (1 - p);
+      const speed = 0.22 + i * 0.04 + stoke * 0.3;
+      const p = (t * speed + i * 0.29) % 1;
+      m.position.y = 0.48 + p * (0.6 + stoke * 0.4);
+      m.position.x = (i - 2.5) * 0.045 + Math.sin(p * 9 + i * 2) * 0.035;
+      (m.material as THREE.MeshBasicMaterial).opacity = (0.85 + stoke * 0.15) * (1 - p);
     });
-    if (glow.current) glow.current.intensity = 2.6 + Math.sin(t * 7.3) * 0.5 + Math.sin(t * 13.7) * 0.3;
+    if (glow.current) glow.current.intensity = 2.6 + stoke * 2.4 + Math.sin(t * 7.3) * 0.5 + Math.sin(t * 13.7) * 0.3;
+    if (glowPlane.current) (glowPlane.current.material as THREE.MeshBasicMaterial).opacity = 0.22 + stoke * 0.2 + Math.sin(t * 6.1) * 0.05;
   });
+  const stoke = (e: { stopPropagation: () => void }) => { e.stopPropagation(); wantStoke.current = true; };
+  const hoverOn = () => { gl.domElement.style.cursor = 'pointer'; };
+  const hoverOff = () => { gl.domElement.style.cursor = 'grab'; };
   return (
-    <group position={[3.32, 0, -0.7]} rotation={[0, -Math.PI / 2, 0]}>
+    <group position={[3.32, 0, -0.7]} rotation={[0, -Math.PI / 2, 0]}
+      onClick={stoke} onPointerOver={hoverOn} onPointerOut={hoverOff}>
       {/* mantel + body */}
       <RoundedBox args={[1.7, 1.4, 0.5]} radius={0.06} position={[0, 0.7, 0]} castShadow>
         <Toon color="#E8C9A0" />
@@ -478,18 +511,33 @@ function Fireplace() {
         <cylinderGeometry args={[0.055, 0.055, 0.55, 8]} />
         <Toon color="#7A5A3E" />
       </mesh>
-      {/* flames */}
+      {/* layered flames — outer / mid / bright core, additive so they glow */}
       {[0, 1, 2].map(i => (
-        <mesh key={i} ref={(el) => { flames.current[i] = el; }} position={[(i - 1) * 0.1, 0.45, 0.28]}>
-          <coneGeometry args={[i === 1 ? 0.11 : 0.075, i === 1 ? 0.42 : 0.28, 8]} />
-          <meshBasicMaterial color={i === 1 ? '#FF9D45' : i === 0 ? '#FFD56B' : '#FF7A3C'} transparent opacity={0.92} toneMapped={false} />
-        </mesh>
+        <group key={i} ref={(el) => { flames.current[i] = el; }} position={[(i - 1) * 0.11, 0.42, 0.28]}>
+          <mesh position={[0, 0.16, 0]}>
+            <coneGeometry args={[i === 1 ? 0.125 : 0.09, i === 1 ? 0.5 : 0.34, 10]} />
+            <meshBasicMaterial color="#E8581F" transparent opacity={0.5} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 0.12, 0.01]}>
+            <coneGeometry args={[i === 1 ? 0.085 : 0.06, i === 1 ? 0.36 : 0.24, 10]} />
+            <meshBasicMaterial color="#FF9D45" transparent opacity={0.8} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 0.08, 0.02]}>
+            <coneGeometry args={[i === 1 ? 0.045 : 0.032, i === 1 ? 0.22 : 0.15, 8]} />
+            <meshBasicMaterial color="#FFE9A8" transparent opacity={0.95} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+          </mesh>
+        </group>
       ))}
+      {/* soft glow billboard behind the flames */}
+      <mesh ref={glowPlane} position={[0, 0.55, 0.26]}>
+        <circleGeometry args={[0.42, 20]} />
+        <meshBasicMaterial color="#FF9D45" transparent opacity={0.22} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </mesh>
       {/* embers drifting up from the fire */}
-      {[0, 1, 2, 3].map(i => (
+      {[0, 1, 2, 3, 4, 5].map(i => (
         <mesh key={'e' + i} ref={(el) => { embers.current[i] = el; }} position={[0, 0.55, 0.3]}>
-          <sphereGeometry args={[0.011, 6, 5]} />
-          <meshBasicMaterial color={i % 2 ? '#FFB066' : '#FF8A4A'} transparent opacity={0.8} toneMapped={false} />
+          <sphereGeometry args={[i % 3 === 0 ? 0.014 : 0.01, 6, 5]} />
+          <meshBasicMaterial color={i % 2 ? '#FFB066' : '#FF8A4A'} transparent opacity={0.8} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
         </mesh>
       ))}
       {/* candle pair on the mantel */}
@@ -518,17 +566,94 @@ function Fireplace() {
   );
 }
 
-/* ---------------- a sleeping doodle cat, breathing on the rug ---------------- */
-function Cat() {
-  const body = useRef<THREE.Group>(null);
-  const tail = useRef<THREE.Mesh>(null);
+/* ---------------- a mug you can pick up and sip ---------------- */
+function SipMug({ x, z, color, flip = false }: { x: number; z: number; color: string; flip?: boolean }) {
+  const { gl } = useThree();
+  const g = useRef<THREE.Group>(null);
+  const steam = useRef<(THREE.Mesh | null)[]>([]);
+  const sipT = useRef(-10);
+  const want = useRef(false);
   useFrame((st) => {
     const t = st.clock.elapsedTime;
-    if (body.current) body.current.scale.y = 1 + Math.sin(t * 1.1) * 0.045;
-    if (tail.current) tail.current.rotation.z = 0.2 + Math.sin(t * 0.7) * 0.12;
+    if (want.current) { if (t - sipT.current > 2) sipT.current = t; want.current = false; }
+    const e = t - sipT.current;
+    // lift toward you, tip back for a sip, settle back down
+    let p = 0;
+    if (e > 0 && e < 2) p = e < 0.55 ? e / 0.55 : e < 1.35 ? 1 : Math.max(0, 1 - (e - 1.35) / 0.6);
+    const ease = p * p * (3 - 2 * p);
+    if (g.current) {
+      g.current.position.y = 0.66 + ease * 0.42;
+      g.current.position.z = z + ease * 0.5;
+      g.current.rotation.x = ease * -0.55;
+    }
+    // steam puffs harder right after a sip
+    steam.current.forEach((m, i) => {
+      if (!m) return;
+      const sp = (t * 0.4 + i * 0.33) % 1;
+      m.position.y = 0.1 + sp * 0.24;
+      m.position.x = Math.sin(sp * 6 + i) * 0.02;
+      (m.material as THREE.MeshBasicMaterial).opacity = (0.4 + ease * 0.4) * (1 - sp);
+    });
   });
   return (
-    <group position={[1.05, 0, -0.25]} rotation={[0, -0.7, 0]}>
+    <group ref={g} position={[x, 0.66, z]}
+      onClick={(e) => { e.stopPropagation(); want.current = true; }}
+      onPointerOver={() => { gl.domElement.style.cursor = 'pointer'; }}
+      onPointerOut={() => { gl.domElement.style.cursor = 'grab'; }}>
+      <mesh castShadow>
+        <cylinderGeometry args={[0.07, 0.062, 0.13, 18]} />
+        <Toon color={color} />
+        <Outlines thickness={0.012} color={INK} />
+      </mesh>
+      <mesh position={[flip ? 0.085 : -0.085, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.045, 0.014, 8, 16]} />
+        <Toon color={color} />
+      </mesh>
+      {/* cocoa inside */}
+      <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.06, 16]} />
+        <meshBasicMaterial color="#8A5A3B" />
+      </mesh>
+      {[0, 1, 2].map(i => (
+        <mesh key={i} ref={(el) => { steam.current[i] = el; }} position={[0, 0.12, 0]}>
+          <sphereGeometry args={[0.014, 8, 6]} />
+          <meshBasicMaterial color="#FFFFFF" transparent opacity={0.4} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/* ---------------- a sleeping doodle cat — poke it gently ---------------- */
+function Cat() {
+  const { gl } = useThree();
+  const body = useRef<THREE.Group>(null);
+  const headM = useRef<THREE.Mesh>(null);
+  const tail = useRef<THREE.Mesh>(null);
+  const hearts = useRef<(THREE.Mesh | null)[]>([]);
+  const wakeT = useRef(-10);
+  const want = useRef(false);
+  useFrame((st) => {
+    const t = st.clock.elapsedTime;
+    if (want.current) { if (t - wakeT.current > 2.4) wakeT.current = t; want.current = false; }
+    const e = t - wakeT.current;
+    const awake = e > 0 && e < 2.2 ? Math.sin(Math.min(1, e / 0.4) * Math.PI * 0.5) * (e > 1.7 ? (2.2 - e) / 0.5 : 1) : 0;
+    if (body.current) body.current.scale.y = 1 + Math.sin(t * 1.1) * 0.045;
+    if (headM.current) headM.current.position.y = 0.13 + awake * 0.06;
+    if (tail.current) tail.current.rotation.z = 0.2 + Math.sin(t * (0.7 + awake * 7)) * (0.12 + awake * 0.25);
+    hearts.current.forEach((m, i) => {
+      if (!m) return;
+      const hp = awake > 0 ? Math.min(1, Math.max(0, (e - 0.25 - i * 0.18) / 1.3)) : 1;
+      m.position.y = 0.3 + hp * 0.35;
+      m.position.x = 0.1 + i * 0.07 + Math.sin(hp * 5 + i) * 0.03;
+      (m.material as THREE.MeshBasicMaterial).opacity = awake > 0 ? Math.max(0, 0.9 * (1 - hp)) : 0;
+    });
+  });
+  return (
+    <group position={[1.05, 0, -0.25]} rotation={[0, -0.7, 0]}
+      onClick={(e) => { e.stopPropagation(); want.current = true; }}
+      onPointerOver={() => { gl.domElement.style.cursor = 'pointer'; }}
+      onPointerOut={() => { gl.domElement.style.cursor = 'grab'; }}>
       <group ref={body}>
         {/* curled body */}
         <mesh position={[0, 0.12, 0]} scale={[1, 0.62, 0.85]} castShadow>
@@ -536,12 +661,19 @@ function Cat() {
           <Toon color="#F6D9C0" />
           <Outlines thickness={0.016} color={INK} />
         </mesh>
-        {/* head tucked in */}
-        <mesh position={[0.14, 0.13, 0.1]}>
+        {/* head tucked in (lifts when poked) */}
+        <mesh ref={headM} position={[0.14, 0.13, 0.1]}>
           <sphereGeometry args={[0.1, 16, 12]} />
           <Toon color="#F6D9C0" />
           <Outlines thickness={0.013} color={INK} />
         </mesh>
+        {/* happy hearts when poked */}
+        {[0, 1, 2].map(i => (
+          <mesh key={'h' + i} ref={(el) => { hearts.current[i] = el; }} position={[0.1, 0.3, 0.1]}>
+            <sphereGeometry args={[0.022, 8, 6]} />
+            <meshBasicMaterial color="#EB8197" transparent opacity={0} depthWrite={false} />
+          </mesh>
+        ))}
         {/* ears */}
         <mesh position={[0.16, 0.23, 0.07]} rotation={[0, 0, 0.2]}>
           <coneGeometry args={[0.032, 0.06, 6]} />
@@ -563,6 +695,46 @@ function Cat() {
           <Outlines thickness={0.01} color={INK} />
         </mesh>
       </group>
+    </group>
+  );
+}
+
+/* ---------------- floor lamp — click to switch on/off ---------------- */
+function Lamp() {
+  const { gl } = useThree();
+  const on = useRef(true);
+  const light = useRef<THREE.PointLight>(null);
+  const bulb = useRef<THREE.Mesh>(null);
+  const litColor = useMemo(() => new THREE.Color('#FFF3D0'), []);
+  const offColor = useMemo(() => new THREE.Color('#CDBFA8'), []);
+  useFrame((_, dt) => {
+    if (light.current) light.current.intensity = damp(light.current.intensity, on.current ? 3.2 : 0, 8, dt);
+    if (bulb.current) (bulb.current.material as THREE.MeshBasicMaterial).color.lerp(on.current ? litColor : offColor, Math.min(1, dt * 8));
+  });
+  return (
+    <group position={[1.95, 0, -1.55]}
+      onClick={(e) => { e.stopPropagation(); on.current = !on.current; }}
+      onPointerOver={() => { gl.domElement.style.cursor = 'pointer'; }}
+      onPointerOut={() => { gl.domElement.style.cursor = 'grab'; }}>
+      <mesh position={[0, 0.03, 0]}>
+        <cylinderGeometry args={[0.17, 0.2, 0.06, 18]} />
+        <Toon color="#CBBCEE" />
+        <Outlines thickness={0.015} color={INK} />
+      </mesh>
+      <mesh position={[0, 0.75, 0]}>
+        <cylinderGeometry args={[0.022, 0.022, 1.4, 8]} />
+        <Toon color={INK} />
+      </mesh>
+      <mesh position={[0, 1.56, 0]} castShadow>
+        <cylinderGeometry args={[0.18, 0.3, 0.34, 22, 1, true]} />
+        <Toon color="#FBF1E0" side={THREE.DoubleSide} />
+        <Outlines thickness={0.02} color={INK} />
+      </mesh>
+      <mesh ref={bulb} position={[0, 1.45, 0]}>
+        <sphereGeometry args={[0.07, 12, 10]} />
+        <meshBasicMaterial color="#FFF3D0" toneMapped={false} />
+      </mesh>
+      <pointLight ref={light} position={[0, 1.5, 0]} intensity={3.2} distance={5.5} color="#FFD9A0" />
     </group>
   );
 }
@@ -629,30 +801,6 @@ function Motes() {
   );
 }
 
-function Steam({ x, z }: { x: number; z: number }) {
-  const refs = useRef<(THREE.Mesh | null)[]>([]);
-  useFrame((st) => {
-    const t = st.clock.elapsedTime;
-    refs.current.forEach((m, i) => {
-      if (!m) return;
-      const p = (t * 0.35 + i * 0.33) % 1;
-      m.position.y = 0.72 + p * 0.26;
-      const mat = m.material as THREE.MeshBasicMaterial;
-      mat.opacity = 0.5 * (1 - p);
-      m.position.x = x + Math.sin(p * 6 + i) * 0.02;
-    });
-  });
-  return (
-    <group>
-      {[0, 1, 2].map((i) => (
-        <mesh key={i} ref={(el) => { refs.current[i] = el; }} position={[x, 0.74, z]}>
-          <sphereGeometry args={[0.016, 8, 6]} />
-          <meshBasicMaterial color="#FFFFFF" transparent opacity={0.4} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
 
 /* ---------------- wall sticky note ---------------- */
 function WallNote({ x, y, color, tilt = 0 }: { x: number; y: number; color: string; tilt?: number }) {
@@ -719,7 +867,6 @@ function RoomScene({ state }: { state: OrbState }) {
       <directionalLight position={[-2.6, 3.1, -0.6]} intensity={1.5} color="#FFD9B0" castShadow
         shadow-mapSize={[1024, 1024]} shadow-camera-left={-4} shadow-camera-right={4}
         shadow-camera-top={4} shadow-camera-bottom={-4} shadow-bias={-0.0004} />
-      <pointLight position={[1.95, 1.5, -1.55]} intensity={3.2} distance={5.5} color="#FFD9A0" />
       <pointLight position={[0, 2.25, -0.2]} intensity={1.9} distance={5.5} color="#FFE9B8" />
 
       {/* floor · rug · walls · ceiling */}
@@ -927,54 +1074,13 @@ function RoomScene({ state }: { state: OrbState }) {
           <Toon color="#E3C397" />
           <Outlines thickness={0.015} color={INK} />
         </mesh>
-        {/* mugs */}
-        <group position={[-0.2, 0.66, 0.08]}>
-          <mesh castShadow>
-            <cylinderGeometry args={[0.07, 0.062, 0.13, 18]} />
-            <Toon color="#AEDAB9" />
-            <Outlines thickness={0.012} color={INK} />
-          </mesh>
-          <mesh position={[-0.085, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.045, 0.014, 8, 16]} />
-            <Toon color="#AEDAB9" />
-          </mesh>
-        </group>
-        <group position={[0.21, 0.66, -0.05]}>
-          <mesh castShadow>
-            <cylinderGeometry args={[0.07, 0.062, 0.13, 18]} />
-            <Toon color="#A9C9E9" />
-            <Outlines thickness={0.012} color={INK} />
-          </mesh>
-          <mesh position={[0.085, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.045, 0.014, 8, 16]} />
-            <Toon color="#A9C9E9" />
-          </mesh>
-        </group>
+        {/* mugs — click one to pick it up and take a sip */}
+        <SipMug x={-0.2} z={0.08} color="#AEDAB9" />
+        <SipMug x={0.21} z={-0.05} color="#A9C9E9" flip />
       </group>
-      <Steam x={-0.2} z={0.53} />
-      <Steam x={0.21} z={0.4} />
 
-      {/* warm floor lamp (right) */}
-      <group position={[1.95, 0, -1.55]}>
-        <mesh position={[0, 0.03, 0]}>
-          <cylinderGeometry args={[0.17, 0.2, 0.06, 18]} />
-          <Toon color="#CBBCEE" />
-          <Outlines thickness={0.015} color={INK} />
-        </mesh>
-        <mesh position={[0, 0.75, 0]}>
-          <cylinderGeometry args={[0.022, 0.022, 1.4, 8]} />
-          <Toon color={INK} />
-        </mesh>
-        <mesh position={[0, 1.56, 0]} castShadow>
-          <cylinderGeometry args={[0.18, 0.3, 0.34, 22, 1, true]} />
-          <Toon color="#FBF1E0" side={THREE.DoubleSide} />
-          <Outlines thickness={0.02} color={INK} />
-        </mesh>
-        <mesh position={[0, 1.45, 0]}>
-          <sphereGeometry args={[0.07, 12, 10]} />
-          <meshBasicMaterial color="#FFF3D0" toneMapped={false} />
-        </mesh>
-      </group>
+      {/* warm floor lamp (right) — click to switch it on/off */}
+      <Lamp />
 
       {/* leafy plant (left) */}
       <group position={[-2.3, 0, -1.4]}>

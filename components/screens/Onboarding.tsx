@@ -27,11 +27,11 @@ export default function Onboarding() {
     <div className="bg-cream2" style={{ height: '100%', display: 'grid', placeItems: 'center', position: 'relative' }}>
       <Doodles />
 
-      <div className="card card-lg" key={i} style={{ width: 'min(940px,92vw)', background: c.color, padding: 'clamp(26px,4vw,40px)', position: 'relative', zIndex: 2, minHeight: 424, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+      <div className="card card-lg up" key={i} style={{ width: 'min(940px,92vw)', background: c.color, padding: 'clamp(26px,4vw,40px)', position: 'relative', zIndex: 2, minHeight: 424, display: 'flex', alignItems: 'center', overflow: 'hidden', animation: 'up .45s cubic-bezier(.2,.8,.2,1) both' }}>
         {/* big faint step number watermark */}
         <div style={{ position: 'absolute', right: 'clamp(10px,3vw,40px)', top: -18, fontFamily: 'var(--display)', fontWeight: 800, fontSize: 'clamp(150px,22vw,240px)', color: 'rgba(53,42,31,.07)', lineHeight: 1, pointerEvents: 'none', zIndex: 0, userSelect: 'none' }}>{c.num}</div>
 
-        <div className="up" style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 'clamp(24px,4vw,40px)', alignItems: 'center', width: '100%', position: 'relative', zIndex: 1 }}>
+        <div className="ob-grid" style={{ position: 'relative', zIndex: 1 }}>
           {/* illustrated sticker disc */}
           <div className="ob-disc" style={{ position: 'relative', width: 240, height: 240, display: 'grid', placeItems: 'center', justifySelf: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid var(--ink)', background: `radial-gradient(circle at 38% 30%, var(--paper), ${c.color} 78%)`, boxShadow: '5px 6px 0 var(--ink)' }} />

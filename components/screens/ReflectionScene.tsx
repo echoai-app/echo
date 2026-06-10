@@ -278,7 +278,7 @@ function CssReflectionScene({ state = 'idle' }: { state?: OrbState }) {
       <div className="scene-vignette" />
 
       {/* look-around hint (fades on first drag) + reset view */}
-      {!hintGone && <div className="scene-hint"><Ic name="lens" size={15} /> drag to look around</div>}
+      {!hintGone && <div className="scene-hint"><Ic name="lens" size={15} /> drag to look · tap the room</div>}
       <button className="scene-reset" onClick={reset} title="Reset view" aria-label="Reset view">
         <Ic name="rewind" size={16} sw={2.7} /> <span>Reset view</span>
       </button>
@@ -343,7 +343,7 @@ export function ReflectionScene({ state = 'idle', onMode }: { state?: OrbState; 
 
       <div className="scene-vignette" style={{ zIndex: 4 }} />
 
-      {!hintGone && <div className="scene-hint"><Ic name="lens" size={15} /> drag to look around</div>}
+      {!hintGone && <div className="scene-hint"><Ic name="lens" size={15} /> drag to look · tap the room</div>}
       <button className="scene-reset" onClick={() => api.current?.reset()} title="Reset view" aria-label="Reset view">
         <Ic name="rewind" size={16} sw={2.7} /> <span>Reset view</span>
       </button>

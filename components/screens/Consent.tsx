@@ -77,9 +77,9 @@ export default function Consent() {
       <ConnectModal open={connectOpen} onOpenChange={setConnectOpen} trigger={<span aria-hidden style={{ display: 'none' }} />} />
       <div className="screen-pad" style={{ maxWidth: 1040, margin: '0 auto', position: 'relative', zIndex: 2, paddingTop: 52, paddingBottom: 44 }}>
         <div className="up d1" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-          <Eyebrow ic="db">how your memory works</Eyebrow>
-          <h2 className="display">Before we begin.</h2>
-          <p className="lede" style={{ maxWidth: 620 }}>Echo is a calm place to reflect and understand yourself — guided gently, and remembered over time. Here&apos;s how your memories work, and how to keep them.</p>
+          <Eyebrow ic="heart">almost there</Eyebrow>
+          <h2 className="display">Make it yours.</h2>
+          <p className="lede" style={{ maxWidth: 520 }}>Two small things — a name, and where your memories should live.</p>
         </div>
 
         {/* name — the warm welcome */}
@@ -100,18 +100,17 @@ export default function Consent() {
           </div>
         </div>
 
-        <SectionLabel note="consent-first, always">your privacy promises</SectionLabel>
-        <div className="up d2 r-3">
+        {/* the promises, as one friendly breath — not a contract */}
+        <div className="up d2 tile" style={{ marginTop: 18, padding: '16px 22px', display: 'flex', alignItems: 'center', gap: '14px 26px', flexWrap: 'wrap', justifyContent: 'center', background: 'var(--paper)', boxShadow: '3px 4px 0 var(--ink)' }}>
           {PROMISES.map((p, k) => (
-            <div key={k} className="tile" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 11 }}>
-              <div style={{ width: 50, height: 50, borderRadius: 14, border: '2.6px solid var(--ink)', display: 'grid', placeItems: 'center', background: p.tone, boxShadow: '2px 3px 0 var(--ink)' }}><Ic name={p.ic} size={26} /></div>
-              <div className="display" style={{ fontSize: 19 }}>{p.t}</div>
-              <div className="muted" style={{ fontWeight: 600, fontSize: 14.5, lineHeight: 1.45 }}>{p.d}</div>
-            </div>
+            <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontWeight: 700, fontSize: 14 }} title={p.d}>
+              <span style={{ width: 30, height: 30, borderRadius: 10, border: '2.4px solid var(--ink)', display: 'grid', placeItems: 'center', background: p.tone, flex: '0 0 30px' }}><Ic name={p.ic} size={16} /></span>
+              {p.t}
+            </span>
           ))}
         </div>
 
-        <SectionLabel>how should your memories live?</SectionLabel>
+        <SectionLabel note="you can switch later">where should your memories live?</SectionLabel>
         <div className="up d3">
           <div className="r-2">
             <AccountCard active={sel === 'guest'} onClick={() => setSel('guest')} ic="ghost" tone="var(--cream-2)"
@@ -136,7 +135,7 @@ export default function Consent() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 14 }}>
             {!named && <span className="muted" style={{ fontWeight: 700, fontSize: 13 }}>add your name to continue</span>}
             <Btn variant="primary" iconR="arrowR" onClick={cont} disabled={!named}>
-              {sel === 'wallet' && !connected ? 'Connect to continue' : 'I understand — continue'}
+              {sel === 'wallet' && !connected ? 'Connect to continue' : 'Step inside'}
             </Btn>
           </div>
         </div>

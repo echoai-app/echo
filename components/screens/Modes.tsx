@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppBar } from '../chrome';
 import { Doodles, Chip, Ic } from '../ui';
 import { useEcho, displayName } from '@/lib/store';
@@ -19,6 +19,8 @@ function greetCtx() {
 export default function Modes() {
   const { go, name, startSession, lastTheme, journey } = useEcho();
   const t = greetCtx();
+  // returning users often go straight into a session — pre-warm the 3D room
+  useEffect(() => { import('@/components/reflection/ImmersiveRoom3D'); }, []);
   const pick = (m: EchoMode) => { startSession({ mode: m.id, modeTitle: m.title }); go('setup'); };
   const reflections = journey?.sessions.length ?? 0;
 

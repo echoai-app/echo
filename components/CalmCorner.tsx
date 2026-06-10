@@ -45,6 +45,9 @@ export function CalmCorner() {
   const [phase, setPhase] = useState(0);
   const [affirm, setAffirm] = useState(0);
   const [gIdx, setGIdx] = useState(0);
+  const [taps, setTaps] = useState(0);
+  const [breaths, setBreaths] = useState(0);
+  const [burst, setBurst] = useState(0);
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,8 +55,11 @@ export function CalmCorner() {
   useEffect(() => {
     if (!open || tab !== 'breathe' || prefs.reducedMotion) return;
     let p = 0;
+    let started = false;
     const tick = () => {
       setPhase(p);
+      if (p === 0 && started) setBreaths(b => b + 1);
+      if (p === PHASES.length - 1) started = true;
       timer.current = setTimeout(() => { p = (p + 1) % PHASES.length; tick(); }, PHASES[p].ms);
     };
     tick();
@@ -61,7 +67,7 @@ export function CalmCorner() {
   }, [open, tab, prefs.reducedMotion]);
 
   const openPanel = () => {
-    setTab('breathe'); setPhase(0); setGIdx(0);
+    setTab('breathe'); setPhase(0); setGIdx(0); setTaps(0); setBreaths(0);
     setAffirm(Math.floor(Math.random() * AFFIRMATIONS.length));
     setOpen(true);
   };
@@ -122,28 +128,36 @@ export function CalmCorner() {
                     </span>
                   </div>
                   <div className="breathe-phase">{prefs.reducedMotion ? 'Take a slow, kind breath' : cur.label}</div>
-                  <p className="muted tc" style={{ fontWeight: 600, fontSize: 12.5, margin: '6px 0 0' }}>In through your nose, out through your mouth.</p>
+                  <p className="muted tc" style={{ fontWeight: 600, fontSize: 12.5, margin: '6px 0 10px' }}>In through your nose, out through your mouth.</p>
+                  {breaths > 0 && <div className="tc"><span className="breath-count"><Ic name="leaf" size={13} /> {breaths} {breaths === 1 ? 'breath' : 'breaths'} together</span></div>}
                 </>
               )}
 
               {tab === 'ground' && (
                 <div className="tc">
                   <div className="muted" style={{ fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>5 · 4 · 3 · 2 · 1 — come back to now</div>
-                  <div className="ground-num" style={{ background: g.color }}>{g.n}</div>
+                  <div className="ground-num ground-tap" style={{ background: g.color }} role="button" tabIndex={0}
+                    onClick={() => {
+                      const nt = taps + 1;
+                      setTaps(nt);
+                      if (nt >= g.n) setTimeout(() => { setGIdx(i => (i + 1) % GROUND.length); setTaps(0); }, 420);
+                    }}>{g.n - Math.min(taps, g.n) || '✓'}</div>
                   <div className="display" style={{ fontSize: 18, marginTop: 12 }}>{g.text}</div>
-                  <div className="muted" style={{ fontWeight: 600, fontSize: 12.5, marginTop: 3 }}>take your time noticing them</div>
+                  <div className="muted" style={{ fontWeight: 600, fontSize: 12.5, marginTop: 3 }}>tap the circle for each one you notice</div>
+                  <div className="tap-dots">{Array.from({ length: g.n }).map((_, i) => <span key={i} className={'tap-dot' + (i < taps ? ' on' : '')} />)}</div>
                   <div className="ground-dots">{GROUND.map((_, i) => <span key={i} className={'ground-dot' + (i <= gIdx ? ' on' : '')} />)}</div>
-                  <button className="btn lav sm" style={{ marginTop: 16 }} onClick={() => setGIdx(i => (i + 1) % GROUND.length)}>
-                    {gIdx < GROUND.length - 1 ? <>Next <Ic name="arrowR" size={16} /></> : <>Start over <Ic name="rewind" size={16} /></>}
-                  </button>
                 </div>
               )}
 
               {tab === 'affirm' && (
-                <div className="tc" style={{ paddingTop: 6 }}>
-                  <div style={{ width: 56, height: 56, margin: '0 auto 14px', borderRadius: 18, border: '3px solid var(--ink)', display: 'grid', placeItems: 'center', background: 'var(--rose)', boxShadow: '3px 4px 0 var(--ink)' }}>
+                <div className="tc" style={{ paddingTop: 6, position: 'relative' }}>
+                  {burst > 0 && <span key={burst} className="heart-burst" aria-hidden>
+                    {['-44px', '-18px', '4px', '26px', '50px'].map((hx, i) => <i key={i} style={{ ['--hx']: hx, animationDelay: (i * 0.06) + 's' } as React.CSSProperties}>{'❤️'}</i>)}
+                  </span>}
+                  <button style={{ width: 56, height: 56, margin: '0 auto 14px', borderRadius: 18, border: '3px solid var(--ink)', display: 'grid', placeItems: 'center', background: 'var(--rose)', boxShadow: '3px 4px 0 var(--ink)', cursor: 'pointer' }}
+                    onClick={() => setBurst(b => b + 1)} title="Send yourself some love" aria-label="Send yourself some love">
                     <Ic name="heart" size={28} stroke="var(--ink)" fill="var(--paper)" />
-                  </div>
+                  </button>
                   <p style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 700, fontSize: 19, lineHeight: 1.35 }}>{AFFIRMATIONS[affirm]}</p>
                   <button className="btn ghost sm" style={{ marginTop: 16 }} onClick={() => setAffirm((affirm + 1) % AFFIRMATIONS.length)}>
                     <Ic name="spark" size={16} /> Another

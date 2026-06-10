@@ -808,3 +808,24 @@ input,textarea{font-family:var(--body);}
 
 @media (prefers-reduced-motion:reduce){.sk::after{animation:none;}}
 .calm .sk::after{animation:none;}
+
+/* ---------- onboarding layout ---------- */
+.ob-grid{display:grid;grid-template-columns:240px 1fr;gap:clamp(24px,4vw,40px);align-items:center;width:100%;}
+.ob-disc{animation:breathe 5.5s ease-in-out infinite;}
+@media (max-width:760px){
+  .ob-grid{grid-template-columns:1fr;justify-items:center;text-align:center;}
+  .ob-grid .ob-disc{width:168px!important;height:168px!important;}
+}
+
+/* ---------- calm corner interactivity ---------- */
+.tap-dots{display:flex;gap:8px;justify-content:center;margin-top:12px;}
+.tap-dot{width:15px;height:15px;border-radius:50%;border:2.4px solid var(--ink);background:var(--paper);transition:background .15s, transform .15s;}
+.tap-dot.on{background:var(--sage-deep);transform:scale(1.12);}
+.ground-tap{cursor:pointer;transition:transform .12s ease;}
+.ground-tap:hover{transform:translateY(-2px) scale(1.03);}
+.ground-tap:active{transform:scale(.94);}
+.heart-burst{position:absolute;inset:0;pointer-events:none;}
+.heart-burst i{position:absolute;left:50%;top:42%;font-style:normal;font-size:15px;animation:heartFly .95s ease-out forwards;}
+@keyframes heartFly{from{transform:translate(-50%,0) scale(.6);opacity:1;}to{transform:translate(calc(-50% + var(--hx,0px)), -74px) scale(1.15);opacity:0;}}
+.breath-count{display:inline-flex;align-items:center;gap:7px;border:2.4px solid var(--ink);border-radius:99px;
+  padding:4px 12px;background:var(--mint);font-weight:800;font-size:12px;box-shadow:1.5px 2px 0 var(--ink);}
