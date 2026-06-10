@@ -34,26 +34,25 @@ export default function Recall() {
     if (!id.ready || !id.userId) return;
     let cancelled = false;
     (async () => {
-      // Wallet recovery: wallet → on-chain MemoryPointer → Walrus index blob →
-      // rehydrate the index so recall works on a fresh device/deploy.
+      // Wallet recovery: wallet → on-chain MemoryPointer → Walrus index blob.
+      // The blob id rides along on the recall request so the SAME serverless
+      // instance restores the index and answers — no cross-instance race.
+      let indexBlobId: string | undefined;
       if (id.mode === 'wallet' && account?.address && registryEnabled()) {
         try {
           const ptr = await getMemoryPointer(client, account.address);
-          if (ptr?.indexBlobId) {
-            const r = await fetch('/api/memory/restore', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ user_id: id.userId, index_blob_id: ptr.indexBlobId }),
-            });
-            const rj = await r.json().catch(() => ({}));
-            if (!cancelled && rj?.ok) setRecovered(true);
-          }
+          indexBlobId = ptr?.indexBlobId;
         } catch { /* fall through to local recall */ }
       }
       try {
-        const url = `/api/recall?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}&context=${encodeURIComponent(lastTheme)}`;
+        let url = `/api/recall?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}&context=${encodeURIComponent(lastTheme)}`;
+        if (indexBlobId) url += `&index_blob_id=${encodeURIComponent(indexBlobId)}`;
         const res = await fetch(url);
         const data = await res.json();
-        if (!cancelled) setRecalled(data.recalled ?? []);
+        if (!cancelled) {
+          setRecalled(data.recalled ?? []);
+          if (data.restored || (indexBlobId && (data.recalled ?? []).length > 0)) setRecovered(true);
+        }
       } catch {
         if (!cancelled) setRecalled([]);
       } finally {
