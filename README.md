@@ -36,6 +36,13 @@
 
 ---
 
+<div align="center">
+<img src="docs/room.png" width="860" alt="Echo's 3D reflection room — a first-person seated space with a doodle companion across the table" />
+<br/><em>The reflection room: a real-3D, first-person seated space — drag to look around. (More <a href="#screenshots">screenshots</a> below.)</em>
+</div>
+
+---
+
 ## Table of contents
 
 1. [What is Echo](#1-what-is-echo) · 2. [Problem](#2-problem) · 3. [Solution](#3-solution) · 4. [Why Walrus](#4-why-walrus) · 5. [Why Sui](#5-why-sui) · 6. [Architecture](#6-architecture) · 7. [User flow](#7-user-flow) · 8. [Demo & verification](#8-demo--verification-guide) · 9. [Tech stack](#9-tech-stack) · 10. [Sui Move contract](#10-sui-move-contract--memoryregistry) · 11. [Local development](#11-local-development) · 12. [Environment variables](#12-environment-variables) · 13. [Safety](#13-safety--responsible-ai) · 14. [Limitations](#14-limitations) · 15. [Roadmap](#15-roadmap) · 16. [Submission summary](#16-submission-summary)
@@ -349,11 +356,17 @@ Echo demonstrates how **Walrus** can give AI agents **durable, verifiable memory
 
 ## Screenshots
 
-> _Screenshots to be added before final submission. Suggested set:_
+| The 3D reflection room — drag to look around | Memory review — you approve what's kept |
+|---|---|
+| ![Reflection room](docs/room.png) | ![Memory review](docs/review.png) |
 
-| Reflection room | Memory review | Proof card |
-|---|---|---|
-| _`docs/room.png`_ | _`docs/review.png`_ | _`docs/proof.png`_ |
+| Walrus + Sui proof card — every link verifiable | Return & recall — with "selected because" reasons |
+|---|---|
+| ![Proof card](docs/proof.png) | ![Recall](docs/recall.png) |
+
+| Landing | Memory journey over time |
+|---|---|
+| ![Landing](docs/hero.png) | ![Journey](docs/journey.png) |
 
 ---
 

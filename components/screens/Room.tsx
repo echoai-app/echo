@@ -228,7 +228,7 @@ export default function Room() {
             )}
           </div>
 
-          {showTr && <Transcript onClose={() => setShowTr(false)} trRef={trRef} intensity={session.intensity} msgs={transcript} />}
+          {showTr && <Transcript onClose={() => setShowTr(false)} trRef={trRef} intensity={session.intensity} msgs={transcript} thinking={vs === 'thinking'} />}
 
           {/* voice dock */}
           <div className="voice-dock" style={{ left: docked ? 'calc((100% - 354px) / 2)' : '50%', width: docked ? 'min(560px, calc(100% - 384px))' : 'min(680px, 92%)' }}>
@@ -298,8 +298,8 @@ export default function Room() {
   );
 }
 
-function Transcript({ msgs, onClose, trRef, intensity }: {
-  msgs: ReflectionTurn[]; onClose: () => void; trRef: React.RefObject<HTMLDivElement | null>; intensity: number;
+function Transcript({ msgs, onClose, trRef, intensity, thinking }: {
+  msgs: ReflectionTurn[]; onClose: () => void; trRef: React.RefObject<HTMLDivElement | null>; intensity: number; thinking?: boolean;
 }) {
   return (
     <div className="transcript">
@@ -316,6 +316,7 @@ function Transcript({ msgs, onClose, trRef, intensity }: {
             {m.role === 'echo' ? `“${m.text}”` : m.text}
           </div>
         ))}
+        {thinking && <Typing />}
       </div>
       <div style={{ padding: '12px 16px', borderTop: '3px solid var(--ink)', background: 'var(--cream)' }}>
         <span className="muted" style={{ fontWeight: 700, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 7 }}><Ic name="ear" size={14} /> Text just supports — Echo leads by listening.</span>

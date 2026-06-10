@@ -48,7 +48,8 @@ function LookControls({ apiRef }: { apiRef: React.MutableRefObject<Room3DApi | n
       if (!s.drag) return;
       // grab-the-world feel; clamped so you can't spin past the room
       s.tyaw = clamp(s.tyaw + (e.clientX - s.lx) * 0.0032, -0.62, 0.62);
-      s.tpitch = clamp(s.tpitch + (e.clientY - s.ly) * 0.0022, -0.30, 0.26);
+      // negative = looking down (toward your own knees), positive = up
+      s.tpitch = clamp(s.tpitch + (e.clientY - s.ly) * 0.0022, -0.46, 0.28);
       s.lx = e.clientX; s.ly = e.clientY;
     };
     const up = (e: PointerEvent) => {
@@ -74,8 +75,8 @@ function LookControls({ apiRef }: { apiRef: React.MutableRefObject<Room3DApi | n
 
   useFrame((st, dt) => {
     const s = v.current;
-    s.yaw = damp(s.yaw, s.tyaw, 6, dt);
-    s.pitch = damp(s.pitch, s.tpitch, 6, dt);
+    s.yaw = damp(s.yaw, s.tyaw, 7.5, dt);
+    s.pitch = damp(s.pitch, s.tpitch, 7.5, dt);
     const t = st.clock.elapsedTime;
     // gentle seated sway so the room feels alive even untouched
     const swayY = Math.sin(t * 0.32) * 0.012;
@@ -95,8 +96,10 @@ function Companion3D({ state }: { state: OrbState }) {
   const head = useRef<THREE.Group>(null);
   const eyeL = useRef<THREE.Mesh>(null);
   const eyeR = useRef<THREE.Mesh>(null);
+  const brows = useRef<THREE.Group>(null);
   const mouth = useRef<THREE.Mesh>(null);
   const think = useRef<THREE.Group>(null);
+  const aura = useRef<THREE.Mesh>(null);
 
   useFrame((st, dt) => {
     const t = st.clock.elapsedTime;
@@ -105,16 +108,22 @@ function Companion3D({ state }: { state: OrbState }) {
       const s = 1 + Math.sin(t * 1.35) * 0.016;
       breath.current.scale.set(1, s, 1);
     }
-    // head bob + tilt
+    // head bob + tilt (a touch more curious while listening)
     if (head.current) {
       head.current.rotation.z = damp(head.current.rotation.z,
-        Math.sin(t * 0.8) * 0.045 + (state === 'thinking' || state === 'saving' ? 0.09 : 0), 4, dt);
+        Math.sin(t * 0.8) * 0.045
+          + (state === 'thinking' || state === 'saving' ? 0.09 : 0)
+          + (state === 'listening' ? -0.06 : 0), 4, dt);
       head.current.position.y = 1.52 + Math.sin(t * 1.35) * 0.012;
     }
     // blink every ~4.4s
     const blink = (t % 4.4) < 0.13 ? 0.12 : 1;
     if (eyeL.current) eyeL.current.scale.y = damp(eyeL.current.scale.y, blink, 30, dt);
     if (eyeR.current) eyeR.current.scale.y = damp(eyeR.current.scale.y, blink, 30, dt);
+    // brows lift when listening — attentive, not surprised
+    if (brows.current) {
+      brows.current.position.y = damp(brows.current.position.y, state === 'listening' ? 0.035 : 0, 8, dt);
+    }
     // mouth talks while Echo speaks
     if (mouth.current) {
       const speak = state === 'speaking' ? 0.55 + Math.abs(Math.sin(t * 8.5)) * 1.5 : 1;
@@ -127,10 +136,19 @@ function Companion3D({ state }: { state: OrbState }) {
       think.current.scale.setScalar(Math.max(0.0001, sc));
       think.current.position.y = 2.0 + Math.sin(t * 2.2) * 0.03;
     }
-    // lean toward you when listening, settle back otherwise
+    // lean toward you when listening; a gentle conversational sway while speaking
     if (lean.current) {
       lean.current.rotation.x = damp(lean.current.rotation.x, state === 'listening' ? 0.09 : 0, 5, dt);
       lean.current.position.z = damp(lean.current.position.z, state === 'listening' ? 0.1 : 0, 5, dt);
+      lean.current.rotation.z = damp(lean.current.rotation.z, state === 'speaking' ? Math.sin(t * 1.9) * 0.025 : 0, 5, dt);
+    }
+    // soft aura behind the companion breathes while Echo speaks
+    if (aura.current) {
+      const on = state === 'speaking' ? 1 : 0;
+      const mat = aura.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = damp(mat.opacity, on * (0.13 + Math.sin(t * 2.4) * 0.05), 5, dt);
+      const sc = 1 + (state === 'speaking' ? Math.sin(t * 2.4) * 0.05 : 0);
+      aura.current.scale.setScalar(sc);
     }
   });
 
@@ -201,6 +219,17 @@ function Companion3D({ state }: { state: OrbState }) {
               <sphereGeometry args={[0.038, 12, 10]} />
               <meshBasicMaterial color={INK} />
             </mesh>
+            {/* brows — lift when listening */}
+            <group ref={brows}>
+              <mesh position={[-0.115, 0.1, 0.295]} rotation={[0.25, 0, 0.12]}>
+                <torusGeometry args={[0.05, 0.011, 6, 12, Math.PI * 0.75]} />
+                <meshBasicMaterial color="#7A6A58" />
+              </mesh>
+              <mesh position={[0.115, 0.1, 0.295]} rotation={[0.25, 0, Math.PI - 0.12 - Math.PI * 0.75]}>
+                <torusGeometry args={[0.05, 0.011, 6, 12, Math.PI * 0.75]} />
+                <meshBasicMaterial color="#7A6A58" />
+              </mesh>
+            </group>
             {/* blush */}
             <mesh position={[-0.18, -0.08, 0.27]} scale={[1, 0.7, 0.5]}>
               <sphereGeometry args={[0.055, 12, 10]} />
@@ -225,6 +254,104 @@ function Companion3D({ state }: { state: OrbState }) {
           </group>
         </group>
       </group>
+
+      {/* soft warm aura behind the companion — breathes while Echo speaks */}
+      <mesh ref={aura} position={[0, 1.2, -0.25]}>
+        <sphereGeometry args={[0.95, 20, 16]} />
+        <meshBasicMaterial color="#F4B89A" transparent opacity={0} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ---------------- you — first-person seated presence ---------------- */
+// Your own cozy knees, hands and feet, visible at the bottom of the view and
+// rewarded when you glance down: you're IN the room, not watching a diorama.
+function YourPresence() {
+  return (
+    <group position={[0, 0, 2.68]}>
+      {/* your floor cushion */}
+      <mesh position={[0, 0.12, 0.25]}>
+        <cylinderGeometry args={[0.52, 0.56, 0.22, 24]} />
+        <meshToonMaterial color="#CBBCEE" />
+        <Outlines thickness={0.02} color={INK} />
+      </mesh>
+      {/* thighs — cozy sage lounge pants, knees rising into the view */}
+      <mesh position={[-0.23, 0.58, -0.1]} rotation={[1.15, 0, 0.08]} castShadow>
+        <capsuleGeometry args={[0.13, 0.46, 8, 14]} />
+        <meshToonMaterial color="#AEDAB9" />
+        <Outlines thickness={0.02} color={INK} />
+      </mesh>
+      <mesh position={[0.23, 0.58, -0.1]} rotation={[1.15, 0, -0.08]} castShadow>
+        <capsuleGeometry args={[0.13, 0.46, 8, 14]} />
+        <meshToonMaterial color="#AEDAB9" />
+        <Outlines thickness={0.02} color={INK} />
+      </mesh>
+      {/* shins folding down */}
+      <mesh position={[-0.21, 0.22, -0.42]} rotation={[0.35, 0, 0]}>
+        <capsuleGeometry args={[0.1, 0.34, 8, 14]} />
+        <meshToonMaterial color="#AEDAB9" />
+        <Outlines thickness={0.016} color={INK} />
+      </mesh>
+      <mesh position={[0.21, 0.22, -0.42]} rotation={[0.35, 0, 0]}>
+        <capsuleGeometry args={[0.1, 0.34, 8, 14]} />
+        <meshToonMaterial color="#AEDAB9" />
+        <Outlines thickness={0.016} color={INK} />
+      </mesh>
+      {/* feet — cream socks */}
+      <mesh position={[-0.22, 0.07, -0.62]} scale={[1, 0.72, 1.5]}>
+        <sphereGeometry args={[0.105, 16, 12]} />
+        <meshToonMaterial color="#FFFDF8" />
+        <Outlines thickness={0.014} color={INK} />
+      </mesh>
+      <mesh position={[0.22, 0.07, -0.62]} scale={[1, 0.72, 1.5]}>
+        <sphereGeometry args={[0.105, 16, 12]} />
+        <meshToonMaterial color="#FFFDF8" />
+        <Outlines thickness={0.014} color={INK} />
+      </mesh>
+      {/* hands resting on your knees */}
+      <mesh position={[-0.24, 0.74, 0.04]} scale={[1, 0.8, 1.1]}>
+        <sphereGeometry args={[0.085, 16, 12]} />
+        <meshToonMaterial color="#F8E4D2" />
+        <Outlines thickness={0.014} color={INK} />
+      </mesh>
+      <mesh position={[0.24, 0.74, 0.04]} scale={[1, 0.8, 1.1]}>
+        <sphereGeometry args={[0.085, 16, 12]} />
+        <meshToonMaterial color="#F8E4D2" />
+        <Outlines thickness={0.014} color={INK} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ---------------- string lights — a soft garland above the couch ---------------- */
+function StringLights() {
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const pts = useMemo(() => {
+    const arr: [number, number, number][] = [];
+    for (let i = 0; i <= 8; i++) {
+      const u = i / 8;
+      const x = -1.9 + u * 3.8;
+      const y = 2.78 - Math.sin(u * Math.PI) * 0.42; // hanging swag
+      arr.push([x, y, -3.05]);
+    }
+    return arr;
+  }, []);
+  useFrame((st) => {
+    const t = st.clock.elapsedTime;
+    refs.current.forEach((m, i) => {
+      if (!m) return;
+      (m.material as THREE.MeshBasicMaterial).opacity = 0.65 + Math.sin(t * 1.6 + i * 1.1) * 0.3;
+    });
+  });
+  return (
+    <group>
+      {pts.map((p, i) => (
+        <mesh key={i} ref={(el) => { refs.current[i] = el; }} position={p}>
+          <sphereGeometry args={[i % 2 ? 0.035 : 0.028, 10, 8]} />
+          <meshBasicMaterial color={i % 3 === 0 ? '#FFE9A8' : i % 3 === 1 ? '#F8CDB4' : '#D8CCF2'} transparent opacity={0.8} toneMapped={false} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -305,7 +432,8 @@ function WallNote({ x, y, color, tilt = 0 }: { x: number; y: number; color: stri
 
 /* ---------------- the room ---------------- */
 function RoomScene({ state }: { state: OrbState }) {
-  // tiny canvas gradient for the window sky — the only "texture", made locally
+  // tiny generated canvas textures (no asset downloads): the window sky
+  // gradient and soft wooden floor planks.
   const sky = useMemo(() => {
     const c = document.createElement('canvas');
     c.width = 8; c.height = 64;
@@ -315,6 +443,25 @@ function RoomScene({ state }: { state: OrbState }) {
     g.fillStyle = grad; g.fillRect(0, 0, 8, 64);
     const tx = new THREE.CanvasTexture(c);
     tx.colorSpace = THREE.SRGBColorSpace;
+    return tx;
+  }, []);
+  const planks = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 128;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#F4E3C8'; g.fillRect(0, 0, 128, 128);
+    g.strokeStyle = '#E6D0AC'; g.lineWidth = 3;
+    for (let x = 0; x <= 128; x += 32) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 128); g.stroke(); }
+    // staggered plank ends
+    g.lineWidth = 2.5;
+    for (let x = 16; x <= 128; x += 32) {
+      const y = ((x * 37) % 128);
+      g.beginPath(); g.moveTo(x - 16, y); g.lineTo(x + 16, y); g.stroke();
+    }
+    const tx = new THREE.CanvasTexture(c);
+    tx.colorSpace = THREE.SRGBColorSpace;
+    tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
+    tx.repeat.set(5, 5);
     return tx;
   }, []);
 
@@ -332,7 +479,12 @@ function RoomScene({ state }: { state: OrbState }) {
       {/* floor · rug · walls · ceiling */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[12, 12]} />
-        <meshToonMaterial color="#F4E3C8" />
+        <meshToonMaterial map={planks} color="#FFFFFF" />
+      </mesh>
+      {/* warm sun patch spilling in from the window */}
+      <mesh rotation={[-Math.PI / 2, 0, 0.4]} position={[-1.7, 0.008, -2.15]} scale={[1, 1.7, 1]}>
+        <circleGeometry args={[0.62, 24]} />
+        <meshBasicMaterial color="#FFE9C9" transparent opacity={0.4} depthWrite={false} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -0.5]}>
         <circleGeometry args={[1.95, 40]} />
@@ -395,7 +547,7 @@ function RoomScene({ state }: { state: OrbState }) {
       <WallNote x={0.62} y={1.6} color="#A9C9E9" tilt={-0.04} />
 
       {/* art on the left wall — a reward for looking around */}
-      <group position={[-3.42, 1.85, -0.7]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-3.42, 1.72, -0.7]} rotation={[0, Math.PI / 2, 0]} scale={1.35}>
         <RoundedBox args={[0.72, 0.58, 0.05]} radius={0.02}>
           <meshToonMaterial color="#FFFDF8" />
           <Outlines thickness={0.012} color={INK} />
@@ -444,6 +596,14 @@ function RoomScene({ state }: { state: OrbState }) {
           <meshToonMaterial color="#7FC295" />
           <Outlines thickness={0.01} color={INK} />
         </mesh>
+        {/* a few well-loved books */}
+        {[['#F3A8B6', -0.02, 0.1], ['#A9C9E9', 0.035, 0.115], ['#F5CE74', 0.09, 0.105]].map(([col, x, h], i) => (
+          <mesh key={i} position={[Number(x), 0.03 + Number(h) / 2, 0.02]} rotation={[0, 0, i === 2 ? -0.12 : 0]}>
+            <boxGeometry args={[0.045, Number(h) * 2, 0.16]} />
+            <meshToonMaterial color={String(col)} />
+            <Outlines thickness={0.008} color={INK} />
+          </mesh>
+        ))}
       </group>
 
       {/* the couch across the table */}
@@ -473,6 +633,12 @@ function RoomScene({ state }: { state: OrbState }) {
 
       {/* the companion, across the table */}
       <Companion3D state={state} />
+
+      {/* you, seated — knees, hands, feet, cushion */}
+      <YourPresence />
+
+      {/* garland of soft lights above the couch */}
+      <StringLights />
 
       {/* small cozy table in front of you, with two mugs */}
       <group position={[0, 0, 0.45]}>
