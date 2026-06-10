@@ -93,7 +93,10 @@ export default function Recall() {
             <div className="up d3 card" style={{ padding: 24, marginBottom: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
                 <span className="display" style={{ fontSize: 20, display: 'inline-flex', alignItems: 'center', gap: 10 }}><Ic name="db" size={22} /> What Echo recalled — and why</span>
-                <ProofBadge onClick={() => go('timeline')} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {recovered && <Chip sm ic="anchor" style={{ background: 'var(--sky)' }}>restored from Walrus · via your Sui pointer</Chip>}
+                  <ProofBadge onClick={() => go('timeline')} />
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {recalled.map((m, i) => {

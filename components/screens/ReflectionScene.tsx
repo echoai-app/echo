@@ -314,7 +314,7 @@ class SceneBoundary extends React.Component<{ onFail: () => void; children: Reac
   render() { return this.state.failed ? null : this.props.children; }
 }
 
-export function ReflectionScene({ state = 'idle' }: { state?: OrbState }) {
+export function ReflectionScene({ state = 'idle', onMode }: { state?: OrbState; onMode?: (m: '3d' | 'css') => void }) {
   const calm = useEcho(s => s.prefs.reducedMotion);
   const [mode, setMode] = useState<'boot' | '3d' | 'css'>('boot');
   const [hintGone, setHintGone] = useState(false);
@@ -322,8 +322,13 @@ export function ReflectionScene({ state = 'idle' }: { state?: OrbState }) {
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setMode(reduce || calm || !webglOK() ? 'css' : '3d');
+    const next = reduce || calm || !webglOK() ? 'css' : '3d';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- WebGL/motion capability can only be detected client-side, after mount
+    setMode(next);
+    onMode?.(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calm]);
+  const fail = () => { setMode('css'); onMode?.('css'); };
 
   if (mode === 'css') return <CssReflectionScene state={state} />;
   if (mode === 'boot') {
@@ -332,8 +337,8 @@ export function ReflectionScene({ state = 'idle' }: { state?: OrbState }) {
 
   return (
     <div style={{ position: 'absolute', inset: 0 }} onPointerDownCapture={() => { if (!hintGone) setHintGone(true); }}>
-      <SceneBoundary onFail={() => setMode('css')}>
-        <ImmersiveRoom3D state={state} apiRef={api} onFail={() => setMode('css')} />
+      <SceneBoundary onFail={fail}>
+        <ImmersiveRoom3D state={state} apiRef={api} onFail={fail} />
       </SceneBoundary>
 
       <div className="scene-vignette" style={{ zIndex: 4 }} />

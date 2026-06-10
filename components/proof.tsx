@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Ic, Btn, LogoMark } from './ui';
 import { suiscanTxUrl, suiscanObjectUrl } from '@/lib/sui/registry';
 import type { WalrusProof } from '@/types';
@@ -19,14 +20,55 @@ function short(s?: string, head = 10, tail = 8): string {
   return `${s.slice(0, head)}…${s.slice(-tail)}`;
 }
 
+// The judge-verification chain, in plain English: each chip is a real,
+// independently checkable artifact — no claims without a link.
+function ProofChain({ signed }: { signed: boolean }) {
+  const steps = [
+    { label: 'memory blob', sub: 'Walrus' },
+    { label: 'index blob', sub: 'Walrus' },
+    { label: 'MemoryPointer', sub: signed ? 'Sui · wallet-signed' : 'Sui (wallet mode)' },
+  ];
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '12px 0 2px' }}>
+      {steps.map((s, i) => (
+        <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          {i > 0 && <Ic name="arrowR" size={13} stroke="var(--ink-faint)" />}
+          <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', border: '2.4px solid var(--ink)', borderRadius: 12, padding: '5px 11px', background: i === 2 && signed ? 'var(--sky)' : 'var(--cream-2)', opacity: i === 2 && !signed ? 0.55 : 1 }}>
+            <b style={{ fontSize: 12.5, lineHeight: 1.1 }}>{s.label}</b>
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>{s.sub}</span>
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function ProofModal({ open, onClose, proof, count }: {
   open: boolean; onClose: () => void; proof: WalrusProof | null; count: number;
 }) {
+  const [copied, setCopied] = useState(false);
   if (!open || !proof) return null;
   const pending = proof.pending;
   const walruscan = proof.blob_id && !pending
     ? `https://walruscan.com/testnet/blob/${proof.blob_id}`
     : undefined;
+  const reg = proof.sui_registry;
+  const indexScan = reg ? `https://walruscan.com/${reg.network}/blob/${reg.index_blob_id}` : undefined;
+
+  const verifyLinks = [
+    walruscan && `Memory blob (Walruscan): ${walruscan}`,
+    indexScan && `Memory index blob (Walruscan): ${indexScan}`,
+    reg && `Pointer transaction (Suiscan): ${suiscanTxUrl(reg.digest)}`,
+    reg?.object_id && `MemoryPointer object (Suiscan): ${suiscanObjectUrl(reg.object_id)}`,
+  ].filter(Boolean).join('\n');
+
+  const copyAll = async () => {
+    try {
+      await navigator.clipboard.writeText(verifyLinks);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* clipboard unavailable — links remain visible in the card */ }
+  };
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(53,42,31,.42)', zIndex: 80, display: 'grid', placeItems: 'center', padding: 20 }}>
@@ -40,6 +82,14 @@ export function ProofModal({ open, onClose, proof, count }: {
           <button onClick={onClose} className="chip" style={{ cursor: 'pointer', boxShadow: '2px 3px 0 var(--ink)' }}><Ic name="x" size={16} /></button>
         </div>
         <div style={{ padding: '10px 26px 22px' }}>
+          {!pending && (
+            <>
+              <ProofChain signed={!!reg} />
+              <p className="muted" style={{ margin: '8px 0 6px', fontWeight: 600, fontSize: 12.5, lineHeight: 1.45 }}>
+                Your approved memories are real blobs on Walrus; an index blob maps them; {reg ? 'your wallet signed a Sui transaction pointing your on-chain MemoryPointer at that index.' : 'in wallet mode, a Sui MemoryPointer you own points at that index.'} Every link below is independently verifiable.
+              </p>
+            </>
+          )}
           <div className="proof-row"><span className="k">Blob ID</span><span className="v mono" style={{ fontSize: 12.5, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{proof.blob_id}</span></div>
           <div className="proof-row"><span className="k">Sui object</span><span className="v mono">{short(proof.sui_object)}</span></div>
           <div className="proof-row"><span className="k">Stored at epoch</span><span className="v">{proof.epoch ?? '—'} {proof.expiry != null && <span className="muted" style={{ fontWeight: 600 }}>· through {proof.expiry}</span>}</span></div>
@@ -55,15 +105,16 @@ export function ProofModal({ open, onClose, proof, count }: {
               <div style={{ padding: '4px 14px 10px' }}>
                 <div className="proof-row"><span className="k">Sui tx</span><a className="v mono" style={{ fontSize: 12.5, color: 'var(--ink)' }} href={suiscanTxUrl(proof.sui_registry.digest)} target="_blank" rel="noreferrer">{short(proof.sui_registry.digest)} ↗</a></div>
                 {proof.sui_registry.object_id && <div className="proof-row"><span className="k">Pointer object</span><a className="v mono" style={{ fontSize: 12.5, color: 'var(--ink)' }} href={suiscanObjectUrl(proof.sui_registry.object_id)} target="_blank" rel="noreferrer">{short(proof.sui_registry.object_id)} ↗</a></div>}
-                <div className="proof-row"><span className="k">Points to index</span><span className="v mono" style={{ fontSize: 12 }}>{short(proof.sui_registry.index_blob_id)}</span></div>
+                <div className="proof-row"><span className="k">Points to index</span><a className="v mono" style={{ fontSize: 12, color: 'var(--ink)' }} href={indexScan} target="_blank" rel="noreferrer">{short(proof.sui_registry.index_blob_id)} ↗</a></div>
               </div>
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
             {walruscan
               ? <a href={walruscan} target="_blank" rel="noreferrer" className="btn sm block" style={{ textDecoration: 'none' }}><Ic name="db" size={18} /> View on Walruscan</a>
               : <Btn size="sm" block icon="db">View on Walruscan</Btn>}
+            {verifyLinks && <Btn size="sm" block icon={copied ? 'check' : 'chat'} onClick={copyAll}>{copied ? 'Copied!' : 'Copy proof links'}</Btn>}
             <Btn size="sm" variant="sage" block icon="check" onClick={onClose}>Done</Btn>
           </div>
           <div className="muted tc" style={{ fontWeight: 600, fontSize: 12.5, marginTop: 12 }}>

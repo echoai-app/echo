@@ -1,5 +1,9 @@
 'use client';
 
+/* eslint-disable react-hooks/immutability -- R3F is an imperative renderer:
+   mutating the camera / three objects inside useEffect & useFrame is the
+   idiomatic (and only performant) way to animate; these are not React state. */
+
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
@@ -29,8 +33,8 @@ function LookControls({ apiRef }: { apiRef: React.MutableRefObject<Room3DApi | n
   const v = useRef({ yaw: 0, pitch: 0, tyaw: 0, tpitch: 0, drag: false, lx: 0, ly: 0, basePitch: 0 });
 
   useEffect(() => {
-    camera.position.set(0, 1.24, 2.35);
-    camera.lookAt(0, 1.12, -1.2);
+    camera.position.set(0, 1.22, 2.9);
+    camera.lookAt(0, 1.0, -1.2);
     v.current.basePitch = camera.rotation.x;
     const el = gl.domElement;
     el.style.touchAction = 'none';
@@ -139,40 +143,40 @@ function Companion3D({ state }: { state: OrbState }) {
           <mesh position={[0, 0.93, 0]} scale={[1, 1.06, 0.86]} castShadow>
             <sphereGeometry args={[0.42, 28, 22]} />
             <meshToonMaterial color="#CBBCEE" />
-            <Outlines screenspace thickness={3} color={INK} />
+            <Outlines thickness={0.025} color={INK} />
           </mesh>
           {/* arms */}
           <mesh position={[-0.38, 0.86, 0.1]} rotation={[0.2, 0, 0.5]} castShadow>
             <capsuleGeometry args={[0.09, 0.3, 6, 12]} />
             <meshToonMaterial color="#CBBCEE" />
-            <Outlines screenspace thickness={2.4} color={INK} />
+            <Outlines thickness={0.018} color={INK} />
           </mesh>
           <mesh position={[0.38, 0.86, 0.1]} rotation={[0.2, 0, -0.5]}>
             <capsuleGeometry args={[0.09, 0.3, 6, 12]} />
             <meshToonMaterial color="#CBBCEE" />
-            <Outlines screenspace thickness={2.4} color={INK} />
+            <Outlines thickness={0.018} color={INK} />
           </mesh>
           {/* hands resting */}
           <mesh position={[-0.2, 0.62, 0.3]}>
             <sphereGeometry args={[0.085, 16, 12]} />
             <meshToonMaterial color={skin} />
-            <Outlines screenspace thickness={2.2} color={INK} />
+            <Outlines thickness={0.015} color={INK} />
           </mesh>
           <mesh position={[0.2, 0.62, 0.3]}>
             <sphereGeometry args={[0.085, 16, 12]} />
             <meshToonMaterial color={skin} />
-            <Outlines screenspace thickness={2.2} color={INK} />
+            <Outlines thickness={0.015} color={INK} />
           </mesh>
           {/* little feet */}
           <mesh position={[-0.16, 0.42, 0.4]} scale={[1, 0.7, 1.3]}>
             <sphereGeometry args={[0.09, 16, 12]} />
             <meshToonMaterial color={skin} />
-            <Outlines screenspace thickness={2.2} color={INK} />
+            <Outlines thickness={0.015} color={INK} />
           </mesh>
           <mesh position={[0.16, 0.42, 0.4]} scale={[1, 0.7, 1.3]}>
             <sphereGeometry args={[0.09, 16, 12]} />
             <meshToonMaterial color={skin} />
-            <Outlines screenspace thickness={2.2} color={INK} />
+            <Outlines thickness={0.015} color={INK} />
           </mesh>
 
           {/* head */}
@@ -180,13 +184,13 @@ function Companion3D({ state }: { state: OrbState }) {
             <mesh castShadow>
               <sphereGeometry args={[0.34, 30, 24]} />
               <meshToonMaterial color={skin} />
-              <Outlines screenspace thickness={3} color={INK} />
+              <Outlines thickness={0.025} color={INK} />
             </mesh>
             {/* soft hair cap */}
             <mesh position={[0, 0.07, -0.05]} rotation={[-0.35, 0, 0]}>
               <sphereGeometry args={[0.355, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.52]} />
               <meshToonMaterial color="#7A6A58" />
-              <Outlines screenspace thickness={2.6} color={INK} />
+              <Outlines thickness={0.02} color={INK} />
             </mesh>
             {/* eyes */}
             <mesh ref={eyeL} position={[-0.115, 0.015, 0.305]}>
@@ -293,7 +297,7 @@ function WallNote({ x, y, color, tilt = 0 }: { x: number; y: number; color: stri
       <mesh position={[0, 0.14, 0.01]}>
         <sphereGeometry args={[0.024, 10, 8]} />
         <meshToonMaterial color="#EB8197" />
-        <Outlines screenspace thickness={1.6} color={INK} />
+        <Outlines thickness={0.007} color={INK} />
       </mesh>
     </group>
   );
@@ -317,8 +321,6 @@ function RoomScene({ state }: { state: OrbState }) {
   return (
     <group>
       {/* atmosphere */}
-      <color attach="background" args={['#EFE7F3']} />
-      <fog attach="fog" args={['#EFE7F3', 7.5, 15]} />
       <ambientLight intensity={0.85} color="#FFF4EC" />
       <hemisphereLight intensity={0.5} color="#FFF4EC" groundColor="#F3DEBC" />
       <directionalLight position={[-2.6, 3.1, -0.6]} intensity={1.1} color="#FFE2C0" castShadow
@@ -366,7 +368,7 @@ function RoomScene({ state }: { state: OrbState }) {
       <group position={[-1.75, 1.92, -3.2]}>
         <RoundedBox args={[1.5, 1.66, 0.1]} radius={0.05}>
           <meshToonMaterial color="#E3C397" />
-          <Outlines screenspace thickness={3} color={INK} />
+          <Outlines thickness={0.025} color={INK} />
         </RoundedBox>
         <mesh position={[0, 0, 0.052]}>
           <planeGeometry args={[1.24, 1.4]} />
@@ -384,7 +386,7 @@ function RoomScene({ state }: { state: OrbState }) {
         ))}
         <mesh position={[0, 0, 0.055]}><boxGeometry args={[0.045, 1.4, 0.012]} /><meshBasicMaterial color={INK} /></mesh>
         <mesh position={[0, 0.02, 0.055]}><boxGeometry args={[1.24, 0.045, 0.012]} /><meshBasicMaterial color={INK} /></mesh>
-        <mesh position={[0, -0.9, 0.08]}><boxGeometry args={[1.62, 0.09, 0.16]} /><meshToonMaterial color="#E3C397" /><Outlines screenspace thickness={2.2} color={INK} /></mesh>
+        <mesh position={[0, -0.9, 0.08]}><boxGeometry args={[1.62, 0.09, 0.16]} /><meshToonMaterial color="#E3C397" /><Outlines thickness={0.015} color={INK} /></mesh>
       </group>
 
       {/* memory notes pinned to the wall */}
@@ -392,16 +394,41 @@ function RoomScene({ state }: { state: OrbState }) {
       <WallNote x={1.05} y={1.92} color="#C2E6D2" tilt={0.07} />
       <WallNote x={0.62} y={1.6} color="#A9C9E9" tilt={-0.04} />
 
+      {/* art on the left wall — a reward for looking around */}
+      <group position={[-3.42, 1.85, -0.7]} rotation={[0, Math.PI / 2, 0]}>
+        <RoundedBox args={[0.72, 0.58, 0.05]} radius={0.02}>
+          <meshToonMaterial color="#FFFDF8" />
+          <Outlines thickness={0.012} color={INK} />
+        </RoundedBox>
+        <mesh position={[0, 0, 0.028]}>
+          <planeGeometry args={[0.58, 0.44]} />
+          <meshBasicMaterial color="#CBBCEE" />
+        </mesh>
+        {/* doodle hills + sun inside the frame */}
+        <mesh position={[0.14, 0.08, 0.032]}>
+          <circleGeometry args={[0.07, 18]} />
+          <meshBasicMaterial color="#F5CE74" />
+        </mesh>
+        <mesh position={[-0.1, -0.12, 0.032]} scale={[1.8, 0.7, 1]}>
+          <circleGeometry args={[0.12, 18]} />
+          <meshBasicMaterial color="#AEDAB9" />
+        </mesh>
+        <mesh position={[0.16, -0.15, 0.033]} scale={[1.6, 0.6, 1]}>
+          <circleGeometry args={[0.1, 18]} />
+          <meshBasicMaterial color="#7FC295" />
+        </mesh>
+      </group>
+
       {/* shelf with a tiny frame + plant (back wall, right) */}
       <group position={[2.25, 1.78, -3.12]}>
         <mesh castShadow>
           <boxGeometry args={[1.0, 0.06, 0.24]} />
           <meshToonMaterial color="#E3C397" />
-          <Outlines screenspace thickness={2.4} color={INK} />
+          <Outlines thickness={0.018} color={INK} />
         </mesh>
         <RoundedBox args={[0.3, 0.26, 0.04]} radius={0.015} position={[-0.24, 0.165, 0]}>
           <meshToonMaterial color="#FFFDF8" />
-          <Outlines screenspace thickness={1.8} color={INK} />
+          <Outlines thickness={0.01} color={INK} />
         </RoundedBox>
         <mesh position={[-0.24, 0.16, 0.022]}>
           <planeGeometry args={[0.22, 0.16]} />
@@ -410,12 +437,12 @@ function RoomScene({ state }: { state: OrbState }) {
         <mesh position={[0.22, 0.1, 0]}>
           <cylinderGeometry args={[0.07, 0.055, 0.14, 14]} />
           <meshToonMaterial color="#F4B89A" />
-          <Outlines screenspace thickness={1.8} color={INK} />
+          <Outlines thickness={0.01} color={INK} />
         </mesh>
         <mesh position={[0.22, 0.24, 0]}>
           <sphereGeometry args={[0.09, 14, 10]} />
           <meshToonMaterial color="#7FC295" />
-          <Outlines screenspace thickness={1.8} color={INK} />
+          <Outlines thickness={0.01} color={INK} />
         </mesh>
       </group>
 
@@ -423,24 +450,24 @@ function RoomScene({ state }: { state: OrbState }) {
       <group position={[0, 0, -1.45]}>
         <RoundedBox args={[2.5, 0.46, 0.95]} radius={0.12} position={[0, 0.3, 0]} castShadow>
           <meshToonMaterial color="#ED9C74" />
-          <Outlines screenspace thickness={3.4} color={INK} />
+          <Outlines thickness={0.03} color={INK} />
         </RoundedBox>
         <RoundedBox args={[2.5, 0.85, 0.26]} radius={0.1} position={[0, 0.82, -0.38]} castShadow>
           <meshToonMaterial color="#F4B89A" />
-          <Outlines screenspace thickness={3.4} color={INK} />
+          <Outlines thickness={0.03} color={INK} />
         </RoundedBox>
         <RoundedBox args={[0.3, 0.66, 0.95]} radius={0.1} position={[-1.36, 0.55, 0]}>
           <meshToonMaterial color="#F4B89A" />
-          <Outlines screenspace thickness={3} color={INK} />
+          <Outlines thickness={0.025} color={INK} />
         </RoundedBox>
         <RoundedBox args={[0.3, 0.66, 0.95]} radius={0.1} position={[1.36, 0.55, 0]}>
           <meshToonMaterial color="#F4B89A" />
-          <Outlines screenspace thickness={3} color={INK} />
+          <Outlines thickness={0.025} color={INK} />
         </RoundedBox>
         {/* the empty sunny cushion — your seat across, kept warm */}
         <RoundedBox args={[0.9, 0.14, 0.72]} radius={0.06} position={[0.62, 0.58, 0.02]}>
           <meshToonMaterial color="#F5CE74" />
-          <Outlines screenspace thickness={2.6} color={INK} />
+          <Outlines thickness={0.02} color={INK} />
         </RoundedBox>
       </group>
 
@@ -452,24 +479,24 @@ function RoomScene({ state }: { state: OrbState }) {
         <mesh position={[0, 0.56, 0]} castShadow>
           <cylinderGeometry args={[0.56, 0.56, 0.07, 36]} />
           <meshToonMaterial color="#F0D9B4" />
-          <Outlines screenspace thickness={3} color={INK} />
+          <Outlines thickness={0.025} color={INK} />
         </mesh>
         <mesh position={[0, 0.28, 0]}>
           <cylinderGeometry args={[0.06, 0.06, 0.5, 12]} />
           <meshToonMaterial color="#E3C397" />
-          <Outlines screenspace thickness={2} color={INK} />
+          <Outlines thickness={0.012} color={INK} />
         </mesh>
         <mesh position={[0, 0.03, 0]}>
           <cylinderGeometry args={[0.24, 0.28, 0.06, 24]} />
           <meshToonMaterial color="#E3C397" />
-          <Outlines screenspace thickness={2.2} color={INK} />
+          <Outlines thickness={0.015} color={INK} />
         </mesh>
         {/* mugs */}
         <group position={[-0.2, 0.66, 0.08]}>
           <mesh castShadow>
             <cylinderGeometry args={[0.07, 0.062, 0.13, 18]} />
             <meshToonMaterial color="#AEDAB9" />
-            <Outlines screenspace thickness={2} color={INK} />
+            <Outlines thickness={0.012} color={INK} />
           </mesh>
           <mesh position={[-0.085, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.045, 0.014, 8, 16]} />
@@ -480,7 +507,7 @@ function RoomScene({ state }: { state: OrbState }) {
           <mesh castShadow>
             <cylinderGeometry args={[0.07, 0.062, 0.13, 18]} />
             <meshToonMaterial color="#A9C9E9" />
-            <Outlines screenspace thickness={2} color={INK} />
+            <Outlines thickness={0.012} color={INK} />
           </mesh>
           <mesh position={[0.085, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.045, 0.014, 8, 16]} />
@@ -496,7 +523,7 @@ function RoomScene({ state }: { state: OrbState }) {
         <mesh position={[0, 0.03, 0]}>
           <cylinderGeometry args={[0.17, 0.2, 0.06, 18]} />
           <meshToonMaterial color="#CBBCEE" />
-          <Outlines screenspace thickness={2.2} color={INK} />
+          <Outlines thickness={0.015} color={INK} />
         </mesh>
         <mesh position={[0, 0.75, 0]}>
           <cylinderGeometry args={[0.022, 0.022, 1.4, 8]} />
@@ -505,7 +532,7 @@ function RoomScene({ state }: { state: OrbState }) {
         <mesh position={[0, 1.56, 0]} castShadow>
           <cylinderGeometry args={[0.18, 0.3, 0.34, 22, 1, true]} />
           <meshToonMaterial color="#FBF1E0" side={THREE.DoubleSide} />
-          <Outlines screenspace thickness={2.6} color={INK} />
+          <Outlines thickness={0.02} color={INK} />
         </mesh>
         <mesh position={[0, 1.45, 0]}>
           <sphereGeometry args={[0.07, 12, 10]} />
@@ -518,22 +545,22 @@ function RoomScene({ state }: { state: OrbState }) {
         <mesh position={[0, 0.16, 0]} castShadow>
           <cylinderGeometry args={[0.17, 0.13, 0.32, 16]} />
           <meshToonMaterial color="#ED9C74" />
-          <Outlines screenspace thickness={2.6} color={INK} />
+          <Outlines thickness={0.02} color={INK} />
         </mesh>
         <mesh position={[0, 0.62, 0]} rotation={[0, 0, 0.12]} castShadow>
           <coneGeometry args={[0.2, 0.75, 10]} />
           <meshToonMaterial color="#7FC295" />
-          <Outlines screenspace thickness={2.6} color={INK} />
+          <Outlines thickness={0.02} color={INK} />
         </mesh>
         <mesh position={[-0.18, 0.5, 0.05]} rotation={[0, 0, 0.5]}>
           <coneGeometry args={[0.14, 0.5, 8]} />
           <meshToonMaterial color="#AEDAB9" />
-          <Outlines screenspace thickness={2.2} color={INK} />
+          <Outlines thickness={0.015} color={INK} />
         </mesh>
         <mesh position={[0.18, 0.48, -0.04]} rotation={[0, 0, -0.5]}>
           <coneGeometry args={[0.14, 0.46, 8]} />
           <meshToonMaterial color="#AEDAB9" />
-          <Outlines screenspace thickness={2.2} color={INK} />
+          <Outlines thickness={0.015} color={INK} />
         </mesh>
       </group>
 
@@ -546,7 +573,7 @@ function RoomScene({ state }: { state: OrbState }) {
         <mesh position={[0, 2.5, 0]}>
           <coneGeometry args={[0.26, 0.24, 20, 1, true]} />
           <meshToonMaterial color="#F5CE74" side={THREE.DoubleSide} />
-          <Outlines screenspace thickness={2.6} color={INK} />
+          <Outlines thickness={0.02} color={INK} />
         </mesh>
         <mesh position={[0, 2.42, 0]}>
           <sphereGeometry args={[0.06, 12, 10]} />
@@ -570,12 +597,16 @@ export default function ImmersiveRoom3D({ state, apiRef, onFail }: {
       <Canvas
         dpr={[1, 1.75]}
         shadows
-        camera={{ fov: 56, near: 0.1, far: 30, position: [0, 1.24, 2.35] }}
+        flat
+        camera={{ fov: 56, near: 0.1, far: 30, position: [0, 1.22, 2.9] }}
         gl={{ antialias: true, powerPreference: 'low-power' }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); onFail?.(); });
         }}
       >
+        {/* scene-level atmosphere — must attach to the scene root, not a group */}
+        <color attach="background" args={['#F3EBF6']} />
+        <fog attach="fog" args={['#F3EBF6', 8, 16]} />
         <LookControls apiRef={apiRef} />
         <RoomScene state={state} />
       </Canvas>

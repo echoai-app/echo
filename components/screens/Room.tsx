@@ -39,14 +39,27 @@ export default function Room() {
   const { go, session, transcript, addTurn, setProposed, recalled, prefs } = useEcho();
   const [vs, setVs] = useState<OrbState>('idle');
   const [paused, setPaused] = useState(false);
+  const [scene3d, setScene3d] = useState(false);
   const [showText, setShowText] = useState(false);
   const [text, setText] = useState('');
-  const [showTr, setShowTr] = useState(true);
+  // open by default only where it fits beside the room (phones: toggle it in)
+  const [showTr, setShowTr] = useState(() => typeof window !== 'undefined' && window.innerWidth > 820);
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.innerWidth > 820);
   const trRef = useRef<HTMLDivElement>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const started = useRef(false);
 
   const voice = useVoice({ onResult: (t) => send(t, 'voice') });
+
+  // Track viewport width so the transcript docks beside the room only where it
+  // fits; on phones it overlays instead (no layout squeeze).
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 821px)');
+    const h = () => setWide(mq.matches);
+    mq.addEventListener('change', h);
+    return () => mq.removeEventListener('change', h);
+  }, []);
+  const docked = showTr && wide;
 
   // Opening line, once.
   useEffect(() => {
@@ -162,7 +175,7 @@ export default function Room() {
       <SessionBar step={1} risk />
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
         <div className="room">
-          <ReflectionScene state={paused ? 'paused' : vs} />
+          <ReflectionScene state={paused ? 'paused' : vs} onMode={(m) => setScene3d(m === '3d')} />
 
           {/* this-session forming memory */}
           <div className="room-panel" style={{ position: 'absolute', top: 18, left: 18, padding: '13px 15px', maxWidth: 224, zIndex: 4 }}>
@@ -174,7 +187,7 @@ export default function Room() {
             </div>
           </div>
 
-          {showTr && (
+          {docked && (
             <div style={{ position: 'absolute', top: 18, right: 372, zIndex: 4 }}>
               <span className="chip sm deco" style={{ background: 'var(--mint)', boxShadow: '2px 3px 0 var(--ink)' }}>
                 <LogoMark brand="walrus" size={15} /> kept memories save to Walrus
@@ -187,8 +200,9 @@ export default function Room() {
             </button>
           )}
 
-          {/* center: bubble + orb + live feedback */}
-          <div style={{ position: 'absolute', left: 0, right: showTr ? 354 : 0, top: 64, bottom: 244, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, zIndex: 5, pointerEvents: 'none' }}>
+          {/* center: bubble + orb + live feedback (in 3D, the companion is the
+              presence — bubbles anchor near the top and the 2D orb stays out) */}
+          <div style={{ position: 'absolute', left: 0, right: docked ? 354 : 0, top: 64, bottom: scene3d ? 'auto' : 244, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: scene3d ? 'flex-start' : 'center', gap: 12, zIndex: 5, pointerEvents: 'none' }}>
             {!showTr && vs === 'speaking' && lastEcho &&
               <div className="say italic shimmer" key={lastEcho} style={{ animation: 'popIn .4s ease both', maxWidth: 440, position: 'relative', overflow: 'hidden' }}>&ldquo;{lastEcho}&rdquo;</div>}
             {!showTr && (vs === 'idle' || vs === 'ended') && lastEcho &&
@@ -200,9 +214,9 @@ export default function Room() {
                 <span style={{ fontWeight: 700 }}>{voice.partial || "I'm listening…"}</span>
               </div>}
 
-            <Orb size={138} state={paused ? 'paused' : vs} mood="lav" />
+            {!scene3d && <Orb size={138} state={paused ? 'paused' : vs} mood="lav" />}
 
-            {(vs === 'speaking' || vs === 'listening') ? (
+            {(vs === 'speaking' || vs === 'listening') && !scene3d ? (
               <div className={'orb-eq ' + (vs === 'listening' ? 'rose' : 'peach')}>
                 {Array.from({ length: 9 }).map((_, i) => <i key={i} />)}
               </div>
@@ -217,7 +231,7 @@ export default function Room() {
           {showTr && <Transcript onClose={() => setShowTr(false)} trRef={trRef} intensity={session.intensity} msgs={transcript} />}
 
           {/* voice dock */}
-          <div className="voice-dock" style={{ left: showTr ? 'calc((100% - 354px) / 2)' : '50%', width: showTr ? 'min(560px, calc(100% - 384px))' : 'min(680px, 92%)' }}>
+          <div className="voice-dock" style={{ left: docked ? 'calc((100% - 354px) / 2)' : '50%', width: docked ? 'min(560px, calc(100% - 384px))' : 'min(680px, 92%)' }}>
             {showText &&
               <div className="dock-bar" style={{ padding: '12px 16px', width: '100%', gap: 12 }}>
                 <input className="field" autoFocus value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send(text, 'text')} placeholder="type instead of speaking…" style={{ flex: 1 }} />

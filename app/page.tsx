@@ -50,12 +50,10 @@ export default function EchoApp() {
       const st = useEcho.getState();
       const returning = st.onboarded || st.name.trim() !== '';
       if (returning && st.screen === 'welcome') st.resetTo('modes');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBooted(true);
     };
     if (useEcho.persist.hasHydrated()) decide();
     else return useEcho.persist.onFinishHydration(decide);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const Active = SCREENS[screen] ?? Welcome;
