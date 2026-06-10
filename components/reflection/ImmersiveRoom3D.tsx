@@ -31,11 +31,14 @@ export interface Room3DApi { reset: () => void }
 function LookControls({ apiRef }: { apiRef: React.MutableRefObject<Room3DApi | null> }) {
   const { camera, gl } = useThree();
   const v = useRef({ yaw: 0, pitch: 0, tyaw: 0, tpitch: 0, drag: false, lx: 0, ly: 0, basePitch: 0 });
+  // cinematic entrance: drift down + forward into your seat
+  const intro = useRef({ t0: -1, done: false });
 
   useEffect(() => {
     camera.position.set(0, 1.22, 2.9);
     camera.lookAt(0, 1.0, -1.2);
     v.current.basePitch = camera.rotation.x;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) intro.current.done = true;
     const el = gl.domElement;
     el.style.touchAction = 'none';
     const down = (e: PointerEvent) => {
@@ -78,6 +81,14 @@ function LookControls({ apiRef }: { apiRef: React.MutableRefObject<Room3DApi | n
     s.yaw = damp(s.yaw, s.tyaw, 7.5, dt);
     s.pitch = damp(s.pitch, s.tpitch, 7.5, dt);
     const t = st.clock.elapsedTime;
+    // entrance dolly — ease from above/behind down into the seat
+    if (!intro.current.done) {
+      if (intro.current.t0 < 0) intro.current.t0 = t;
+      const p = Math.min(1, (t - intro.current.t0) / 2.8);
+      const e = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      camera.position.set(0, 1.22 + 0.5 * (1 - e), 2.9 + 1.9 * (1 - e));
+      if (p >= 1) intro.current.done = true;
+    }
     // gentle seated sway so the room feels alive even untouched
     const swayY = Math.sin(t * 0.32) * 0.012;
     const swayP = Math.cos(t * 0.26) * 0.007;
@@ -100,9 +111,18 @@ function Companion3D({ state }: { state: OrbState }) {
   const mouth = useRef<THREE.Mesh>(null);
   const think = useRef<THREE.Group>(null);
   const aura = useRef<THREE.Mesh>(null);
+  const waveArm = useRef<THREE.Group>(null);
+  const waveT0 = useRef(-1);
 
   useFrame((st, dt) => {
     const t = st.clock.elapsedTime;
+    // a little wave when you arrive — then the arm settles back down
+    if (waveArm.current) {
+      if (waveT0.current < 0) waveT0.current = t;
+      const wt = t - waveT0.current;
+      const target = wt > 0.6 && wt < 3.4 ? -1.85 + Math.sin(wt * 7) * 0.35 : 0;
+      waveArm.current.rotation.z = damp(waveArm.current.rotation.z, target, wt < 3.4 ? 7 : 3.5, dt);
+    }
     // breathing — whole figure, from the seat up
     if (breath.current) {
       const s = 1 + Math.sin(t * 1.35) * 0.016;
@@ -169,11 +189,14 @@ function Companion3D({ state }: { state: OrbState }) {
             <meshToonMaterial color="#CBBCEE" />
             <Outlines thickness={0.018} color={INK} />
           </mesh>
-          <mesh position={[0.38, 0.86, 0.1]} rotation={[0.2, 0, -0.5]}>
-            <capsuleGeometry args={[0.09, 0.3, 6, 12]} />
-            <meshToonMaterial color="#CBBCEE" />
-            <Outlines thickness={0.018} color={INK} />
-          </mesh>
+          {/* right arm pivots at the shoulder so it can wave hello */}
+          <group ref={waveArm} position={[0.3, 1.02, 0.06]}>
+            <mesh position={[0.08, -0.16, 0.04]} rotation={[0.2, 0, -0.5]}>
+              <capsuleGeometry args={[0.09, 0.3, 6, 12]} />
+              <meshToonMaterial color="#CBBCEE" />
+              <Outlines thickness={0.018} color={INK} />
+            </mesh>
+          </group>
           {/* hands resting */}
           <mesh position={[-0.2, 0.62, 0.3]}>
             <sphereGeometry args={[0.085, 16, 12]} />
@@ -324,6 +347,129 @@ function YourPresence() {
   );
 }
 
+/* ---------------- fireplace — flicker, warmth, the heart of the room ---------------- */
+function Fireplace() {
+  const flames = useRef<(THREE.Mesh | null)[]>([]);
+  const glow = useRef<THREE.PointLight>(null);
+  useFrame((st) => {
+    const t = st.clock.elapsedTime;
+    flames.current.forEach((f, i) => {
+      if (!f) return;
+      const n = Math.sin(t * (6 + i * 1.7) + i * 2.1) * 0.5 + Math.sin(t * (11 + i) + i) * 0.5;
+      f.scale.y = 0.85 + n * 0.22;
+      f.scale.x = 1 - n * 0.08;
+      f.rotation.y = t * (0.6 + i * 0.2);
+      f.position.x = (i - 1) * 0.1 + Math.sin(t * 3 + i * 2) * 0.012;
+    });
+    if (glow.current) glow.current.intensity = 2.6 + Math.sin(t * 7.3) * 0.5 + Math.sin(t * 13.7) * 0.3;
+  });
+  return (
+    <group position={[3.32, 0, -0.7]} rotation={[0, -Math.PI / 2, 0]}>
+      {/* mantel + body */}
+      <RoundedBox args={[1.7, 1.4, 0.5]} radius={0.06} position={[0, 0.7, 0]} castShadow>
+        <meshToonMaterial color="#E8C9A0" />
+        <Outlines thickness={0.03} color={INK} />
+      </RoundedBox>
+      <RoundedBox args={[1.9, 0.14, 0.62]} radius={0.04} position={[0, 1.45, 0]}>
+        <meshToonMaterial color="#D9B583" />
+        <Outlines thickness={0.022} color={INK} />
+      </RoundedBox>
+      {/* the opening */}
+      <mesh position={[0, 0.55, 0.18]}>
+        <boxGeometry args={[1.0, 0.78, 0.24]} />
+        <meshBasicMaterial color="#3A2B20" />
+      </mesh>
+      {/* logs */}
+      <mesh position={[-0.1, 0.24, 0.26]} rotation={[0, 0.5, 0]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.6, 8]} />
+        <meshToonMaterial color="#8A6748" />
+      </mesh>
+      <mesh position={[0.1, 0.24, 0.28]} rotation={[0, -0.6, 0]}>
+        <cylinderGeometry args={[0.055, 0.055, 0.55, 8]} />
+        <meshToonMaterial color="#7A5A3E" />
+      </mesh>
+      {/* flames */}
+      {[0, 1, 2].map(i => (
+        <mesh key={i} ref={(el) => { flames.current[i] = el; }} position={[(i - 1) * 0.1, 0.45, 0.28]}>
+          <coneGeometry args={[i === 1 ? 0.11 : 0.075, i === 1 ? 0.42 : 0.28, 8]} />
+          <meshBasicMaterial color={i === 1 ? '#FF9D45' : i === 0 ? '#FFD56B' : '#FF7A3C'} transparent opacity={0.92} toneMapped={false} />
+        </mesh>
+      ))}
+      {/* candle pair on the mantel */}
+      <mesh position={[-0.55, 1.62, 0]}>
+        <cylinderGeometry args={[0.035, 0.04, 0.2, 10]} />
+        <meshToonMaterial color="#FBF1E0" />
+        <Outlines thickness={0.008} color={INK} />
+      </mesh>
+      <mesh position={[-0.55, 1.76, 0]}>
+        <sphereGeometry args={[0.022, 8, 6]} />
+        <meshBasicMaterial color="#FFE9A8" toneMapped={false} />
+      </mesh>
+      <mesh position={[0.5, 1.58, 0]}>
+        <sphereGeometry args={[0.085, 14, 10]} />
+        <meshToonMaterial color="#AEDAB9" />
+        <Outlines thickness={0.01} color={INK} />
+      </mesh>
+      {/* warm flicker light */}
+      <pointLight ref={glow} position={[0, 0.7, 0.7]} color="#FF9D5C" intensity={2.6} distance={6} decay={1.6} />
+      {/* hearth glow on the floor */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0.75]}>
+        <circleGeometry args={[0.7, 22]} />
+        <meshBasicMaterial color="#FFB066" transparent opacity={0.22} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ---------------- a sleeping doodle cat, breathing on the rug ---------------- */
+function Cat() {
+  const body = useRef<THREE.Group>(null);
+  const tail = useRef<THREE.Mesh>(null);
+  useFrame((st) => {
+    const t = st.clock.elapsedTime;
+    if (body.current) body.current.scale.y = 1 + Math.sin(t * 1.1) * 0.045;
+    if (tail.current) tail.current.rotation.z = 0.2 + Math.sin(t * 0.7) * 0.12;
+  });
+  return (
+    <group position={[1.05, 0, -0.25]} rotation={[0, -0.7, 0]}>
+      <group ref={body}>
+        {/* curled body */}
+        <mesh position={[0, 0.12, 0]} scale={[1, 0.62, 0.85]} castShadow>
+          <sphereGeometry args={[0.19, 20, 16]} />
+          <meshToonMaterial color="#F6D9C0" />
+          <Outlines thickness={0.016} color={INK} />
+        </mesh>
+        {/* head tucked in */}
+        <mesh position={[0.14, 0.13, 0.1]}>
+          <sphereGeometry args={[0.1, 16, 12]} />
+          <meshToonMaterial color="#F6D9C0" />
+          <Outlines thickness={0.013} color={INK} />
+        </mesh>
+        {/* ears */}
+        <mesh position={[0.16, 0.23, 0.07]} rotation={[0, 0, 0.2]}>
+          <coneGeometry args={[0.032, 0.06, 6]} />
+          <meshToonMaterial color="#EDBE9C" />
+        </mesh>
+        <mesh position={[0.2, 0.22, 0.13]} rotation={[0, 0, -0.15]}>
+          <coneGeometry args={[0.032, 0.06, 6]} />
+          <meshToonMaterial color="#EDBE9C" />
+        </mesh>
+        {/* sleeping eyes — two tiny content arcs */}
+        <mesh position={[0.21, 0.14, 0.14]} rotation={[0.3, 0.6, Math.PI]}>
+          <torusGeometry args={[0.018, 0.005, 6, 10, Math.PI]} />
+          <meshBasicMaterial color={INK} />
+        </mesh>
+        {/* tail wrapped around */}
+        <mesh ref={tail} position={[-0.13, 0.07, 0.06]} rotation={[Math.PI / 2, 0, 0.2]}>
+          <torusGeometry args={[0.13, 0.032, 8, 14, Math.PI * 1.2]} />
+          <meshToonMaterial color="#EDBE9C" />
+          <Outlines thickness={0.01} color={INK} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
 /* ---------------- string lights — a soft garland above the couch ---------------- */
 function StringLights() {
   const refs = useRef<(THREE.Mesh | null)[]>([]);
@@ -467,14 +613,15 @@ function RoomScene({ state }: { state: OrbState }) {
 
   return (
     <group>
-      {/* atmosphere */}
-      <ambientLight intensity={0.85} color="#FFF4EC" />
-      <hemisphereLight intensity={0.5} color="#FFF4EC" groundColor="#F3DEBC" />
-      <directionalLight position={[-2.6, 3.1, -0.6]} intensity={1.1} color="#FFE2C0" castShadow
+      {/* slightly deeper dusk so the warm lights actually pool */}
+      {/* atmosphere — dusk base, warm pools of light */}
+      <ambientLight intensity={0.58} color="#FFE9DC" />
+      <hemisphereLight intensity={0.4} color="#F4E6FF" groundColor="#E8CFAE" />
+      <directionalLight position={[-2.6, 3.1, -0.6]} intensity={1.5} color="#FFD9B0" castShadow
         shadow-mapSize={[1024, 1024]} shadow-camera-left={-4} shadow-camera-right={4}
         shadow-camera-top={4} shadow-camera-bottom={-4} shadow-bias={-0.0004} />
-      <pointLight position={[1.95, 1.5, -1.55]} intensity={2.2} distance={5} color="#FFD9A0" />
-      <pointLight position={[0, 2.25, -0.2]} intensity={1.1} distance={5} color="#FFE9B8" />
+      <pointLight position={[1.95, 1.5, -1.55]} intensity={3.2} distance={5.5} color="#FFD9A0" />
+      <pointLight position={[0, 2.25, -0.2]} intensity={1.9} distance={5.5} color="#FFE9B8" />
 
       {/* floor · rug · walls · ceiling */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -484,7 +631,12 @@ function RoomScene({ state }: { state: OrbState }) {
       {/* warm sun patch spilling in from the window */}
       <mesh rotation={[-Math.PI / 2, 0, 0.4]} position={[-1.7, 0.008, -2.15]} scale={[1, 1.7, 1]}>
         <circleGeometry args={[0.62, 24]} />
-        <meshBasicMaterial color="#FFE9C9" transparent opacity={0.4} depthWrite={false} />
+        <meshBasicMaterial color="#FFE9C9" transparent opacity={0.45} depthWrite={false} />
+      </mesh>
+      {/* soft light shaft from the window down to the sun patch */}
+      <mesh position={[-1.73, 1.05, -2.62]} rotation={[0.5, 0, 0]}>
+        <planeGeometry args={[1.35, 2.4]} />
+        <meshBasicMaterial color="#FFE3B8" transparent opacity={0.1} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -0.5]}>
         <circleGeometry args={[1.95, 40]} />
@@ -640,6 +792,12 @@ function RoomScene({ state }: { state: OrbState }) {
       {/* garland of soft lights above the couch */}
       <StringLights />
 
+      {/* the hearth — flicker + warmth from the right */}
+      <Fireplace />
+
+      {/* a sleeping companion-of-the-companion */}
+      <Cat />
+
       {/* small cozy table in front of you, with two mugs */}
       <group position={[0, 0, 0.45]}>
         <mesh position={[0, 0.56, 0]} castShadow>
@@ -771,11 +929,13 @@ export default function ImmersiveRoom3D({ state, apiRef, onFail }: {
         }}
       >
         {/* scene-level atmosphere — must attach to the scene root, not a group */}
-        <color attach="background" args={['#F3EBF6']} />
-        <fog attach="fog" args={['#F3EBF6', 8, 16]} />
+        <color attach="background" args={['#ECE0F0']} />
+        <fog attach="fog" args={['#ECE0F0', 8, 16]} />
         <LookControls apiRef={apiRef} />
         <RoomScene state={state} />
       </Canvas>
+      {/* soft fade-in as the camera settles into your seat */}
+      <div className="scene-enter" />
     </div>
   );
 }

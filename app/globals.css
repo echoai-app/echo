@@ -676,11 +676,18 @@ input,textarea{font-family:var(--body);}
 .scene-reset:hover{transform:translateY(-2px);box-shadow:3px 5px 0 var(--ink);background:var(--sun);opacity:1;}
 .scene-reset:active{transform:translateY(1px);box-shadow:1px 2px 0 var(--ink);}
 
+/* entrance fade — the room reveals itself as the camera settles */
+.scene-enter{position:absolute;inset:0;z-index:5;background:var(--cream);pointer-events:none;
+  animation:sceneEnter 1.5s ease .1s both;}
+@keyframes sceneEnter{from{opacity:1;}to{opacity:0;}}
+@media (prefers-reduced-motion:reduce){.scene-enter{animation:none;opacity:0;}}
+.calm .scene-enter{animation:none;opacity:0;}
+
 /* unobtrusive positioning note */
 .scene-note{position:absolute;right:14px;bottom:9px;z-index:6;pointer-events:none;max-width:230px;text-align:right;
   font-weight:700;font-size:10.5px;line-height:1.35;color:var(--ink-faint);}
-@media (max-width:680px){.scene-note{display:none;}.scene-reset span{display:none;}.scene-hint{display:none;}
-  .scene-reset{bottom:auto;top:74px;left:auto;right:14px;}}
+@media (max-width:680px){.scene-note{display:none;}.scene-hint{display:none;}
+  .scene-reset{display:none;}}
 
 @media (prefers-reduced-motion:reduce){
   .scene-tilt{transform:none;}

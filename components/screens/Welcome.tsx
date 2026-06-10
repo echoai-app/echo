@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Doodles, Btn, Ic, LogoMark, PoweredBy } from '../ui';
+import { Doodles, Btn, Ic, LogoMark, PoweredBy, EchoLogo } from '../ui';
 import { useEcho } from '@/lib/store';
 
 export default function Welcome() {
@@ -26,6 +26,7 @@ export default function Welcome() {
         <span className="hero-badge up d1"><Ic name="spark" size={15} stroke="var(--peach-deep)" fill="var(--peach-deep)" /> your AI reflection companion</span>
 
         <div className="up d2" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+          <EchoLogo size={84} style={{ filter: 'drop-shadow(0 10px 22px rgba(237,156,116,.35))', animation: 'breathe 4.5s ease-in-out infinite' }} />
           <span className="wm">
             <h1 className="display" style={{ fontSize: 'clamp(74px,13vw,154px)', letterSpacing: '-.04em', margin: 0 }}>
               ech<span style={{ color: 'var(--peach-deep)' }}>o</span>
