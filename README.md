@@ -157,6 +157,7 @@ The track asks for agents with **persistent, verifiable memory**, **multi-agent 
 | Tooling to inspect/debug/manage agent memory | The **[Memory Inspector](https://echoai-app.vercel.app/inspect)** — trustless, client-side memory explorer for any wallet |
 | Not locked into a single platform | The `curl` proof above: full recovery with **zero Echo infrastructure** |
 | Reusable beyond one app | **Mnemos** is the engine layer — the same memory substrate can back any agent (SDK on the roadmap) |
+| Engagement with the Walrus stack | **[Mnemos × MemWal](docs/MEMWAL.md)**: architecture comparison + a specified `MemoryBackend` adapter; **Seal** encryption is the top roadmap item |
 
 ---
 
@@ -380,7 +381,7 @@ Use **Chrome or Edge** for real voice. The app runs in **guest mode** with just 
 ## 15. Roadmap
 
 - [ ] **[Seal](https://github.com/MystenLabs/seal) encryption** — encrypt memory blobs with a wallet-derived key so memory is publicly *available* but privately *readable* (top priority; today's testnet blobs are public demo data, stated plainly at consent)
-- [ ] **MemWal adapter** — let Mnemos use [MemWal (Walrus Memory)](https://github.com/MystenLabs) as a pluggable backend, so agents on either layer share the same durable memory
+- [ ] **MemWal adapter** — let Mnemos use [MemWal (Walrus Memory)](https://github.com/MystenLabs/MemWal) as a pluggable backend — see **[docs/MEMWAL.md](docs/MEMWAL.md)** for the full comparison + adapter design (interface specified, honestly sequenced post-submission)
 - [ ] **Walrus Quilt** batching for small artifacts (Echo stores many tiny blobs — Quilt is the natural storage optimization)
 - [ ] Memory **deletion & export** (user-initiated)
 - [ ] **Mainnet** deployment (Move package + Walrus mainnet)
