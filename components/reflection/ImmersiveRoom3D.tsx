@@ -7,7 +7,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Outlines, RoundedBox } from '@react-three/drei';
+import { Outlines, RoundedBox, ContactShadows } from '@react-three/drei';
 import type { OrbState } from '../ui';
 
 /* ============================================================================
@@ -26,6 +26,23 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const damp = THREE.MathUtils.damp;
 
 export interface Room3DApi { reset: () => void }
+
+/* Shared 3-step cel-shade gradient — gives every toon material proper banded
+   shading (lit / mid / shadow) instead of flat lambert. Created once. */
+let _grad: THREE.DataTexture | null = null;
+function toonGrad(): THREE.DataTexture {
+  if (!_grad) {
+    const steps = new Uint8Array([150, 205, 255]);
+    _grad = new THREE.DataTexture(steps, steps.length, 1, THREE.RedFormat);
+    _grad.minFilter = THREE.NearestFilter;
+    _grad.magFilter = THREE.NearestFilter;
+    _grad.needsUpdate = true;
+  }
+  return _grad;
+}
+function Toon(props: { color?: string; map?: THREE.Texture; side?: THREE.Side }) {
+  return <meshToonMaterial {...props} gradientMap={toonGrad()} />;
+}
 
 /* ---------------- seated look-around camera ---------------- */
 function LookControls({ apiRef }: { apiRef: React.MutableRefObject<Room3DApi | null> }) {
@@ -107,8 +124,10 @@ function Companion3D({ state }: { state: OrbState }) {
   const head = useRef<THREE.Group>(null);
   const eyeL = useRef<THREE.Mesh>(null);
   const eyeR = useRef<THREE.Mesh>(null);
+  const gaze = useRef<THREE.Group>(null);
   const brows = useRef<THREE.Group>(null);
-  const mouth = useRef<THREE.Mesh>(null);
+  const smile = useRef<THREE.Mesh>(null);
+  const openMouth = useRef<THREE.Group>(null);
   const think = useRef<THREE.Group>(null);
   const aura = useRef<THREE.Mesh>(null);
   const waveArm = useRef<THREE.Group>(null);
@@ -128,26 +147,44 @@ function Companion3D({ state }: { state: OrbState }) {
       const s = 1 + Math.sin(t * 1.35) * 0.016;
       breath.current.scale.set(1, s, 1);
     }
-    // head bob + tilt (a touch more curious while listening)
+    // occasional glance toward the window, otherwise eyes on you
+    const glancing = (t % 13) > 9.6 && (t % 13) < 11.0 && state !== 'listening' && state !== 'speaking';
+    // head: faces you (camera sits to its right), bobs gently, tilts with mood
     if (head.current) {
+      head.current.rotation.y = damp(head.current.rotation.y, glancing ? -0.34 : 0.13, 3.5, dt);
       head.current.rotation.z = damp(head.current.rotation.z,
-        Math.sin(t * 0.8) * 0.045
+        Math.sin(t * 0.8) * 0.04
           + (state === 'thinking' || state === 'saving' ? 0.09 : 0)
           + (state === 'listening' ? -0.06 : 0), 4, dt);
       head.current.position.y = 1.52 + Math.sin(t * 1.35) * 0.012;
     }
-    // blink every ~4.4s
-    const blink = (t % 4.4) < 0.13 ? 0.12 : 1;
-    if (eyeL.current) eyeL.current.scale.y = damp(eyeL.current.scale.y, blink, 30, dt);
-    if (eyeR.current) eyeR.current.scale.y = damp(eyeR.current.scale.y, blink, 30, dt);
+    // pupils drift with the glance — they look AT you the rest of the time
+    if (gaze.current) {
+      gaze.current.position.x = damp(gaze.current.position.x, glancing ? -0.022 : 0.012, 6, dt);
+    }
+    // natural blinks: a regular blink + an occasional quick double-blink
+    const cyc = t % 4.7;
+    const dbl = Math.floor(t / 4.7) % 3 === 1;
+    const blink = cyc < 0.12 || (dbl && cyc > 0.3 && cyc < 0.4) ? 0.1 : 1;
+    if (eyeL.current) eyeL.current.scale.y = damp(eyeL.current.scale.y, blink, 34, dt);
+    if (eyeR.current) eyeR.current.scale.y = damp(eyeR.current.scale.y, blink, 34, dt);
     // brows lift when listening — attentive, not surprised
     if (brows.current) {
       brows.current.position.y = damp(brows.current.position.y, state === 'listening' ? 0.035 : 0, 8, dt);
     }
-    // mouth talks while Echo speaks
-    if (mouth.current) {
-      const speak = state === 'speaking' ? 0.55 + Math.abs(Math.sin(t * 8.5)) * 1.5 : 1;
-      mouth.current.scale.y = damp(mouth.current.scale.y, speak, 14, dt);
+    // ── talking: the mouth actually OPENS — layered cadence with natural pauses
+    if (openMouth.current && smile.current) {
+      let open = 0;
+      if (state === 'speaking') {
+        const syllables = Math.max(0, Math.sin(t * 9.2) * 0.6 + Math.sin(t * 13.7 + 1.3) * 0.5);
+        const phrase = Math.sin(t * 1.6) > -0.45 ? 1 : 0.12; // breath pauses between phrases
+        open = Math.min(1, syllables * phrase * 1.5);
+      }
+      const o = damp(openMouth.current.scale.y, Math.max(0.001, open), 18, dt);
+      openMouth.current.scale.set(1 - o * 0.18, o, 1);
+      // the resting smile fades out while the mouth is open
+      const s = damp(smile.current.scale.x, open > 0.18 ? 0.001 : 1, 16, dt);
+      smile.current.scale.set(s, s, s);
     }
     // thought dots while reflecting / saving
     if (think.current) {
@@ -180,43 +217,43 @@ function Companion3D({ state }: { state: OrbState }) {
           {/* body — cozy lavender sweater */}
           <mesh position={[0, 0.93, 0]} scale={[1, 1.06, 0.86]} castShadow>
             <sphereGeometry args={[0.42, 28, 22]} />
-            <meshToonMaterial color="#CBBCEE" />
+            <Toon color="#CBBCEE" />
             <Outlines thickness={0.025} color={INK} />
           </mesh>
           {/* arms */}
           <mesh position={[-0.38, 0.86, 0.1]} rotation={[0.2, 0, 0.5]} castShadow>
             <capsuleGeometry args={[0.09, 0.3, 6, 12]} />
-            <meshToonMaterial color="#CBBCEE" />
+            <Toon color="#CBBCEE" />
             <Outlines thickness={0.018} color={INK} />
           </mesh>
           {/* right arm pivots at the shoulder so it can wave hello */}
           <group ref={waveArm} position={[0.3, 1.02, 0.06]}>
             <mesh position={[0.08, -0.16, 0.04]} rotation={[0.2, 0, -0.5]}>
               <capsuleGeometry args={[0.09, 0.3, 6, 12]} />
-              <meshToonMaterial color="#CBBCEE" />
+              <Toon color="#CBBCEE" />
               <Outlines thickness={0.018} color={INK} />
             </mesh>
           </group>
           {/* hands resting */}
           <mesh position={[-0.2, 0.62, 0.3]}>
             <sphereGeometry args={[0.085, 16, 12]} />
-            <meshToonMaterial color={skin} />
+            <Toon color={skin} />
             <Outlines thickness={0.015} color={INK} />
           </mesh>
           <mesh position={[0.2, 0.62, 0.3]}>
             <sphereGeometry args={[0.085, 16, 12]} />
-            <meshToonMaterial color={skin} />
+            <Toon color={skin} />
             <Outlines thickness={0.015} color={INK} />
           </mesh>
           {/* little feet */}
           <mesh position={[-0.16, 0.42, 0.4]} scale={[1, 0.7, 1.3]}>
             <sphereGeometry args={[0.09, 16, 12]} />
-            <meshToonMaterial color={skin} />
+            <Toon color={skin} />
             <Outlines thickness={0.015} color={INK} />
           </mesh>
           <mesh position={[0.16, 0.42, 0.4]} scale={[1, 0.7, 1.3]}>
             <sphereGeometry args={[0.09, 16, 12]} />
-            <meshToonMaterial color={skin} />
+            <Toon color={skin} />
             <Outlines thickness={0.015} color={INK} />
           </mesh>
 
@@ -224,24 +261,34 @@ function Companion3D({ state }: { state: OrbState }) {
           <group ref={head} position={[0, 1.52, 0]}>
             <mesh castShadow>
               <sphereGeometry args={[0.34, 30, 24]} />
-              <meshToonMaterial color={skin} />
+              <Toon color={skin} />
               <Outlines thickness={0.025} color={INK} />
             </mesh>
             {/* soft hair cap */}
             <mesh position={[0, 0.07, -0.05]} rotation={[-0.35, 0, 0]}>
               <sphereGeometry args={[0.355, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.52]} />
-              <meshToonMaterial color="#7A6A58" />
+              <Toon color="#7A6A58" />
               <Outlines thickness={0.02} color={INK} />
             </mesh>
-            {/* eyes */}
-            <mesh ref={eyeL} position={[-0.115, 0.015, 0.305]}>
-              <sphereGeometry args={[0.038, 12, 10]} />
-              <meshBasicMaterial color={INK} />
-            </mesh>
-            <mesh ref={eyeR} position={[0.115, 0.015, 0.305]}>
-              <sphereGeometry args={[0.038, 12, 10]} />
-              <meshBasicMaterial color={INK} />
-            </mesh>
+            {/* eyes — pupils + sparkles ride a gaze group that drifts when glancing */}
+            <group ref={gaze}>
+              <mesh ref={eyeL} position={[-0.115, 0.015, 0.305]}>
+                <sphereGeometry args={[0.038, 12, 10]} />
+                <meshBasicMaterial color={INK} />
+              </mesh>
+              <mesh ref={eyeR} position={[0.115, 0.015, 0.305]}>
+                <sphereGeometry args={[0.038, 12, 10]} />
+                <meshBasicMaterial color={INK} />
+              </mesh>
+              <mesh position={[-0.103, 0.032, 0.335]}>
+                <sphereGeometry args={[0.011, 8, 6]} />
+                <meshBasicMaterial color="#FFFFFF" />
+              </mesh>
+              <mesh position={[0.127, 0.032, 0.335]}>
+                <sphereGeometry args={[0.011, 8, 6]} />
+                <meshBasicMaterial color="#FFFFFF" />
+              </mesh>
+            </group>
             {/* brows — lift when listening */}
             <group ref={brows}>
               <mesh position={[-0.115, 0.1, 0.295]} rotation={[0.25, 0, 0.12]}>
@@ -262,11 +309,23 @@ function Companion3D({ state }: { state: OrbState }) {
               <sphereGeometry args={[0.055, 12, 10]} />
               <meshBasicMaterial color="#F3A8B6" transparent opacity={0.75} />
             </mesh>
-            {/* smile (animates while speaking) */}
-            <mesh ref={mouth} position={[0, -0.1, 0.31]} rotation={[0.15, 0, Math.PI]}>
+            {/* resting smile — fades out while the open mouth talks */}
+            <mesh ref={smile} position={[0, -0.1, 0.31]} rotation={[0.15, 0, Math.PI]}>
               <torusGeometry args={[0.075, 0.016, 8, 20, Math.PI]} />
               <meshBasicMaterial color={INK} />
             </mesh>
+            {/* open mouth — a real rounded "ah" that opens and closes with speech */}
+            <group ref={openMouth} position={[0, -0.115, 0.295]} scale={[1, 0.001, 1]}>
+              <mesh scale={[1, 1, 0.45]}>
+                <sphereGeometry args={[0.062, 16, 12]} />
+                <meshBasicMaterial color="#4A2F33" />
+              </mesh>
+              {/* tongue */}
+              <mesh position={[0, -0.025, 0.018]} scale={[0.75, 0.5, 0.4]}>
+                <sphereGeometry args={[0.045, 12, 8]} />
+                <meshBasicMaterial color="#E58B9B" />
+              </mesh>
+            </group>
           </group>
 
           {/* thought dots (shown while reflecting) */}
@@ -296,53 +355,76 @@ function YourPresence() {
       {/* your floor cushion */}
       <mesh position={[0, 0.12, 0.25]}>
         <cylinderGeometry args={[0.52, 0.56, 0.22, 24]} />
-        <meshToonMaterial color="#CBBCEE" />
+        <Toon color="#CBBCEE" />
         <Outlines thickness={0.02} color={INK} />
       </mesh>
       {/* thighs — cozy sage lounge pants, knees rising into the view */}
       <mesh position={[-0.23, 0.58, -0.1]} rotation={[1.15, 0, 0.08]} castShadow>
         <capsuleGeometry args={[0.13, 0.46, 8, 14]} />
-        <meshToonMaterial color="#AEDAB9" />
+        <Toon color="#AEDAB9" />
         <Outlines thickness={0.02} color={INK} />
       </mesh>
       <mesh position={[0.23, 0.58, -0.1]} rotation={[1.15, 0, -0.08]} castShadow>
         <capsuleGeometry args={[0.13, 0.46, 8, 14]} />
-        <meshToonMaterial color="#AEDAB9" />
+        <Toon color="#AEDAB9" />
         <Outlines thickness={0.02} color={INK} />
       </mesh>
       {/* shins folding down */}
       <mesh position={[-0.21, 0.22, -0.42]} rotation={[0.35, 0, 0]}>
         <capsuleGeometry args={[0.1, 0.34, 8, 14]} />
-        <meshToonMaterial color="#AEDAB9" />
+        <Toon color="#AEDAB9" />
         <Outlines thickness={0.016} color={INK} />
       </mesh>
       <mesh position={[0.21, 0.22, -0.42]} rotation={[0.35, 0, 0]}>
         <capsuleGeometry args={[0.1, 0.34, 8, 14]} />
-        <meshToonMaterial color="#AEDAB9" />
+        <Toon color="#AEDAB9" />
         <Outlines thickness={0.016} color={INK} />
       </mesh>
       {/* feet — cream socks */}
       <mesh position={[-0.22, 0.07, -0.62]} scale={[1, 0.72, 1.5]}>
         <sphereGeometry args={[0.105, 16, 12]} />
-        <meshToonMaterial color="#FFFDF8" />
+        <Toon color="#FFFDF8" />
         <Outlines thickness={0.014} color={INK} />
       </mesh>
       <mesh position={[0.22, 0.07, -0.62]} scale={[1, 0.72, 1.5]}>
         <sphereGeometry args={[0.105, 16, 12]} />
-        <meshToonMaterial color="#FFFDF8" />
+        <Toon color="#FFFDF8" />
         <Outlines thickness={0.014} color={INK} />
       </mesh>
       {/* hands resting on your knees */}
       <mesh position={[-0.24, 0.74, 0.04]} scale={[1, 0.8, 1.1]}>
         <sphereGeometry args={[0.085, 16, 12]} />
-        <meshToonMaterial color="#F8E4D2" />
+        <Toon color="#F8E4D2" />
         <Outlines thickness={0.014} color={INK} />
       </mesh>
       <mesh position={[0.24, 0.74, 0.04]} scale={[1, 0.8, 1.1]}>
         <sphereGeometry args={[0.085, 16, 12]} />
-        <meshToonMaterial color="#F8E4D2" />
+        <Toon color="#F8E4D2" />
         <Outlines thickness={0.014} color={INK} />
       </mesh>
+    </group>
+  );
+}
+
+/* ---------------- window clouds — drifting slowly past the sunset ---------------- */
+function Clouds() {
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const base = [[-0.12, -0.18], [0.06, -0.14], [-0.3, -0.14]] as const;
+  useFrame((st) => {
+    const t = st.clock.elapsedTime;
+    refs.current.forEach((m, i) => {
+      if (!m) return;
+      m.position.x = base[i][0] + Math.sin(t * 0.06 + i * 2.4) * 0.09;
+    });
+  });
+  return (
+    <group>
+      {base.map(([cx, cy], i) => (
+        <mesh key={i} ref={(el) => { refs.current[i] = el; }} position={[cx, cy, 0.058]} scale={[1.6, 0.7, 1]}>
+          <circleGeometry args={[0.09, 16]} />
+          <meshBasicMaterial color="#FFFFFF" transparent opacity={0.85} toneMapped={false} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -350,6 +432,7 @@ function YourPresence() {
 /* ---------------- fireplace — flicker, warmth, the heart of the room ---------------- */
 function Fireplace() {
   const flames = useRef<(THREE.Mesh | null)[]>([]);
+  const embers = useRef<(THREE.Mesh | null)[]>([]);
   const glow = useRef<THREE.PointLight>(null);
   useFrame((st) => {
     const t = st.clock.elapsedTime;
@@ -361,17 +444,24 @@ function Fireplace() {
       f.rotation.y = t * (0.6 + i * 0.2);
       f.position.x = (i - 1) * 0.1 + Math.sin(t * 3 + i * 2) * 0.012;
     });
+    embers.current.forEach((m, i) => {
+      if (!m) return;
+      const p = (t * (0.22 + i * 0.05) + i * 0.31) % 1;
+      m.position.y = 0.5 + p * 0.55;
+      m.position.x = (i - 1.5) * 0.06 + Math.sin(p * 9 + i * 2) * 0.03;
+      (m.material as THREE.MeshBasicMaterial).opacity = 0.85 * (1 - p);
+    });
     if (glow.current) glow.current.intensity = 2.6 + Math.sin(t * 7.3) * 0.5 + Math.sin(t * 13.7) * 0.3;
   });
   return (
     <group position={[3.32, 0, -0.7]} rotation={[0, -Math.PI / 2, 0]}>
       {/* mantel + body */}
       <RoundedBox args={[1.7, 1.4, 0.5]} radius={0.06} position={[0, 0.7, 0]} castShadow>
-        <meshToonMaterial color="#E8C9A0" />
+        <Toon color="#E8C9A0" />
         <Outlines thickness={0.03} color={INK} />
       </RoundedBox>
       <RoundedBox args={[1.9, 0.14, 0.62]} radius={0.04} position={[0, 1.45, 0]}>
-        <meshToonMaterial color="#D9B583" />
+        <Toon color="#D9B583" />
         <Outlines thickness={0.022} color={INK} />
       </RoundedBox>
       {/* the opening */}
@@ -382,11 +472,11 @@ function Fireplace() {
       {/* logs */}
       <mesh position={[-0.1, 0.24, 0.26]} rotation={[0, 0.5, 0]}>
         <cylinderGeometry args={[0.06, 0.06, 0.6, 8]} />
-        <meshToonMaterial color="#8A6748" />
+        <Toon color="#8A6748" />
       </mesh>
       <mesh position={[0.1, 0.24, 0.28]} rotation={[0, -0.6, 0]}>
         <cylinderGeometry args={[0.055, 0.055, 0.55, 8]} />
-        <meshToonMaterial color="#7A5A3E" />
+        <Toon color="#7A5A3E" />
       </mesh>
       {/* flames */}
       {[0, 1, 2].map(i => (
@@ -395,10 +485,17 @@ function Fireplace() {
           <meshBasicMaterial color={i === 1 ? '#FF9D45' : i === 0 ? '#FFD56B' : '#FF7A3C'} transparent opacity={0.92} toneMapped={false} />
         </mesh>
       ))}
+      {/* embers drifting up from the fire */}
+      {[0, 1, 2, 3].map(i => (
+        <mesh key={'e' + i} ref={(el) => { embers.current[i] = el; }} position={[0, 0.55, 0.3]}>
+          <sphereGeometry args={[0.011, 6, 5]} />
+          <meshBasicMaterial color={i % 2 ? '#FFB066' : '#FF8A4A'} transparent opacity={0.8} toneMapped={false} />
+        </mesh>
+      ))}
       {/* candle pair on the mantel */}
       <mesh position={[-0.55, 1.62, 0]}>
         <cylinderGeometry args={[0.035, 0.04, 0.2, 10]} />
-        <meshToonMaterial color="#FBF1E0" />
+        <Toon color="#FBF1E0" />
         <Outlines thickness={0.008} color={INK} />
       </mesh>
       <mesh position={[-0.55, 1.76, 0]}>
@@ -407,7 +504,7 @@ function Fireplace() {
       </mesh>
       <mesh position={[0.5, 1.58, 0]}>
         <sphereGeometry args={[0.085, 14, 10]} />
-        <meshToonMaterial color="#AEDAB9" />
+        <Toon color="#AEDAB9" />
         <Outlines thickness={0.01} color={INK} />
       </mesh>
       {/* warm flicker light */}
@@ -436,23 +533,23 @@ function Cat() {
         {/* curled body */}
         <mesh position={[0, 0.12, 0]} scale={[1, 0.62, 0.85]} castShadow>
           <sphereGeometry args={[0.19, 20, 16]} />
-          <meshToonMaterial color="#F6D9C0" />
+          <Toon color="#F6D9C0" />
           <Outlines thickness={0.016} color={INK} />
         </mesh>
         {/* head tucked in */}
         <mesh position={[0.14, 0.13, 0.1]}>
           <sphereGeometry args={[0.1, 16, 12]} />
-          <meshToonMaterial color="#F6D9C0" />
+          <Toon color="#F6D9C0" />
           <Outlines thickness={0.013} color={INK} />
         </mesh>
         {/* ears */}
         <mesh position={[0.16, 0.23, 0.07]} rotation={[0, 0, 0.2]}>
           <coneGeometry args={[0.032, 0.06, 6]} />
-          <meshToonMaterial color="#EDBE9C" />
+          <Toon color="#EDBE9C" />
         </mesh>
         <mesh position={[0.2, 0.22, 0.13]} rotation={[0, 0, -0.15]}>
           <coneGeometry args={[0.032, 0.06, 6]} />
-          <meshToonMaterial color="#EDBE9C" />
+          <Toon color="#EDBE9C" />
         </mesh>
         {/* sleeping eyes — two tiny content arcs */}
         <mesh position={[0.21, 0.14, 0.14]} rotation={[0.3, 0.6, Math.PI]}>
@@ -462,7 +559,7 @@ function Cat() {
         {/* tail wrapped around */}
         <mesh ref={tail} position={[-0.13, 0.07, 0.06]} rotation={[Math.PI / 2, 0, 0.2]}>
           <torusGeometry args={[0.13, 0.032, 8, 14, Math.PI * 1.2]} />
-          <meshToonMaterial color="#EDBE9C" />
+          <Toon color="#EDBE9C" />
           <Outlines thickness={0.01} color={INK} />
         </mesh>
       </group>
@@ -504,7 +601,9 @@ function StringLights() {
 
 /* ---------------- ambience: floating light motes + mug steam ---------------- */
 const MOTES = [
-  [-1.9, 1.2, -1.6], [-0.9, 1.9, -2.4], [0.3, 1.5, -2.0], [1.4, 2.1, -1.2],
+  // three dance inside the window light shaft
+  [-1.78, 1.5, -2.7], [-1.68, 1.0, -2.45], [-1.82, 0.55, -2.25],
+  [0.3, 1.5, -2.0], [1.4, 2.1, -1.2],
   [2.0, 1.1, -0.4], [-1.2, 0.9, 0.4], [0.9, 1.7, 0.6], [-0.2, 2.3, -1.0], [1.7, 1.5, -2.6],
 ] as const;
 
@@ -565,11 +664,11 @@ function WallNote({ x, y, color, tilt = 0 }: { x: number; y: number; color: stri
       </mesh>
       <mesh>
         <planeGeometry args={[0.31, 0.25]} />
-        <meshToonMaterial color={color} />
+        <Toon color={color} />
       </mesh>
       <mesh position={[0, 0.14, 0.01]}>
         <sphereGeometry args={[0.024, 10, 8]} />
-        <meshToonMaterial color="#EB8197" />
+        <Toon color="#EB8197" />
         <Outlines thickness={0.007} color={INK} />
       </mesh>
     </group>
@@ -626,7 +725,7 @@ function RoomScene({ state }: { state: OrbState }) {
       {/* floor · rug · walls · ceiling */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[12, 12]} />
-        <meshToonMaterial map={planks} color="#FFFFFF" />
+        <Toon map={planks} color="#FFFFFF" />
       </mesh>
       {/* warm sun patch spilling in from the window */}
       <mesh rotation={[-Math.PI / 2, 0, 0.4]} position={[-1.7, 0.008, -2.15]} scale={[1, 1.7, 1]}>
@@ -640,27 +739,29 @@ function RoomScene({ state }: { state: OrbState }) {
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -0.5]}>
         <circleGeometry args={[1.95, 40]} />
-        <meshToonMaterial color="#D8CCF2" />
+        <Toon color="#D8CCF2" />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018, -0.5]}>
         <ringGeometry args={[1.88, 1.95, 40]} />
         <meshBasicMaterial color={INK} transparent opacity={0.35} />
       </mesh>
+      {/* grounded: soft contact shadows under everything */}
+      <ContactShadows position={[0, 0.026, -0.5]} opacity={0.3} scale={9} blur={2.6} far={2.5} resolution={512} frames={1} color="#4A3826" />
       <mesh position={[0, 1.7, -3.25]}>
         <planeGeometry args={[12, 3.6]} />
-        <meshToonMaterial color="#ECE4F6" />
+        <Toon color="#ECE4F6" />
       </mesh>
       <mesh position={[-3.45, 1.7, 0]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[12, 3.6]} />
-        <meshToonMaterial color="#F0E6EE" />
+        <Toon color="#F0E6EE" />
       </mesh>
       <mesh position={[3.45, 1.7, 0]} rotation={[0, -Math.PI / 2, 0]}>
         <planeGeometry args={[12, 3.6]} />
-        <meshToonMaterial color="#F0E6EE" />
+        <Toon color="#F0E6EE" />
       </mesh>
       <mesh position={[0, 3.4, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[12, 12]} />
-        <meshToonMaterial color="#FBF1E0" />
+        <Toon color="#FBF1E0" />
       </mesh>
       {/* wainscot line on the back wall */}
       <mesh position={[0, 1.06, -3.24]}>
@@ -671,7 +772,7 @@ function RoomScene({ state }: { state: OrbState }) {
       {/* window with sunset (back wall, left) */}
       <group position={[-1.75, 1.92, -3.2]}>
         <RoundedBox args={[1.5, 1.66, 0.1]} radius={0.05}>
-          <meshToonMaterial color="#E3C397" />
+          <Toon color="#E3C397" />
           <Outlines thickness={0.025} color={INK} />
         </RoundedBox>
         <mesh position={[0, 0, 0.052]}>
@@ -682,15 +783,26 @@ function RoomScene({ state }: { state: OrbState }) {
           <circleGeometry args={[0.15, 24]} />
           <meshBasicMaterial color="#F5CE74" toneMapped={false} />
         </mesh>
-        {[[-0.12, -0.18], [0.06, -0.14], [-0.3, -0.14]].map(([cx, cy], i) => (
-          <mesh key={i} position={[cx, cy, 0.058]} scale={[1.6, 0.7, 1]}>
-            <circleGeometry args={[0.09, 16]} />
-            <meshBasicMaterial color="#FFFFFF" transparent opacity={0.85} toneMapped={false} />
-          </mesh>
-        ))}
+        <Clouds />
         <mesh position={[0, 0, 0.055]}><boxGeometry args={[0.045, 1.4, 0.012]} /><meshBasicMaterial color={INK} /></mesh>
         <mesh position={[0, 0.02, 0.055]}><boxGeometry args={[1.24, 0.045, 0.012]} /><meshBasicMaterial color={INK} /></mesh>
-        <mesh position={[0, -0.9, 0.08]}><boxGeometry args={[1.62, 0.09, 0.16]} /><meshToonMaterial color="#E3C397" /><Outlines thickness={0.015} color={INK} /></mesh>
+        <mesh position={[0, -0.9, 0.08]}><boxGeometry args={[1.62, 0.09, 0.16]} /><Toon color="#E3C397" /><Outlines thickness={0.015} color={INK} /></mesh>
+        {/* curtain rod + soft drapes */}
+        <mesh position={[0, 0.95, 0.1]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.022, 0.022, 2.1, 8]} />
+          <Toon color="#B58B5C" />
+        </mesh>
+        {/* one drape, drawn open to the far side (the near side would overlap
+            the companion from the seated viewpoint) */}
+        <mesh position={[-1.0, 0.02, 0.08]} rotation={[0, 0, 0.03]} castShadow>
+          <capsuleGeometry args={[0.13, 1.6, 6, 12]} />
+          <Toon color="#F4D9BF" />
+          <Outlines thickness={0.02} color={INK} />
+        </mesh>
+        <mesh position={[-1.0, -0.35, 0.18]} rotation={[Math.PI / 2.3, 0, 0]}>
+          <torusGeometry args={[0.13, 0.022, 8, 14]} />
+          <Toon color="#ED9C74" />
+        </mesh>
       </group>
 
       {/* memory notes pinned to the wall */}
@@ -701,7 +813,7 @@ function RoomScene({ state }: { state: OrbState }) {
       {/* art on the left wall — a reward for looking around */}
       <group position={[-3.42, 1.72, -0.7]} rotation={[0, Math.PI / 2, 0]} scale={1.35}>
         <RoundedBox args={[0.72, 0.58, 0.05]} radius={0.02}>
-          <meshToonMaterial color="#FFFDF8" />
+          <Toon color="#FFFDF8" />
           <Outlines thickness={0.012} color={INK} />
         </RoundedBox>
         <mesh position={[0, 0, 0.028]}>
@@ -727,11 +839,11 @@ function RoomScene({ state }: { state: OrbState }) {
       <group position={[2.25, 1.78, -3.12]}>
         <mesh castShadow>
           <boxGeometry args={[1.0, 0.06, 0.24]} />
-          <meshToonMaterial color="#E3C397" />
+          <Toon color="#E3C397" />
           <Outlines thickness={0.018} color={INK} />
         </mesh>
         <RoundedBox args={[0.3, 0.26, 0.04]} radius={0.015} position={[-0.24, 0.165, 0]}>
-          <meshToonMaterial color="#FFFDF8" />
+          <Toon color="#FFFDF8" />
           <Outlines thickness={0.01} color={INK} />
         </RoundedBox>
         <mesh position={[-0.24, 0.16, 0.022]}>
@@ -740,19 +852,19 @@ function RoomScene({ state }: { state: OrbState }) {
         </mesh>
         <mesh position={[0.22, 0.1, 0]}>
           <cylinderGeometry args={[0.07, 0.055, 0.14, 14]} />
-          <meshToonMaterial color="#F4B89A" />
+          <Toon color="#F4B89A" />
           <Outlines thickness={0.01} color={INK} />
         </mesh>
         <mesh position={[0.22, 0.24, 0]}>
           <sphereGeometry args={[0.09, 14, 10]} />
-          <meshToonMaterial color="#7FC295" />
+          <Toon color="#7FC295" />
           <Outlines thickness={0.01} color={INK} />
         </mesh>
         {/* a few well-loved books */}
         {[['#F3A8B6', -0.02, 0.1], ['#A9C9E9', 0.035, 0.115], ['#F5CE74', 0.09, 0.105]].map(([col, x, h], i) => (
           <mesh key={i} position={[Number(x), 0.03 + Number(h) / 2, 0.02]} rotation={[0, 0, i === 2 ? -0.12 : 0]}>
             <boxGeometry args={[0.045, Number(h) * 2, 0.16]} />
-            <meshToonMaterial color={String(col)} />
+            <Toon color={String(col)} />
             <Outlines thickness={0.008} color={INK} />
           </mesh>
         ))}
@@ -761,24 +873,24 @@ function RoomScene({ state }: { state: OrbState }) {
       {/* the couch across the table */}
       <group position={[0, 0, -1.45]}>
         <RoundedBox args={[2.5, 0.46, 0.95]} radius={0.12} position={[0, 0.3, 0]} castShadow>
-          <meshToonMaterial color="#ED9C74" />
+          <Toon color="#ED9C74" />
           <Outlines thickness={0.03} color={INK} />
         </RoundedBox>
         <RoundedBox args={[2.5, 0.85, 0.26]} radius={0.1} position={[0, 0.82, -0.38]} castShadow>
-          <meshToonMaterial color="#F4B89A" />
+          <Toon color="#F4B89A" />
           <Outlines thickness={0.03} color={INK} />
         </RoundedBox>
         <RoundedBox args={[0.3, 0.66, 0.95]} radius={0.1} position={[-1.36, 0.55, 0]}>
-          <meshToonMaterial color="#F4B89A" />
+          <Toon color="#F4B89A" />
           <Outlines thickness={0.025} color={INK} />
         </RoundedBox>
         <RoundedBox args={[0.3, 0.66, 0.95]} radius={0.1} position={[1.36, 0.55, 0]}>
-          <meshToonMaterial color="#F4B89A" />
+          <Toon color="#F4B89A" />
           <Outlines thickness={0.025} color={INK} />
         </RoundedBox>
         {/* the empty sunny cushion — your seat across, kept warm */}
         <RoundedBox args={[0.9, 0.14, 0.72]} radius={0.06} position={[0.62, 0.58, 0.02]}>
-          <meshToonMaterial color="#F5CE74" />
+          <Toon color="#F5CE74" />
           <Outlines thickness={0.02} color={INK} />
         </RoundedBox>
       </group>
@@ -802,40 +914,40 @@ function RoomScene({ state }: { state: OrbState }) {
       <group position={[0, 0, 0.45]}>
         <mesh position={[0, 0.56, 0]} castShadow>
           <cylinderGeometry args={[0.56, 0.56, 0.07, 36]} />
-          <meshToonMaterial color="#F0D9B4" />
+          <Toon color="#F0D9B4" />
           <Outlines thickness={0.025} color={INK} />
         </mesh>
         <mesh position={[0, 0.28, 0]}>
           <cylinderGeometry args={[0.06, 0.06, 0.5, 12]} />
-          <meshToonMaterial color="#E3C397" />
+          <Toon color="#E3C397" />
           <Outlines thickness={0.012} color={INK} />
         </mesh>
         <mesh position={[0, 0.03, 0]}>
           <cylinderGeometry args={[0.24, 0.28, 0.06, 24]} />
-          <meshToonMaterial color="#E3C397" />
+          <Toon color="#E3C397" />
           <Outlines thickness={0.015} color={INK} />
         </mesh>
         {/* mugs */}
         <group position={[-0.2, 0.66, 0.08]}>
           <mesh castShadow>
             <cylinderGeometry args={[0.07, 0.062, 0.13, 18]} />
-            <meshToonMaterial color="#AEDAB9" />
+            <Toon color="#AEDAB9" />
             <Outlines thickness={0.012} color={INK} />
           </mesh>
           <mesh position={[-0.085, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.045, 0.014, 8, 16]} />
-            <meshToonMaterial color="#AEDAB9" />
+            <Toon color="#AEDAB9" />
           </mesh>
         </group>
         <group position={[0.21, 0.66, -0.05]}>
           <mesh castShadow>
             <cylinderGeometry args={[0.07, 0.062, 0.13, 18]} />
-            <meshToonMaterial color="#A9C9E9" />
+            <Toon color="#A9C9E9" />
             <Outlines thickness={0.012} color={INK} />
           </mesh>
           <mesh position={[0.085, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.045, 0.014, 8, 16]} />
-            <meshToonMaterial color="#A9C9E9" />
+            <Toon color="#A9C9E9" />
           </mesh>
         </group>
       </group>
@@ -846,16 +958,16 @@ function RoomScene({ state }: { state: OrbState }) {
       <group position={[1.95, 0, -1.55]}>
         <mesh position={[0, 0.03, 0]}>
           <cylinderGeometry args={[0.17, 0.2, 0.06, 18]} />
-          <meshToonMaterial color="#CBBCEE" />
+          <Toon color="#CBBCEE" />
           <Outlines thickness={0.015} color={INK} />
         </mesh>
         <mesh position={[0, 0.75, 0]}>
           <cylinderGeometry args={[0.022, 0.022, 1.4, 8]} />
-          <meshToonMaterial color={INK} />
+          <Toon color={INK} />
         </mesh>
         <mesh position={[0, 1.56, 0]} castShadow>
           <cylinderGeometry args={[0.18, 0.3, 0.34, 22, 1, true]} />
-          <meshToonMaterial color="#FBF1E0" side={THREE.DoubleSide} />
+          <Toon color="#FBF1E0" side={THREE.DoubleSide} />
           <Outlines thickness={0.02} color={INK} />
         </mesh>
         <mesh position={[0, 1.45, 0]}>
@@ -868,22 +980,22 @@ function RoomScene({ state }: { state: OrbState }) {
       <group position={[-2.3, 0, -1.4]}>
         <mesh position={[0, 0.16, 0]} castShadow>
           <cylinderGeometry args={[0.17, 0.13, 0.32, 16]} />
-          <meshToonMaterial color="#ED9C74" />
+          <Toon color="#ED9C74" />
           <Outlines thickness={0.02} color={INK} />
         </mesh>
         <mesh position={[0, 0.62, 0]} rotation={[0, 0, 0.12]} castShadow>
           <coneGeometry args={[0.2, 0.75, 10]} />
-          <meshToonMaterial color="#7FC295" />
+          <Toon color="#7FC295" />
           <Outlines thickness={0.02} color={INK} />
         </mesh>
         <mesh position={[-0.18, 0.5, 0.05]} rotation={[0, 0, 0.5]}>
           <coneGeometry args={[0.14, 0.5, 8]} />
-          <meshToonMaterial color="#AEDAB9" />
+          <Toon color="#AEDAB9" />
           <Outlines thickness={0.015} color={INK} />
         </mesh>
         <mesh position={[0.18, 0.48, -0.04]} rotation={[0, 0, -0.5]}>
           <coneGeometry args={[0.14, 0.46, 8]} />
-          <meshToonMaterial color="#AEDAB9" />
+          <Toon color="#AEDAB9" />
           <Outlines thickness={0.015} color={INK} />
         </mesh>
       </group>
@@ -892,12 +1004,17 @@ function RoomScene({ state }: { state: OrbState }) {
       <group position={[0, 0, -0.2]}>
         <mesh position={[0, 3.0, 0]}>
           <cylinderGeometry args={[0.012, 0.012, 0.8, 6]} />
-          <meshToonMaterial color={INK} />
+          <Toon color={INK} />
         </mesh>
         <mesh position={[0, 2.5, 0]}>
           <coneGeometry args={[0.26, 0.24, 20, 1, true]} />
-          <meshToonMaterial color="#F5CE74" side={THREE.DoubleSide} />
+          <Toon color="#F5CE74" side={THREE.DoubleSide} />
           <Outlines thickness={0.02} color={INK} />
+        </mesh>
+        {/* warm glowing inner shade — no dark hollow when seen from below */}
+        <mesh position={[0, 2.49, 0]}>
+          <coneGeometry args={[0.24, 0.22, 20, 1, true]} />
+          <meshBasicMaterial color="#FFE9B8" side={THREE.BackSide} toneMapped={false} />
         </mesh>
         <mesh position={[0, 2.42, 0]}>
           <sphereGeometry args={[0.06, 12, 10]} />
