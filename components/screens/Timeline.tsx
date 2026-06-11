@@ -225,7 +225,7 @@ export default function Timeline() {
           {hasData && <InsightAgentCard />}
 
           {!hasData ? (
-            <div className="up d2 card" style={{ padding: 30, marginBottom: 30, display: 'flex', alignItems: 'center', gap: 20 }}>
+            <div className="up d2 card" style={{ padding: 30, marginBottom: 30, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
               <div className="mem-ic deco" style={{ width: 60, height: 60, flex: '0 0 60px', background: 'var(--sage)' }}><Ic name="sprout" size={30} /></div>
               <div style={{ flex: 1 }}>
                 <div className="display" style={{ fontSize: 22 }}>{loading ? 'Gathering your journey…' : 'Your journey starts here.'}</div>

@@ -118,7 +118,7 @@ export default function Recall() {
               </div>
             </div>
           ) : (
-            <div className="up d3 card" style={{ padding: 28, marginBottom: 18, display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div className="up d3 card" style={{ padding: 28, marginBottom: 18, display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
               <div className="mem-ic deco" style={{ width: 54, height: 54, flex: '0 0 54px', background: 'var(--mint)' }}><Ic name="sprout" size={28} /></div>
               <div style={{ flex: 1 }}>
                 <div className="display" style={{ fontSize: 20 }}>{loading ? 'Looking back through your memories…' : 'Your story starts now.'}</div>

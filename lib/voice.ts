@@ -37,9 +37,16 @@ export function useVoice(opts: {
   // Keep the latest callback without re-creating the recognizer each render.
   useEffect(() => { onResultRef.current = onResult; }, [onResult]);
 
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const w = window as AnyWindow;
+    // Pre-warm TTS voices: Chrome returns [] until voiceschanged fires, which
+    // is why a first message can be silently voiceless.
+    const loadVoices = () => { try { voicesRef.current = window.speechSynthesis?.getVoices() ?? []; } catch { /* noop */ } };
+    loadVoices();
+    try { window.speechSynthesis?.addEventListener?.('voiceschanged', loadVoices); } catch { /* noop */ }
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     let sttOk = false;
     if (SR) {
@@ -97,18 +104,24 @@ export function useVoice(opts: {
   const speak = useCallback((text: string, onEnd?: () => void) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) { onEnd?.(); return; }
     try {
-      window.speechSynthesis.cancel();
+      const synth = window.speechSynthesis;
+      synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 0.96;
       u.pitch = 1.02;
-      u.onend = () => onEnd?.();
-      u.onerror = () => onEnd?.();
-      // Prefer a warm, natural English voice when available.
-      const voices = window.speechSynthesis.getVoices();
+      // Chrome quietly pauses long utterances after ~15s — keep nudging it.
+      const keepAlive = setInterval(() => { try { if (synth.speaking) synth.resume(); else clearInterval(keepAlive); } catch { clearInterval(keepAlive); } }, 9000);
+      const done = () => { clearInterval(keepAlive); onEnd?.(); };
+      u.onend = done;
+      u.onerror = done;
+      // Prefer a warm, natural English voice when available (pre-warmed list).
+      const voices = voicesRef.current.length ? voicesRef.current : synth.getVoices();
       const preferred = voices.find(v => /female|samantha|aria|jenny|libby|sonia/i.test(v.name) && /en/i.test(v.lang))
         ?? voices.find(v => /en-US|en-GB/i.test(v.lang));
       if (preferred) u.voice = preferred;
-      window.speechSynthesis.speak(u);
+      // cancel() immediately followed by speak() silently drops the utterance
+      // on some Chrome builds — give the queue one tick to clear.
+      setTimeout(() => { try { synth.speak(u); } catch { done(); } }, 60);
     } catch {
       onEnd?.();
     }

@@ -38,7 +38,7 @@ export default function Onboarding() {
             <span className="doodle float" style={{ top: '2%', right: '6%', ['--r']: '0deg' } as CSS}><Ic name="spark" size={22} stroke="var(--sun)" fill="var(--sun)" sw={2.2} /></span>
             <span className="doodle float" style={{ bottom: '4%', left: '2%', ['--r']: '0deg', animationDelay: '-2s' } as CSS}><Ic name="heart" size={18} stroke="var(--rose-deep)" fill="var(--rose)" sw={2.2} /></span>
             <span className="doodle float" style={{ top: '46%', left: '-4%', ['--r']: '0deg', animationDelay: '-4s' } as CSS}><Ic name="star" size={15} stroke={c.deep} fill={c.deep} sw={2.2} /></span>
-            <Ic name={c.ic} size={104} sw={2} stroke="var(--ink)" />
+            <span style={{ position: 'relative', zIndex: 1, display: 'grid', placeItems: 'center' }}><Ic name={c.ic} size={104} sw={2} stroke="var(--ink)" /></span>
           </div>
 
           {/* content */}

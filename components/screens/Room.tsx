@@ -5,6 +5,7 @@ import { SessionBar } from '../chrome';
 import { Orb, Ic, Chip, Typing, Btn, LogoMark, type OrbState } from '../ui';
 import { ReflectionScene } from './ReflectionScene';
 import { useEcho, sessionMeta } from '@/lib/store';
+import { useIdentity } from '../identity';
 import { useVoice } from '@/lib/voice';
 import type { ChatMessage, ReflectionTurn } from '@/types';
 
@@ -48,8 +49,31 @@ export default function Room() {
   const trRef = useRef<HTMLDivElement>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const started = useRef(false);
+  // Hands-free conversation: after Echo finishes speaking, the mic re-opens by
+  // itself — no tapping every turn. Typing (or pausing) hands control back.
+  const handsFree = useRef(true);
+  const pausedRef = useRef(false);
+  const id = useIdentity();
 
   const voice = useVoice({ onResult: (t) => send(t, 'voice') });
+  useEffect(() => { pausedRef.current = paused; }, [paused]);
+
+  // Every session is memory-aware: quietly recall this user's context at the
+  // start (not just on the "continue from last time" path).
+  const { setRecalled } = useEcho.getState();
+  useEffect(() => {
+    if (!id.ready || !id.userId || recalled.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/recall?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}&context=${encodeURIComponent(session.modeTitle)}`);
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data.recalled) && data.recalled.length) setRecalled(data.recalled);
+      } catch { /* session still works without recall */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id.ready, id.userId]);
 
   // Track viewport width so the transcript docks beside the room only where it
   // fits; on phones it overlays instead (no layout squeeze).
@@ -89,7 +113,16 @@ export default function Room() {
   const lastEcho = [...transcript].reverse().find(m => m.role === 'echo')?.text;
 
   function speakOrTimeout(line: string, onDone?: () => void) {
-    const finish = () => { setVs('idle'); onDone?.(); };
+    const finish = () => {
+      // hands-free: Echo finished talking → open the mic for their reply
+      if (handsFree.current && voice.supported && !pausedRef.current) {
+        voice.startListening();
+        setVs('listening');
+      } else {
+        setVs('idle');
+      }
+      onDone?.();
+    };
     if (prefs.voiceReplies && voice.ttsSupported) {
       voice.speak(line, finish);
     } else {
@@ -101,6 +134,8 @@ export default function Room() {
   async function send(said: string, source: 'voice' | 'text') {
     const msg = said.trim();
     if (!msg || vs === 'thinking' || vs === 'saving') return;
+    // typing means they'd rather not be on-mic — stop auto-listening
+    if (source === 'text') handsFree.current = false;
     voice.cancelSpeech();
     setShowText(false); setText('');
 
@@ -132,8 +167,8 @@ export default function Room() {
   const micTap = () => {
     if (paused || vs === 'thinking' || vs === 'saving') return;
     if (voice.supported) {
-      if (voice.listening) { voice.stopListening(); setVs('idle'); }
-      else { voice.cancelSpeech(); voice.startListening(); setVs('listening'); }
+      if (voice.listening) { handsFree.current = false; voice.stopListening(); setVs('idle'); }
+      else { handsFree.current = true; voice.cancelSpeech(); voice.startListening(); setVs('listening'); }
     } else {
       setShowText(true);
     }
