@@ -39,7 +39,6 @@ function opening(feelings: string[]): string {
 export default function Room() {
   const { go, session, transcript, addTurn, setProposed, recalled, prefs } = useEcho();
   const [vs, setVs] = useState<OrbState>('idle');
-  const [paused, setPaused] = useState(false);
   const [scene3d, setScene3d] = useState(false);
   const [showText, setShowText] = useState(false);
   const [text, setText] = useState('');
@@ -52,11 +51,9 @@ export default function Room() {
   // Hands-free conversation: after Echo finishes speaking, the mic re-opens by
   // itself — no tapping every turn. Typing (or pausing) hands control back.
   const handsFree = useRef(true);
-  const pausedRef = useRef(false);
   const id = useIdentity();
 
   const voice = useVoice({ onResult: (t) => send(t, 'voice') });
-  useEffect(() => { pausedRef.current = paused; }, [paused]);
 
   // Every session is memory-aware: quietly recall this user's context at the
   // start (not just on the "continue from last time" path).
@@ -115,7 +112,7 @@ export default function Room() {
   function speakOrTimeout(line: string, onDone?: () => void) {
     const finish = () => {
       // hands-free: Echo finished talking → open the mic for their reply
-      if (handsFree.current && voice.supported && !pausedRef.current) {
+      if (handsFree.current) {
         voice.startListening();
         setVs('listening');
       } else {
@@ -123,7 +120,10 @@ export default function Room() {
       }
       onDone?.();
     };
-    if (prefs.voiceReplies && voice.ttsSupported) {
+    // check the real browser capability — the hook's state isn't set yet on the
+    // very first render, which silently muted the opening line
+    const ttsNow = typeof window !== 'undefined' && !!window.speechSynthesis;
+    if (prefs.voiceReplies && ttsNow) {
       voice.speak(line, finish);
     } else {
       const dur = Math.min(4200, 1400 + line.length * 22);
@@ -165,21 +165,13 @@ export default function Room() {
   }
 
   const micTap = () => {
-    if (paused || vs === 'thinking' || vs === 'saving') return;
+    if (vs === 'thinking' || vs === 'saving') return;
     if (voice.supported) {
       if (voice.listening) { handsFree.current = false; voice.stopListening(); setVs('idle'); }
       else { handsFree.current = true; voice.cancelSpeech(); voice.startListening(); setVs('listening'); }
     } else {
       setShowText(true);
     }
-  };
-
-  const togglePause = () => {
-    setPaused(p => {
-      const np = !p;
-      if (np) { voice.cancelSpeech(); voice.stopListening(); setVs('idle'); }
-      return np;
-    });
   };
 
   async function endReflection() {
@@ -202,15 +194,15 @@ export default function Room() {
 
   const userText = transcript.filter(t => t.role === 'user').map(t => t.text).join(' ');
   const forming = FORMING.filter(f => f.re.test(userText)).slice(0, 3);
-  const meta = (paused && vs === 'idle') ? STATE_META.paused : STATE_META[vs] ?? STATE_META.idle;
-  const idleWithChips = vs === 'idle' && !paused;
+  const meta = STATE_META[vs] ?? STATE_META.idle;
+  const idleWithChips = vs === 'idle';
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <SessionBar step={1} risk />
+      <SessionBar step={1} risk action={{ label: 'End & review', onClick: endReflection, disabled: vs === 'saving' }} />
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
         <div className="room">
-          <ReflectionScene state={paused ? 'paused' : vs} onMode={(m) => setScene3d(m === '3d')} />
+          <ReflectionScene state={vs} onMode={(m) => setScene3d(m === '3d')} />
 
           {/* this-session forming memory */}
           <div className="room-panel" style={{ position: 'absolute', top: 18, left: 18, padding: '13px 15px', maxWidth: 224, zIndex: 4 }}>
@@ -249,7 +241,7 @@ export default function Room() {
                 <span style={{ fontWeight: 700 }}>{voice.partial || "I'm listening…"}</span>
               </div>}
 
-            {!scene3d && <Orb size={138} state={paused ? 'paused' : vs} mood="lav" />}
+            {!scene3d && <Orb size={138} state={vs} mood="lav" />}
 
             {(vs === 'speaking' || vs === 'listening') && !scene3d ? (
               <div className={'orb-eq ' + (vs === 'listening' ? 'rose' : 'peach')}>
@@ -285,28 +277,18 @@ export default function Room() {
 
             <div className="dock-bar">
               <div className="dock-col">
-                <button className={'ctrl-btn' + (paused ? ' on' : '')} onClick={togglePause} aria-label={paused ? 'Resume' : 'Pause'}>
-                  <Ic name={paused ? 'play' : 'pause'} size={22} />
-                </button>
-                <span className="ctrl-cap">{paused ? 'Resume' : 'Pause'}</span>
-              </div>
-
-              <div className="dock-div" />
-
-              <div className="dock-col">
-                <button className={'mic-btn' + (vs === 'listening' ? ' listening' : '') + (((vs === 'thinking' || vs === 'saving') || paused) ? ' busy' : '')}
-                  onClick={micTap} disabled={(vs === 'thinking' || vs === 'saving') || paused} aria-label="Talk to Echo">
+                <button className={'mic-btn' + (vs === 'listening' ? ' listening' : '') + ((vs === 'thinking' || vs === 'saving') ? ' busy' : '')}
+                  onClick={micTap} disabled={vs === 'thinking' || vs === 'saving'} aria-label="Talk to Echo">
                   <span className="mic-ring" /><span className="mic-ring r2" />
                   {vs === 'listening'
                     ? <span className="wave" style={{ height: 30 }}><i /><i /><i /><i /><i /></span>
                     : <Ic name="mic" size={34} stroke="var(--ink)" />}
                 </button>
                 <span className="mic-cap">
-                  {paused ? 'Paused'
-                    : vs === 'idle' ? (voice.supported ? 'Tap to talk' : 'Tap to type')
-                      : vs === 'listening' ? 'Listening…'
-                        : vs === 'thinking' ? '…'
-                          : vs === 'speaking' ? 'Echo speaking' : '…'}
+                  {vs === 'idle' ? (voice.supported ? 'Tap to talk' : 'Tap to type')
+                    : vs === 'listening' ? 'Listening…'
+                      : vs === 'thinking' ? '…'
+                        : vs === 'speaking' ? 'Echo speaking' : '…'}
                 </span>
               </div>
 
@@ -319,12 +301,6 @@ export default function Room() {
                 <span className="ctrl-cap">Type</span>
               </div>
 
-              <div className="dock-col">
-                <button className="ctrl-btn" onClick={endReflection} aria-label="End reflection" disabled={vs === 'saving'}>
-                  <Ic name="stop" size={20} />
-                </button>
-                <span className="ctrl-cap">End</span>
-              </div>
             </div>
           </div>
         </div>

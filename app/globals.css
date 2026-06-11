@@ -333,6 +333,20 @@ h3.display{font-size:clamp(22px,2.3vw,30px);margin:0;}
 .session-bar .session-brand{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:800;
   font-size:21px;letter-spacing:-.01em;flex:0 0 auto;}
 .session-bar .progress-strip{flex:1;padding:0;background:none;border:none;z-index:auto;}
+.session-action{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;font-family:var(--display);font-weight:800;
+  font-size:14px;color:var(--ink);border:2.8px solid var(--ink);border-radius:99px;padding:8px 16px 8px 12px;
+  background:var(--sage);box-shadow:2px 3px 0 var(--ink);cursor:pointer;
+  transition:transform .12s ease,box-shadow .12s ease;}
+.session-action:hover{transform:translateY(-2px);box-shadow:3px 5px 0 var(--ink);}
+.session-action:active{transform:translateY(1px);box-shadow:1px 2px 0 var(--ink);}
+.session-action[disabled]{opacity:.45;pointer-events:none;}
+@media (max-width:620px){.session-action span{display:none;}}
+
+.loadbar{height:12px;border-radius:9px;border:2.5px solid var(--ink);overflow:hidden;background:var(--paper);position:relative;}
+.loadbar i{position:absolute;top:0;bottom:0;width:38%;border-radius:9px;background:var(--sage-deep);
+  animation:loadslide 1.3s ease-in-out infinite;}
+@keyframes loadslide{0%{left:-40%;}100%{left:105%;}}
+
 .session-exit{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;font-family:var(--display);font-weight:800;
   font-size:14px;color:var(--ink);border:2.8px solid var(--ink);border-radius:99px;padding:8px 16px 8px 12px;
   background:var(--cream-2);box-shadow:2px 3px 0 var(--ink);cursor:pointer;
@@ -862,3 +876,5 @@ input,textarea{font-family:var(--body);}
   .mode-card{padding:20px;}
   .exit-card{padding:24px 20px;}
 }
+
+@keyframes drawline{to{stroke-dashoffset:0;}}

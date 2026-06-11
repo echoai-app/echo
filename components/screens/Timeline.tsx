@@ -116,6 +116,23 @@ function InsightAgentCard() {
   );
 }
 
+/* count-up: numbers feel earned, not pasted */
+function useCountUp(n: number, ms = 900): number {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / ms);
+      setV(Math.round(n * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [n, ms]);
+  return v;
+}
+
 function relTime(iso: string): string {
   const d = (Date.now() - new Date(iso).getTime()) / 86_400_000;
   if (d < 0.02) return 'Just now';
@@ -135,7 +152,8 @@ function TrendChart({ data, labels }: { data: number[]; labels: string[] }) {
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', marginTop: 12 }}>
       {[0, 1, 2].map(g => <line key={g} x1={pad} x2={w - pad} y1={pad + g * (h - pad * 2) / 2} y2={pad + g * (h - pad * 2) / 2} stroke="var(--cream-3)" strokeWidth="2" strokeDasharray="4 5" />)}
-      <polyline points={pts} fill="none" stroke="var(--sage-deep)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={pts} fill="none" stroke="var(--sage-deep)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
+        pathLength={1} style={{ strokeDasharray: 1, strokeDashoffset: 1, animation: 'drawline 1.1s .25s cubic-bezier(.4,0,.2,1) forwards' }} />
       {xs.map((x, i) => <circle key={i} cx={x} cy={ys[i]} r="7" fill="var(--paper)" stroke="var(--ink)" strokeWidth="3" />)}
       {xs.map((x, i) => <text key={'v' + i} x={x} y={ys[i] - 14} textAnchor="middle" fontFamily="var(--display)" fontWeight="800" fontSize="15" fill="var(--ink)">{data[i]}</text>)}
       {xs.map((x, i) => <text key={'l' + i} x={x} y={h - 4} textAnchor="middle" fontFamily="var(--body)" fontWeight="700" fontSize="12" fill="var(--ink-soft)">{labels[i] ?? ''}</text>)}
@@ -154,11 +172,12 @@ function patternsFrom(j: Journey): string[] {
 }
 
 function JStat({ n, label, ic, bg }: { n: number; label: string; ic: string; bg: string }) {
+  const shown = useCountUp(n);
   return (
     <div className="card" style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 14 }}>
       <div className="mem-ic deco" style={{ width: 50, height: 50, flex: '0 0 50px', background: bg }}><Ic name={ic} size={26} /></div>
       <div>
-        <div className="display" style={{ fontSize: 28, lineHeight: 1 }}>{n}</div>
+        <div className="display" style={{ fontSize: 28, lineHeight: 1 }}>{shown}</div>
         <div className="muted" style={{ fontWeight: 700, fontSize: 12.5 }}>{label}</div>
       </div>
     </div>

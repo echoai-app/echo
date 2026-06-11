@@ -624,31 +624,52 @@ function SipMug({ x, z, color, flip = false }: { x: number; z: number; color: st
   );
 }
 
-/* ---------------- a sleeping doodle cat — poke it gently ---------------- */
+/* ---------------- a sleeping cat that actually looks like a cat ------------ */
 function Cat() {
   const { gl } = useThree();
   const body = useRef<THREE.Group>(null);
-  const headM = useRef<THREE.Mesh>(null);
+  const headG = useRef<THREE.Group>(null);
+  const earL = useRef<THREE.Mesh>(null);
+  const earR = useRef<THREE.Mesh>(null);
+  const eyesOpen = useRef<THREE.Group>(null);
+  const eyesShut = useRef<THREE.Group>(null);
   const tail = useRef<THREE.Mesh>(null);
   const hearts = useRef<(THREE.Mesh | null)[]>([]);
   const wakeT = useRef(-10);
   const want = useRef(false);
+
   useFrame((st) => {
     const t = st.clock.elapsedTime;
     if (want.current) { if (t - wakeT.current > 2.4) wakeT.current = t; want.current = false; }
     const e = t - wakeT.current;
     const awake = e > 0 && e < 2.2 ? Math.sin(Math.min(1, e / 0.4) * Math.PI * 0.5) * (e > 1.7 ? (2.2 - e) / 0.5 : 1) : 0;
-    if (body.current) body.current.scale.y = 1 + Math.sin(t * 1.1) * 0.045;
-    if (headM.current) headM.current.position.y = 0.13 + awake * 0.06;
-    if (tail.current) tail.current.rotation.z = 0.2 + Math.sin(t * (0.7 + awake * 7)) * (0.12 + awake * 0.25);
+    // slow belly breathing
+    if (body.current) body.current.scale.y = 1 + Math.sin(t * 1.05) * 0.04;
+    // head lifts + turns toward you when poked
+    if (headG.current) {
+      headG.current.position.y = 0.16 + awake * 0.09;
+      headG.current.rotation.z = awake * 0.25;
+      headG.current.rotation.y = awake * 0.5;
+    }
+    // ears twitch — tiny idle flicks, big perk when awake
+    const flick = (t % 7) > 6.82 ? 0.25 : 0;
+    if (earL.current) earL.current.rotation.z = 0.22 + awake * 0.12 + flick;
+    if (earR.current) earR.current.rotation.z = -0.18 - awake * 0.12;
+    // eyes: shut arcs asleep, round eyes when poked awake
+    if (eyesOpen.current) eyesOpen.current.scale.setScalar(Math.max(0.0001, awake));
+    if (eyesShut.current) eyesShut.current.scale.setScalar(Math.max(0.0001, 1 - awake));
+    // tail: slow sweep asleep, happy wag awake
+    if (tail.current) tail.current.rotation.z = 0.15 + Math.sin(t * (0.6 + awake * 8)) * (0.1 + awake * 0.3);
     hearts.current.forEach((m, i) => {
       if (!m) return;
       const hp = awake > 0 ? Math.min(1, Math.max(0, (e - 0.25 - i * 0.18) / 1.3)) : 1;
-      m.position.y = 0.3 + hp * 0.35;
-      m.position.x = 0.1 + i * 0.07 + Math.sin(hp * 5 + i) * 0.03;
+      m.position.y = 0.34 + hp * 0.36;
+      m.position.x = 0.12 + i * 0.07 + Math.sin(hp * 5 + i) * 0.03;
       (m.material as THREE.MeshBasicMaterial).opacity = awake > 0 ? Math.max(0, 0.9 * (1 - hp)) : 0;
     });
   });
+
+  const FUR = '#F0B380', FUR_DARK = '#D8935C', CREAM = '#FBE9D2';
   return (
     <group position={[1.05, 0, -0.25]} rotation={[0, -0.7, 0]}
       onClick={(e) => { e.stopPropagation(); want.current = true; }}
@@ -656,45 +677,172 @@ function Cat() {
       onPointerOut={() => { gl.domElement.style.cursor = 'grab'; }}>
       <group ref={body}>
         {/* curled body */}
-        <mesh position={[0, 0.12, 0]} scale={[1, 0.62, 0.85]} castShadow>
-          <sphereGeometry args={[0.19, 20, 16]} />
-          <Toon color="#F6D9C0" />
+        <mesh position={[0, 0.13, 0]} scale={[1.25, 0.68, 0.95]} castShadow>
+          <sphereGeometry args={[0.17, 22, 16]} />
+          <Toon color={FUR} />
           <Outlines thickness={0.016} color={INK} />
         </mesh>
-        {/* head tucked in (lifts when poked) */}
-        <mesh ref={headM} position={[0.14, 0.13, 0.1]}>
-          <sphereGeometry args={[0.1, 16, 12]} />
-          <Toon color="#F6D9C0" />
-          <Outlines thickness={0.013} color={INK} />
+        {/* tabby stripes along the back */}
+        {[-0.07, 0.01, 0.09].map((sx, i) => (
+          <mesh key={i} position={[sx, 0.225, 0]} rotation={[0, 0, 0.15 - i * 0.15]} scale={[0.35, 0.1, 1.05]}>
+            <sphereGeometry args={[0.12, 10, 8]} />
+            <Toon color={FUR_DARK} />
+          </mesh>
+        ))}
+        {/* head — muzzle, nose, whiskers, ears */}
+        <group ref={headG} position={[0.17, 0.16, 0.1]}>
+          <mesh castShadow>
+            <sphereGeometry args={[0.105, 18, 14]} />
+            <Toon color={FUR} />
+            <Outlines thickness={0.013} color={INK} />
+          </mesh>
+          {/* muzzle */}
+          <mesh position={[0.045, -0.035, 0.06]} scale={[1.15, 0.8, 1]}>
+            <sphereGeometry args={[0.052, 14, 10]} />
+            <Toon color={CREAM} />
+          </mesh>
+          {/* pink nose */}
+          <mesh position={[0.085, -0.012, 0.083]} rotation={[0, 0.6, Math.PI]}>
+            <coneGeometry args={[0.016, 0.018, 4]} />
+            <meshBasicMaterial color="#E58B9B" />
+          </mesh>
+          {/* whiskers */}
+          {[-0.06, 0, 0.05].map((wy, i) => (
+            <group key={i}>
+              <mesh position={[0.1, -0.03 + wy * 0.3, 0.115]} rotation={[0, 0.45, 0.12 + wy]}>
+                <cylinderGeometry args={[0.0022, 0.0022, 0.11, 4]} />
+                <meshBasicMaterial color="#FFFDF8" />
+              </mesh>
+            </group>
+          ))}
+          {/* ears with inner */}
+          <mesh ref={earL} position={[-0.035, 0.1, 0.035]} rotation={[0, 0, 0.22]}>
+            <coneGeometry args={[0.038, 0.075, 4]} />
+            <Toon color={FUR_DARK} />
+            <Outlines thickness={0.008} color={INK} />
+          </mesh>
+          <mesh ref={earR} position={[0.055, 0.095, -0.01]} rotation={[0, 0, -0.18]}>
+            <coneGeometry args={[0.038, 0.075, 4]} />
+            <Toon color={FUR_DARK} />
+            <Outlines thickness={0.008} color={INK} />
+          </mesh>
+          {/* sleeping eyes (gentle shut arcs) */}
+          <group ref={eyesShut}>
+            <mesh position={[0.045, 0.012, 0.092]} rotation={[0.25, 0.55, Math.PI]}>
+              <torusGeometry args={[0.018, 0.0045, 6, 10, Math.PI]} />
+              <meshBasicMaterial color={INK} />
+            </mesh>
+            <mesh position={[0.1, 0.012, 0.038]} rotation={[0.25, 1.1, Math.PI]}>
+              <torusGeometry args={[0.018, 0.0045, 6, 10, Math.PI]} />
+              <meshBasicMaterial color={INK} />
+            </mesh>
+          </group>
+          {/* awake eyes (round, sweet) */}
+          <group ref={eyesOpen} scale={0.0001}>
+            <mesh position={[0.045, 0.015, 0.094]}>
+              <sphereGeometry args={[0.014, 8, 6]} />
+              <meshBasicMaterial color={INK} />
+            </mesh>
+            <mesh position={[0.1, 0.015, 0.04]}>
+              <sphereGeometry args={[0.014, 8, 6]} />
+              <meshBasicMaterial color={INK} />
+            </mesh>
+          </group>
+        </group>
+        {/* front paws tucked under the chin */}
+        <mesh position={[0.16, 0.045, 0.16]} scale={[1.4, 0.7, 1]}>
+          <sphereGeometry args={[0.035, 10, 8]} />
+          <Toon color={CREAM} />
+          <Outlines thickness={0.007} color={INK} />
+        </mesh>
+        <mesh position={[0.21, 0.045, 0.1]} scale={[1.4, 0.7, 1]}>
+          <sphereGeometry args={[0.035, 10, 8]} />
+          <Toon color={CREAM} />
+          <Outlines thickness={0.007} color={INK} />
+        </mesh>
+        {/* striped tail wrapped around the body */}
+        <mesh ref={tail} position={[-0.14, 0.07, 0.08]} rotation={[Math.PI / 2, 0, 0.15]}>
+          <torusGeometry args={[0.15, 0.034, 8, 16, Math.PI * 1.25]} />
+          <Toon color={FUR_DARK} />
+          <Outlines thickness={0.01} color={INK} />
         </mesh>
         {/* happy hearts when poked */}
         {[0, 1, 2].map(i => (
-          <mesh key={'h' + i} ref={(el) => { hearts.current[i] = el; }} position={[0.1, 0.3, 0.1]}>
+          <mesh key={'h' + i} ref={(el) => { hearts.current[i] = el; }} position={[0.1, 0.34, 0.1]}>
             <sphereGeometry args={[0.022, 8, 6]} />
             <meshBasicMaterial color="#EB8197" transparent opacity={0} depthWrite={false} />
           </mesh>
         ))}
-        {/* ears */}
-        <mesh position={[0.16, 0.23, 0.07]} rotation={[0, 0, 0.2]}>
-          <coneGeometry args={[0.032, 0.06, 6]} />
-          <Toon color="#EDBE9C" />
+      </group>
+    </group>
+  );
+}
+
+/* ---------------- swaying plant ---------------- */
+function Plant() {
+  const leaves = useRef<THREE.Group>(null);
+  useFrame((st) => {
+    const t = st.clock.elapsedTime;
+    if (leaves.current) leaves.current.rotation.z = Math.sin(t * 0.85) * 0.045;
+  });
+  return (
+    <group position={[-2.3, 0, -1.4]}>
+      <mesh position={[0, 0.16, 0]} castShadow>
+        <cylinderGeometry args={[0.17, 0.13, 0.32, 16]} />
+        <Toon color="#ED9C74" />
+        <Outlines thickness={0.02} color={INK} />
+      </mesh>
+      <group ref={leaves} position={[0, 0.32, 0]}>
+        <mesh position={[0, 0.3, 0]} rotation={[0, 0, 0.12]} castShadow>
+          <coneGeometry args={[0.2, 0.75, 10]} />
+          <Toon color="#7FC295" />
+          <Outlines thickness={0.02} color={INK} />
         </mesh>
-        <mesh position={[0.2, 0.22, 0.13]} rotation={[0, 0, -0.15]}>
-          <coneGeometry args={[0.032, 0.06, 6]} />
-          <Toon color="#EDBE9C" />
+        <mesh position={[-0.18, 0.18, 0.05]} rotation={[0, 0, 0.5]}>
+          <coneGeometry args={[0.14, 0.5, 8]} />
+          <Toon color="#AEDAB9" />
+          <Outlines thickness={0.015} color={INK} />
         </mesh>
-        {/* sleeping eyes — two tiny content arcs */}
-        <mesh position={[0.21, 0.14, 0.14]} rotation={[0.3, 0.6, Math.PI]}>
-          <torusGeometry args={[0.018, 0.005, 6, 10, Math.PI]} />
-          <meshBasicMaterial color={INK} />
-        </mesh>
-        {/* tail wrapped around */}
-        <mesh ref={tail} position={[-0.13, 0.07, 0.06]} rotation={[Math.PI / 2, 0, 0.2]}>
-          <torusGeometry args={[0.13, 0.032, 8, 14, Math.PI * 1.2]} />
-          <Toon color="#EDBE9C" />
-          <Outlines thickness={0.01} color={INK} />
+        <mesh position={[0.18, 0.16, -0.04]} rotation={[0, 0, -0.5]}>
+          <coneGeometry args={[0.14, 0.46, 8]} />
+          <Toon color="#AEDAB9" />
+          <Outlines thickness={0.015} color={INK} />
         </mesh>
       </group>
+    </group>
+  );
+}
+
+/* ---------------- a little bird crossing the sunset, now and then ----------- */
+function Bird() {
+  const g = useRef<THREE.Group>(null);
+  const wL = useRef<THREE.Mesh>(null);
+  const wR = useRef<THREE.Mesh>(null);
+  useFrame((st) => {
+    const t = st.clock.elapsedTime;
+    const phase = (t % 16) / 3.2; // crosses for ~3.2s every 16s
+    if (!g.current) return;
+    if (phase < 1) {
+      g.current.visible = true;
+      g.current.position.x = -0.55 + phase * 1.1;
+      g.current.position.y = 0.28 + Math.sin(phase * Math.PI * 2) * 0.05;
+      const flap = Math.sin(t * 16) * 0.6;
+      if (wL.current) wL.current.rotation.z = 0.5 + flap;
+      if (wR.current) wR.current.rotation.z = -0.5 - flap;
+    } else {
+      g.current.visible = false;
+    }
+  });
+  return (
+    <group ref={g} position={[0, 0.28, 0.062]} scale={0.55}>
+      <mesh ref={wL} position={[-0.025, 0, 0]}>
+        <boxGeometry args={[0.05, 0.012, 0.004]} />
+        <meshBasicMaterial color="#6B5440" />
+      </mesh>
+      <mesh ref={wR} position={[0.025, 0, 0]}>
+        <boxGeometry args={[0.05, 0.012, 0.004]} />
+        <meshBasicMaterial color="#6B5440" />
+      </mesh>
     </group>
   );
 }
@@ -931,6 +1079,7 @@ function RoomScene({ state }: { state: OrbState }) {
           <meshBasicMaterial color="#F5CE74" toneMapped={false} />
         </mesh>
         <Clouds />
+        <Bird />
         <mesh position={[0, 0, 0.055]}><boxGeometry args={[0.045, 1.4, 0.012]} /><meshBasicMaterial color={INK} /></mesh>
         <mesh position={[0, 0.02, 0.055]}><boxGeometry args={[1.24, 0.045, 0.012]} /><meshBasicMaterial color={INK} /></mesh>
         <mesh position={[0, -0.9, 0.08]}><boxGeometry args={[1.62, 0.09, 0.16]} /><Toon color="#E3C397" /><Outlines thickness={0.015} color={INK} /></mesh>
@@ -1082,29 +1231,8 @@ function RoomScene({ state }: { state: OrbState }) {
       {/* warm floor lamp (right) — click to switch it on/off */}
       <Lamp />
 
-      {/* leafy plant (left) */}
-      <group position={[-2.3, 0, -1.4]}>
-        <mesh position={[0, 0.16, 0]} castShadow>
-          <cylinderGeometry args={[0.17, 0.13, 0.32, 16]} />
-          <Toon color="#ED9C74" />
-          <Outlines thickness={0.02} color={INK} />
-        </mesh>
-        <mesh position={[0, 0.62, 0]} rotation={[0, 0, 0.12]} castShadow>
-          <coneGeometry args={[0.2, 0.75, 10]} />
-          <Toon color="#7FC295" />
-          <Outlines thickness={0.02} color={INK} />
-        </mesh>
-        <mesh position={[-0.18, 0.5, 0.05]} rotation={[0, 0, 0.5]}>
-          <coneGeometry args={[0.14, 0.5, 8]} />
-          <Toon color="#AEDAB9" />
-          <Outlines thickness={0.015} color={INK} />
-        </mesh>
-        <mesh position={[0.18, 0.48, -0.04]} rotation={[0, 0, -0.5]}>
-          <coneGeometry args={[0.14, 0.46, 8]} />
-          <Toon color="#AEDAB9" />
-          <Outlines thickness={0.015} color={INK} />
-        </mesh>
-      </group>
+      {/* leafy plant (left) — leaves sway gently */}
+      <Plant />
 
       {/* pendant light above the table */}
       <group position={[0, 0, -0.2]}>

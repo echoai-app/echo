@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { AppBar } from '../chrome';
 import { Doodles, Chip, Ic } from '../ui';
 import { useEcho, displayName } from '@/lib/store';
+import { useIdentity } from '../identity';
 import { MODES, type EchoMode } from '@/lib/echo/modes';
 
 type CSS = React.CSSProperties;
@@ -17,10 +18,25 @@ function greetCtx() {
 }
 
 export default function Modes() {
-  const { go, name, startSession, lastTheme, journey } = useEcho();
+  const { go, name, startSession, lastTheme, journey, setJourney } = useEcho();
+  const id = useIdentity();
   const t = greetCtx();
   // returning users often go straight into a session — pre-warm the 3D room
   useEffect(() => { import('@/components/reflection/ImmersiveRoom3D'); }, []);
+  // keep the greeting count honest — refetch whenever the journey was invalidated
+  useEffect(() => {
+    if (!id.ready || !id.userId || journey) return;
+    let c = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/journey?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}`);
+        const d = await r.json();
+        if (!c) setJourney(d);
+      } catch { /* greeting still works */ }
+    })();
+    return () => { c = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id.ready, id.userId, journey]);
   const pick = (m: EchoMode) => { startSession({ mode: m.id, modeTitle: m.title }); go('setup'); };
   const reflections = journey?.sessions.length ?? 0;
 

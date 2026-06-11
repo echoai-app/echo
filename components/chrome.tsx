@@ -55,7 +55,10 @@ function ExitConfirm({ onStay, onLeave }: { onStay: () => void; onLeave: () => v
   );
 }
 
-export function SessionBar({ step = 0, risk = false }: { step?: number; risk?: boolean }) {
+export function SessionBar({ step = 0, risk = false, action }: {
+  step?: number; risk?: boolean;
+  action?: { label: string; onClick: () => void; disabled?: boolean };
+}) {
   const { resetTo, resetSession } = useEcho();
   const [confirm, setConfirm] = useState(false);
   const leave = () => { resetSession(); resetTo('modes'); };
@@ -64,6 +67,11 @@ export function SessionBar({ step = 0, risk = false }: { step?: number; risk?: b
       <div className="session-bar">
         <div className="session-brand" title="Echo"><EchoLogo size={30} /><span>ech<span style={{ color: 'var(--peach-deep)' }}>o</span></span></div>
         <SessionProgress step={step} />
+        {action && (
+          <button className="session-action" onClick={action.onClick} disabled={action.disabled}>
+            <Ic name="check" size={15} sw={3} /><span>{action.label}</span>
+          </button>
+        )}
         <button className="session-exit" onClick={() => (risk ? setConfirm(true) : leave())} title="Leave to home" aria-label="Leave to home">
           <Ic name="x" size={16} sw={2.9} /><span>Exit</span>
         </button>
@@ -95,9 +103,9 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
   const { mutate: disconnect } = useDisconnectWallet();
   const navTo = (s: ScreenId) => () => { onClose(); go(s); };
 
-  // Load real stats when the menu opens (if we haven't already).
+  // Load fresh stats every time the menu opens — counts must never be stale.
   useEffect(() => {
-    if (journey || !id.ready || !id.userId) return;
+    if (!id.ready || !id.userId) return;
     let cancelled = false;
     (async () => {
       try {

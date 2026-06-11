@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { SessionBar } from '../chrome';
 import { Doodles, Eyebrow, Btn, Chip, Ic, Orb } from '../ui';
@@ -12,26 +12,36 @@ import type { ReflectionArtifact, WalrusProof } from '@/types';
 
 interface Item extends ReflectionArtifact { keep: boolean }
 
+const WALRUS_STEPS = [
+  'encoding your reflection…',
+  'erasure-coding across Walrus storage nodes…',
+  'certifying availability on testnet…',
+  'updating your memory index…',
+];
+
 function SavingBar({ phase }: { phase: 'walrus' | 'sui' }) {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    if (phase !== 'walrus') return;
+    const t = setInterval(() => setStep(s => (s + 1) % WALRUS_STEPS.length), 2600);
+    return () => clearInterval(t);
+  }, [phase]);
   const msg = phase === 'sui'
     ? 'Registering your memory pointer on Sui — approve in your wallet…'
-    : 'Encoding reflection · erasure-coding across Walrus nodes…';
+    : WALRUS_STEPS[step];
   return (
     <div className="card" style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 16, background: phase === 'sui' ? 'var(--sky)' : 'var(--mint)' }}>
       <Orb size={40} state="saving" />
       <div style={{ flex: 1 }}>
         <div className="display" style={{ fontSize: 16 }}>{msg}</div>
-        <div style={{ height: 12, borderRadius: 9, border: '2.5px solid var(--ink)', marginTop: 8, overflow: 'hidden', background: 'var(--paper)' }}>
-          <div style={{ height: '100%', background: 'var(--sage-deep)', width: '92%', animation: 'savefill 1.6s ease forwards' }} />
-        </div>
+        <div className="loadbar" style={{ marginTop: 8 }}><i /></div>
       </div>
-      <style>{'@keyframes savefill{from{width:6%}to{width:100%}}'}</style>
     </div>
   );
 }
 
 export default function MemoryReview() {
-  const { go, session, proposed, setSaved } = useEcho();
+  const { go, session, proposed, setSaved, setJourney } = useEcho();
   const id = useIdentity();
   const account = useCurrentAccount();
   const client = useSuiClient();
@@ -98,7 +108,9 @@ export default function MemoryReview() {
     } catch {
       setSaved([], null);
     }
-    setTimeout(() => go('debrief'), 600);
+    setJourney(null);   // stats changed — force Home/profile/journey to refetch
+    go('debrief');      // no artificial delay: the moment it's done, move
+
   };
 
   const empty = items.length === 0;

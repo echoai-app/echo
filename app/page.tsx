@@ -34,26 +34,58 @@ const SCREENS: Record<ScreenId, React.ComponentType> = {
   help: Help,
 };
 
+// Friendly URLs ↔ screens: a reload keeps you where you were (stable pages
+// restore exactly; mid-session pages fall back to /home — we never resume a
+// half-finished conversation with no transcript).
+const SCREEN_PATH: Partial<Record<ScreenId, string>> = {
+  modes: '/home', profile: '/profile', account: '/account', privacy: '/privacy',
+  help: '/help', timeline: '/journey', recall: '/recall',
+  setup: '/session', room: '/session', memory: '/session', debrief: '/session',
+};
+const PATH_SCREEN: Record<string, ScreenId> = {
+  '/home': 'modes', '/profile': 'profile', '/account': 'account', '/privacy': 'privacy',
+  '/help': 'help', '/journey': 'timeline', '/recall': 'recall', '/session': 'modes',
+};
+
 export default function EchoApp() {
   const { screen, prefs } = useEcho();
   const [booted, setBooted] = useState(false);
 
   // On first load, a returning user skips the welcome/onboarding intro and lands
-  // straight in the app. "Returning" = completed onboarding (flag) OR has a saved
-  // name (covers users from before the flag existed). We must read the store via
-  // getState() AFTER localStorage rehydration finishes — the first-render closure
-  // still holds the pre-hydration defaults (onboarded=false), which is exactly why
-  // reloads used to dump returning users back through the whole intro. SSR + first
-  // client render show the splash, so there's no flash and no hydration mismatch.
+  // straight in the app — on the screen their URL names. We must read the store
+  // via getState() AFTER localStorage rehydration finishes — the first-render
+  // closure still holds the pre-hydration defaults (onboarded=false), which is
+  // exactly why reloads used to dump returning users back through the intro.
   useEffect(() => {
     const decide = () => {
       const st = useEcho.getState();
       const returning = st.onboarded || st.name.trim() !== '';
-      if (returning && st.screen === 'welcome') st.resetTo('modes');
+      if (returning && st.screen === 'welcome') {
+        st.resetTo(PATH_SCREEN[window.location.pathname] ?? 'modes');
+      }
       setBooted(true);
     };
     if (useEcho.persist.hasHydrated()) decide();
     else return useEcho.persist.onFinishHydration(decide);
+  }, []);
+
+  // Keep the address bar in sync with the active screen…
+  useEffect(() => {
+    if (!booted) return;
+    const path = SCREEN_PATH[screen] ?? '/';
+    if (window.location.pathname !== path) window.history.pushState({ echo: screen }, '', path);
+  }, [screen, booted]);
+
+  // …and make the browser back/forward buttons navigate screens.
+  useEffect(() => {
+    const onPop = () => {
+      const st = useEcho.getState();
+      if (!(st.onboarded || st.name.trim() !== '')) return;
+      const scr = PATH_SCREEN[window.location.pathname];
+      if (scr && scr !== st.screen) st.resetTo(scr);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   const Active = SCREENS[screen] ?? Welcome;
