@@ -42,6 +42,8 @@ export default function Room() {
   const [scene3d, setScene3d] = useState(false);
   const [showText, setShowText] = useState(false);
   const [text, setText] = useState('');
+  // one-time mic explainer so the permission prompt never startles anyone
+  const [micHint, setMicHint] = useState(() => typeof window !== 'undefined' && !localStorage.getItem('echo-mic-hint'));
   // open by default only where it fits beside the room (phones: toggle it in)
   const [showTr, setShowTr] = useState(() => typeof window !== 'undefined' && window.innerWidth > 820);
   const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.innerWidth > 820);
@@ -99,6 +101,16 @@ export default function Room() {
   }, []);
 
   useEffect(() => { if (trRef.current) trRef.current.scrollTop = trRef.current.scrollHeight; }, [transcript, vs, showTr]);
+
+  // First successful listen → the hint has done its job, forever.
+  useEffect(() => {
+    if (voice.listening && micHint) {
+      try { localStorage.setItem('echo-mic-hint', '1'); } catch { /* private mode */ }
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to the external mic lifecycle
+      setMicHint(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.listening]);
 
   // If a voice listen ends with no result, settle back to idle.
   useEffect(() => {
@@ -275,6 +287,11 @@ export default function Room() {
                 </div>
               </div>}
 
+            {micHint && voice.supported && (
+              <div className="mic-hint">
+                <Ic name="ear" size={14} /> Echo listens after it speaks — allow the mic once, then just talk.
+              </div>
+            )}
             <div className="dock-bar">
               <div className="dock-col">
                 <button className={'mic-btn' + (vs === 'listening' ? ' listening' : '') + ((vs === 'thinking' || vs === 'saving') ? ' busy' : '')}

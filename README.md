@@ -12,6 +12,7 @@
 &nbsp;
 [![GitHub](https://img.shields.io/badge/GitHub-i--anasop%2Fecho-181717?style=for-the-badge&logo=github)](https://github.com/i-anasop/echo)
 
+[![CI](https://github.com/i-anasop/echo/actions/workflows/ci.yml/badge.svg)](https://github.com/i-anasop/echo/actions/workflows/ci.yml)
 [![Sui Overflow 2026](https://img.shields.io/badge/Sui_Overflow-2026-6fbcf0?logo=sui)](https://sui.io)
 [![Track](https://img.shields.io/badge/Track-Walrus-00c2ff)](https://walrus.xyz)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
@@ -32,15 +33,15 @@
 > | **Walrus** | Every approved memory artifact + the memory index + agent-generated reports live as verifiable blobs |
 > | **Sui** | A wallet-owned `MemoryRegistry` pointer to the **latest** Walrus index blob — updated only by wallet-signed txs |
 > | **Multi-agent** | The **Insight agent** reads the same Walrus memory Echo writes and stores its report back as a durable artifact |
-> | **Tooling** | The **[Memory Inspector](https://echoai-app.vercel.app/inspect)** — inspect any wallet's agent memory, fully client-side (Sui RPC + Walrus aggregator, no backend) |
+> | **Tooling** | The **[Memory Inspector](https://echoai-app.vercel.app/inspect?address=0x6cb2c7e04bebba1dc343b40bba8bd8c98d22d57db1c13cb4751fd9eb144540ba)** — one click inspects a real demo wallet's memory, fully client-side (Sui RPC + Walrus aggregator, no backend) |
 > | **Proof** | Each save returns Walrus blob IDs (Walruscan), the Sui tx digest, and the pointer object ID — [or verify by curl](#verify-it-with-curl--no-echo-backend-involved) |
 > | **Honest scope** | A reflection & journaling aid — **not** therapy, diagnosis, or a crisis service |
 
 ---
 
 <div align="center">
-<img src="docs/room.png" width="860" alt="Echo's 3D reflection room — a first-person seated space with a doodle companion across the table" />
-<br/><em>The reflection room: a real-3D, first-person seated space — drag to look around. (More <a href="#screenshots">screenshots</a> below.)</em>
+<img src="docs/room.gif" width="860" alt="Echo's 3D reflection room — a living, first-person space: the companion talks, the fire flickers, a cat sleeps on the rug" />
+<br/><em>The reflection room, alive: hands-free voice, a talking companion, a flickering hearth — drag to look around, tap the room to play. (More <a href="#screenshots">screenshots</a> below.)</em>
 </div>
 
 ---
@@ -389,7 +390,14 @@ Use **Chrome or Edge** for real voice. The app runs in **guest mode** with just 
 
 ---
 
-## 16. Submission summary
+## 16. Sustainability — built to last
+
+- **Storage economics:** a user's memory footprint is tiny — distilled artifacts of a few hundred bytes each. On Walrus that is **fractions of a cent per user per epoch**, paid in WAL; durable memory is economically boring in the best way.
+- **Model:** the reflective core stays free. Premium tiers carry the costs they create — longer memory horizons, the encrypted tier (Seal), and richer Insight-agent reports. The deeper play is **Mnemos as an SDK**: any agent developer who wants verifiable, user-owned memory on Walrus + Sui is a customer.
+- **Mainnet:** the Move package publish is a one-command step planned post-submission; Walrus mainnet storage follows with the WAL budget.
+- **Engineering:** CI runs typecheck, lint and build on every push; the Move contract ships with unit tests (`sui move test`, 2/2 passing).
+
+## 17. Submission summary
 
 Echo demonstrates how **Walrus** can give AI agents **durable, verifiable memory**, while **Sui** gives users **ownership and recoverability** through a wallet-signed pointer. The reflection experience is genuine and consent-first, but the deeper contribution is architectural: it turns memory from a hidden backend feature into a **portable, verifiable, user-owned layer**. Approved memories live as Walrus blobs; a user-owned Sui `MemoryPointer` always points to the latest index; and anyone can verify the whole chain from the proof card. That is exactly what the **Walrus track** is about — and it generalizes, via **Mnemos**, far beyond Echo.
 
