@@ -48,7 +48,7 @@
 
 ## Table of contents
 
-1. [What is Echo](#1-what-is-echo) · 2. [Problem](#2-problem) · 3. [Solution](#3-solution) · 4. [Why Walrus](#4-why-walrus) · 5. [Why Sui](#5-why-sui) · 6. [Architecture](#6-architecture) · 7. [User flow](#7-user-flow) · 8. [Demo & verification](#8-demo--verification-guide) · 9. [Tech stack](#9-tech-stack) · 10. [Sui Move contract](#10-sui-move-contract--memoryregistry) · 11. [Local development](#11-local-development) · 12. [Environment variables](#12-environment-variables) · 13. [Safety](#13-safety--responsible-ai) · 14. [Limitations](#14-limitations) · 15. [Roadmap](#15-roadmap) · 16. [Submission summary](#16-submission-summary)
+1. [What is Echo](#1-what-is-echo) · 2. [Problem](#2-problem) · 3. [Solution](#3-solution) · 4. [Why Walrus](#4-why-walrus) · 5. [Why Sui](#5-why-sui) · 6. [Architecture](#6-architecture) · 7. [User flow](#7-user-flow) · 8. [Demo & verification](#8-demo--verification-guide) · 9. [Tech stack](#9-tech-stack) · 10. [Sui Move contract](#10-sui-move-contract--memoryregistry) · 11. [Local development](#11-local-development) · 12. [Environment variables](#12-environment-variables) · 13. [Safety](#13-safety--responsible-ai) · 14. [Limitations](#14-limitations) · 15. [Roadmap](#15-roadmap) · 16. [Sustainability](#16-sustainability--built-to-last) · 17. [Submission summary](#17-submission-summary)
 
 ---
 
