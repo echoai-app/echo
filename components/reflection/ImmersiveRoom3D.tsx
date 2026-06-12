@@ -263,11 +263,18 @@ function Companion3D({ state }: { state: OrbState }) {
               <Toon color="#CBBCEE" />
               <Outlines thickness={0.012} color={INK} />
             </mesh>
-            <mesh position={[-0.08, -0.46, 0.34]} scale={[1, 0.82, 1.15]}>
-              <sphereGeometry args={[0.082, 14, 10]} />
-              <Toon color={skin} />
-              <Outlines thickness={0.011} color={INK} />
-            </mesh>
+            <group position={[-0.08, -0.49, 0.36]} rotation={[0.45, 0.15, 0]}>
+              <mesh scale={[0.82, 0.55, 1.25]}>
+                <sphereGeometry args={[0.085, 14, 10]} />
+                <Toon color={skin} />
+                <Outlines thickness={0.011} color={INK} />
+              </mesh>
+              <mesh position={[0.06, 0.005, 0.025]} scale={[0.8, 0.7, 0.9]}>
+                <sphereGeometry args={[0.034, 10, 8]} />
+                <Toon color={skin} />
+                <Outlines thickness={0.007} color={INK} />
+              </mesh>
+            </group>
           </group>
           {/* right arm — same anatomy, pivots at the shoulder to wave hello */}
           <group ref={waveArm} position={[0.32, 1.16, 0.02]}>
@@ -281,11 +288,18 @@ function Companion3D({ state }: { state: OrbState }) {
               <Toon color="#CBBCEE" />
               <Outlines thickness={0.012} color={INK} />
             </mesh>
-            <mesh position={[0.08, -0.46, 0.34]} scale={[1, 0.82, 1.15]}>
-              <sphereGeometry args={[0.082, 14, 10]} />
-              <Toon color={skin} />
-              <Outlines thickness={0.011} color={INK} />
-            </mesh>
+            <group position={[0.08, -0.49, 0.36]} rotation={[0.45, -0.15, 0]}>
+              <mesh scale={[0.82, 0.55, 1.25]}>
+                <sphereGeometry args={[0.085, 14, 10]} />
+                <Toon color={skin} />
+                <Outlines thickness={0.011} color={INK} />
+              </mesh>
+              <mesh position={[-0.06, 0.005, 0.025]} scale={[0.8, 0.7, 0.9]}>
+                <sphereGeometry args={[0.034, 10, 8]} />
+                <Toon color={skin} />
+                <Outlines thickness={0.007} color={INK} />
+              </mesh>
+            </group>
           </group>
           {/* legs — dangling over the couch edge, swinging gently */}
           <group ref={legs} position={[0, 0.62, 0.22]}>
@@ -559,6 +573,25 @@ function Fireplace() {
         <Toon color="#D9B583" />
         <Outlines thickness={0.022} color={INK} />
       </RoundedBox>
+      {/* framed art above the mantel */}
+      <group position={[0, 2.15, -0.08]}>
+        <RoundedBox args={[0.86, 0.66, 0.05]} radius={0.02}>
+          <Toon color="#FFFDF8" />
+          <Outlines thickness={0.014} color={INK} />
+        </RoundedBox>
+        <mesh position={[0, 0, 0.028]}>
+          <planeGeometry args={[0.72, 0.52]} />
+          <meshBasicMaterial color="#F3C9A8" />
+        </mesh>
+        <mesh position={[0.12, 0.1, 0.032]}>
+          <circleGeometry args={[0.085, 18]} />
+          <meshBasicMaterial color="#ED9C74" />
+        </mesh>
+        <mesh position={[-0.1, -0.13, 0.032]} scale={[2, 0.6, 1]}>
+          <circleGeometry args={[0.11, 18]} />
+          <meshBasicMaterial color="#CBBCEE" />
+        </mesh>
+      </group>
       {/* the opening */}
       <mesh position={[0, 0.55, 0.18]}>
         <boxGeometry args={[1.0, 0.78, 0.24]} />
@@ -1085,10 +1118,9 @@ function StringLights() {
 
 /* ---------------- ambience: floating light motes + mug steam ---------------- */
 const MOTES = [
-  // three dance inside the window light shaft
-  [-1.78, 1.5, -2.7], [-1.68, 1.0, -2.45], [-1.82, 0.55, -2.25],
-  [0.3, 1.5, -2.0], [1.4, 2.1, -1.2],
-  [2.0, 1.1, -0.4], [-1.2, 0.9, 0.4], [0.9, 1.7, 0.6], [-0.2, 2.3, -1.0], [1.7, 1.5, -2.6],
+  // a few dance in the window light shaft, a couple drift in the room
+  [-1.78, 1.5, -2.7], [-1.7, 0.9, -2.4],
+  [0.5, 1.8, -1.8], [1.6, 1.3, -0.8], [-0.6, 2.1, -0.6],
 ] as const;
 
 function Motes() {
@@ -1106,7 +1138,7 @@ function Motes() {
       {MOTES.map((p, i) => (
         <mesh key={i} ref={(el) => { refs.current[i] = el; }} position={[p[0], p[1], p[2]]}>
           <sphereGeometry args={[0.022, 8, 6]} />
-          <meshBasicMaterial color="#FFE9A8" transparent opacity={0.8} />
+          <meshBasicMaterial color="#FFE9A8" transparent opacity={0.5} />
         </mesh>
       ))}
     </group>
@@ -1227,6 +1259,61 @@ function RoomScene({ state }: { state: OrbState }) {
         <planeGeometry args={[12, 0.025]} />
         <meshBasicMaterial color={INK} transparent opacity={0.16} />
       </mesh>
+
+      {/* ── architecture: beams, crown molding, baseboards ── */}
+      {/* warm wooden ceiling beams */}
+      {[-2.3, -0.8, 0.9].map((bz, i) => (
+        <mesh key={'beam' + i} position={[0, 3.3, bz]} castShadow>
+          <boxGeometry args={[12, 0.16, 0.24]} />
+          <Toon color="#C89B6E" />
+          <Outlines thickness={0.03} color={INK} />
+        </mesh>
+      ))}
+      {/* crown molding where the walls meet the ceiling */}
+      <mesh position={[0, 3.26, -3.2]}><boxGeometry args={[12, 0.09, 0.1]} /><Toon color="#E8D4B8" /></mesh>
+      <mesh position={[-3.41, 3.26, 0]} rotation={[0, Math.PI / 2, 0]}><boxGeometry args={[12, 0.09, 0.1]} /><Toon color="#E8D4B8" /></mesh>
+      <mesh position={[3.41, 3.26, 0]} rotation={[0, Math.PI / 2, 0]}><boxGeometry args={[12, 0.09, 0.1]} /><Toon color="#E8D4B8" /></mesh>
+      {/* baseboards along the floor */}
+      <mesh position={[0, 0.07, -3.2]}><boxGeometry args={[12, 0.14, 0.06]} /><Toon color="#EFDCC0" /></mesh>
+      <mesh position={[-3.42, 0.07, 0]} rotation={[0, Math.PI / 2, 0]}><boxGeometry args={[12, 0.14, 0.06]} /><Toon color="#EFDCC0" /></mesh>
+      <mesh position={[3.42, 0.07, 0]} rotation={[0, Math.PI / 2, 0]}><boxGeometry args={[12, 0.14, 0.06]} /><Toon color="#EFDCC0" /></mesh>
+
+      {/* round mirror on the left wall */}
+      <group position={[-3.4, 1.95, 0.55]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.34, 0.34, 0.05, 28]} />
+          <Toon color="#C89B6E" />
+          <Outlines thickness={0.015} color={INK} />
+        </mesh>
+        <mesh position={[0, 0, 0.029]}>
+          <circleGeometry args={[0.27, 28]} />
+          <meshBasicMaterial color="#D7E4EE" />
+        </mesh>
+        <mesh position={[-0.08, 0.09, 0.032]} rotation={[0, 0, 0.7]} scale={[1, 0.35, 1]}>
+          <circleGeometry args={[0.1, 16]} />
+          <meshBasicMaterial color="#F2F8FC" />
+        </mesh>
+      </group>
+
+      {/* hanging vine from the beam near the window */}
+      <group position={[-1.35, 3.22, -2.3]}>
+        <mesh position={[0, -0.22, 0]}>
+          <cylinderGeometry args={[0.008, 0.008, 0.44, 6]} />
+          <Toon color="#8A6748" />
+        </mesh>
+        <mesh position={[0, -0.5, 0]}>
+          <cylinderGeometry args={[0.1, 0.075, 0.16, 12]} />
+          <Toon color="#ED9C74" />
+          <Outlines thickness={0.012} color={INK} />
+        </mesh>
+        {[0.5, 2.6, 4.4].map((rot, i) => (
+          <mesh key={i} position={[Math.cos(rot) * 0.08, -0.62 - i * 0.05, Math.sin(rot) * 0.08]} rotation={[Math.PI - 0.4, rot, 0]}>
+            <coneGeometry args={[0.05, 0.22 + i * 0.06, 7]} />
+            <Toon color={i % 2 ? '#7FC295' : '#AEDAB9'} />
+            <Outlines thickness={0.01} color={INK} />
+          </mesh>
+        ))}
+      </group>
 
       {/* window with sunset (back wall, left) */}
       <group position={[-1.75, 1.92, -3.2]}>
