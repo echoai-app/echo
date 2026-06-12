@@ -67,7 +67,7 @@ function LookControls({ apiRef }: { apiRef: React.MutableRefObject<Room3DApi | n
       const s = v.current;
       if (!s.drag) return;
       // grab-the-world feel; clamped so you can't spin past the room
-      s.tyaw = clamp(s.tyaw + (e.clientX - s.lx) * 0.0032, -0.62, 0.62);
+      s.tyaw = clamp(s.tyaw + (e.clientX - s.lx) * 0.0032, -0.8, 0.8);
       // negative = looking down (toward your own knees), positive = up
       s.tpitch = clamp(s.tpitch + (e.clientY - s.ly) * 0.0022, -0.46, 0.28);
       s.lx = e.clientX; s.ly = e.clientY;
@@ -155,6 +155,8 @@ function Companion3D({ state }: { state: OrbState }) {
     // head: faces you (camera sits to its right), bobs gently, tilts with mood
     if (head.current) {
       head.current.rotation.y = damp(head.current.rotation.y, glancing ? -0.34 : 0.13, 3.5, dt);
+      // empathic nodding while listening to you
+      head.current.rotation.x = damp(head.current.rotation.x, state === 'listening' ? Math.sin(t * 1.9) * 0.06 + 0.03 : 0, 5, dt);
       head.current.rotation.z = damp(head.current.rotation.z,
         Math.sin(t * 0.8) * 0.04
           + (state === 'thinking' || state === 'saving' ? 0.09 : 0)
@@ -189,7 +191,7 @@ function Companion3D({ state }: { state: OrbState }) {
     }
     // legs swing like a kid on a too-big couch
     if (legs.current) {
-      legs.current.rotation.x = Math.sin(t * 1.05) * 0.085;
+      legs.current.rotation.x = Math.sin(t * 1.05) * 0.05;
     }
     // thought dots while reflecting / saving
     if (think.current) {
@@ -202,7 +204,8 @@ function Companion3D({ state }: { state: OrbState }) {
     if (lean.current) {
       lean.current.rotation.x = damp(lean.current.rotation.x, state === 'listening' ? 0.09 : 0, 5, dt);
       lean.current.position.z = damp(lean.current.position.z, state === 'listening' ? 0.1 : 0, 5, dt);
-      lean.current.rotation.z = damp(lean.current.rotation.z, state === 'speaking' ? Math.sin(t * 1.9) * 0.025 : 0, 5, dt);
+      lean.current.rotation.z = damp(lean.current.rotation.z,
+        Math.sin(t * 0.45) * 0.012 + (state === 'speaking' ? Math.sin(t * 1.9) * 0.025 : 0), 5, dt);
     }
     // soft aura behind the companion breathes while Echo speaks
     if (aura.current) {
@@ -219,37 +222,71 @@ function Companion3D({ state }: { state: OrbState }) {
     <group position={[-0.52, 0, -1.18]}>
       <group ref={lean}>
         <group ref={breath}>
-          {/* body — cozy lavender sweater */}
-          <mesh position={[0, 0.93, 0]} scale={[1, 1.06, 0.86]} castShadow>
-            <sphereGeometry args={[0.42, 28, 22]} />
+          {/* hips sunk into the seat */}
+          <mesh position={[0, 0.66, 0.0]} scale={[1.02, 0.62, 0.82]}>
+            <sphereGeometry args={[0.36, 22, 16]} />
+            <Toon color="#CBBCEE" />
+            <Outlines thickness={0.02} color={INK} />
+          </mesh>
+          {/* torso — leaning back into the couch */}
+          <mesh position={[0, 0.98, -0.02]} rotation={[-0.07, 0, 0]} scale={[1, 1.05, 0.82]} castShadow>
+            <sphereGeometry args={[0.4, 28, 22]} />
             <Toon color="#CBBCEE" />
             <Outlines thickness={0.025} color={INK} />
           </mesh>
-          {/* arms */}
-          <mesh position={[-0.38, 0.86, 0.1]} rotation={[0.2, 0, 0.5]} castShadow>
-            <capsuleGeometry args={[0.09, 0.3, 6, 12]} />
+          {/* shoulders */}
+          <mesh position={[-0.29, 1.19, 0]} scale={[1, 0.8, 0.85]}>
+            <sphereGeometry args={[0.115, 14, 10]} />
             <Toon color="#CBBCEE" />
-            <Outlines thickness={0.018} color={INK} />
+            <Outlines thickness={0.012} color={INK} />
           </mesh>
-          {/* right arm pivots at the shoulder so it can wave hello */}
-          <group ref={waveArm} position={[0.3, 1.02, 0.06]}>
-            <mesh position={[0.08, -0.16, 0.04]} rotation={[0.2, 0, -0.5]}>
-              <capsuleGeometry args={[0.09, 0.3, 6, 12]} />
+          <mesh position={[0.29, 1.19, 0]} scale={[1, 0.8, 0.85]}>
+            <sphereGeometry args={[0.115, 14, 10]} />
+            <Toon color="#CBBCEE" />
+            <Outlines thickness={0.012} color={INK} />
+          </mesh>
+          {/* neck — the head belongs to the body now */}
+          <mesh position={[0, 1.3, 0.02]}>
+            <cylinderGeometry args={[0.09, 0.11, 0.14, 12]} />
+            <Toon color={skin} />
+            <Outlines thickness={0.01} color={INK} />
+          </mesh>
+          {/* left arm — bent at the elbow, hand resting on the knee */}
+          <group position={[-0.32, 1.16, 0.02]}>
+            <mesh position={[-0.045, -0.14, 0.05]} rotation={[0.32, 0, 0.28]} castShadow>
+              <capsuleGeometry args={[0.082, 0.22, 6, 12]} />
               <Toon color="#CBBCEE" />
-              <Outlines thickness={0.018} color={INK} />
+              <Outlines thickness={0.014} color={INK} />
+            </mesh>
+            <mesh position={[-0.07, -0.34, 0.2]} rotation={[1.05, 0, 0.12]}>
+              <capsuleGeometry args={[0.072, 0.2, 6, 12]} />
+              <Toon color="#CBBCEE" />
+              <Outlines thickness={0.012} color={INK} />
+            </mesh>
+            <mesh position={[-0.08, -0.46, 0.34]} scale={[1, 0.82, 1.15]}>
+              <sphereGeometry args={[0.082, 14, 10]} />
+              <Toon color={skin} />
+              <Outlines thickness={0.011} color={INK} />
             </mesh>
           </group>
-          {/* hands resting */}
-          <mesh position={[-0.2, 0.62, 0.3]}>
-            <sphereGeometry args={[0.085, 16, 12]} />
-            <Toon color={skin} />
-            <Outlines thickness={0.015} color={INK} />
-          </mesh>
-          <mesh position={[0.2, 0.62, 0.3]}>
-            <sphereGeometry args={[0.085, 16, 12]} />
-            <Toon color={skin} />
-            <Outlines thickness={0.015} color={INK} />
-          </mesh>
+          {/* right arm — same anatomy, pivots at the shoulder to wave hello */}
+          <group ref={waveArm} position={[0.32, 1.16, 0.02]}>
+            <mesh position={[0.045, -0.14, 0.05]} rotation={[0.32, 0, -0.28]} castShadow>
+              <capsuleGeometry args={[0.082, 0.22, 6, 12]} />
+              <Toon color="#CBBCEE" />
+              <Outlines thickness={0.014} color={INK} />
+            </mesh>
+            <mesh position={[0.07, -0.34, 0.2]} rotation={[1.05, 0, -0.12]}>
+              <capsuleGeometry args={[0.072, 0.2, 6, 12]} />
+              <Toon color="#CBBCEE" />
+              <Outlines thickness={0.012} color={INK} />
+            </mesh>
+            <mesh position={[0.08, -0.46, 0.34]} scale={[1, 0.82, 1.15]}>
+              <sphereGeometry args={[0.082, 14, 10]} />
+              <Toon color={skin} />
+              <Outlines thickness={0.011} color={INK} />
+            </mesh>
+          </group>
           {/* legs — dangling over the couch edge, swinging gently */}
           <group ref={legs} position={[0, 0.62, 0.22]}>
             {[-1, 1].map(s => (
@@ -308,6 +345,21 @@ function Companion3D({ state }: { state: OrbState }) {
                 <meshBasicMaterial color="#FFFFFF" />
               </mesh>
             </group>
+            {/* little nose + ears */}
+            <mesh position={[0, -0.035, 0.33]} scale={[1, 0.8, 0.7]}>
+              <sphereGeometry args={[0.032, 10, 8]} />
+              <Toon color="#F3D4BC" />
+            </mesh>
+            <mesh position={[-0.33, -0.01, 0.04]} scale={[0.6, 1, 0.8]}>
+              <sphereGeometry args={[0.055, 12, 8]} />
+              <Toon color={skin} />
+              <Outlines thickness={0.008} color={INK} />
+            </mesh>
+            <mesh position={[0.33, -0.01, 0.04]} scale={[0.6, 1, 0.8]}>
+              <sphereGeometry args={[0.055, 12, 8]} />
+              <Toon color={skin} />
+              <Outlines thickness={0.008} color={INK} />
+            </mesh>
             {/* brows — lift when listening */}
             <group ref={brows}>
               <mesh position={[-0.115, 0.1, 0.295]} rotation={[0.25, 0, 0.12]}>
@@ -453,6 +505,7 @@ function Fireplace() {
   const { gl } = useThree();
   const flames = useRef<(THREE.Group | null)[]>([]);
   const embers = useRef<(THREE.Mesh | null)[]>([]);
+  const smoke = useRef<(THREE.Mesh | null)[]>([]);
   const glow = useRef<THREE.PointLight>(null);
   const glowPlane = useRef<THREE.Mesh>(null);
   const stokeT = useRef(-10);
@@ -478,6 +531,15 @@ function Fireplace() {
       m.position.y = 0.48 + p * (0.6 + stoke * 0.4);
       m.position.x = (i - 2.5) * 0.045 + Math.sin(p * 9 + i * 2) * 0.035;
       (m.material as THREE.MeshBasicMaterial).opacity = (0.85 + stoke * 0.15) * (1 - p);
+    });
+    smoke.current.forEach((m, i) => {
+      if (!m) return;
+      const p = (t * (0.12 + i * 0.03) + i * 0.37) % 1;
+      m.position.y = 0.95 + p * 0.5;
+      m.position.x = Math.sin(p * 4 + i * 2) * 0.05;
+      const sc = 0.5 + p * 1.1;
+      m.scale.setScalar(sc);
+      (m.material as THREE.MeshBasicMaterial).opacity = 0.12 * (1 - p);
     });
     if (glow.current) glow.current.intensity = 2.6 + stoke * 2.4 + Math.sin(t * 7.3) * 0.5 + Math.sin(t * 13.7) * 0.3;
     if (glowPlane.current) (glowPlane.current.material as THREE.MeshBasicMaterial).opacity = 0.22 + stoke * 0.2 + Math.sin(t * 6.1) * 0.05;
@@ -527,6 +589,29 @@ function Fireplace() {
             <meshBasicMaterial color="#FFE9A8" transparent opacity={0.95} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
           </mesh>
         </group>
+      ))}
+      {/* glowing flame bases — teardrop roots */}
+      {[-0.11, 0, 0.11].map((fx, i) => (
+        <mesh key={'b' + i} position={[fx, 0.4, 0.28]} scale={[1, 0.6, 1]}>
+          <sphereGeometry args={[i === 1 ? 0.085 : 0.06, 10, 8]} />
+          <meshBasicMaterial color="#FF9D45" transparent opacity={0.85} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+        </mesh>
+      ))}
+      {/* charred log ends */}
+      <mesh position={[-0.36, 0.24, 0.28]} rotation={[0, 0.5, 0]}>
+        <cylinderGeometry args={[0.062, 0.062, 0.04, 8]} />
+        <Toon color="#43332A" />
+      </mesh>
+      <mesh position={[0.33, 0.24, 0.33]} rotation={[0, -0.6, 0]}>
+        <cylinderGeometry args={[0.057, 0.057, 0.04, 8]} />
+        <Toon color="#43332A" />
+      </mesh>
+      {/* soft smoke wisps above the fire */}
+      {[0, 1, 2].map(i => (
+        <mesh key={'s' + i} ref={(el) => { smoke.current[i] = el; }} position={[0, 1.0, 0.24]}>
+          <sphereGeometry args={[0.07, 10, 8]} />
+          <meshBasicMaterial color="#C9BCB0" transparent opacity={0.1} depthWrite={false} />
+        </mesh>
       ))}
       {/* soft glow billboard behind the flames */}
       <mesh ref={glowPlane} position={[0, 0.55, 0.26]}>
@@ -609,10 +694,23 @@ function SipMug({ x, z, color, flip = false }: { x: number; z: number; color: st
         <torusGeometry args={[0.045, 0.014, 8, 16]} />
         <Toon color={color} />
       </mesh>
-      {/* cocoa inside */}
+      {/* rim highlight */}
+      <mesh position={[0, 0.065, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.066, 0.007, 8, 20]} />
+        <Toon color="#FBF1E0" />
+      </mesh>
+      {/* cocoa inside, with two little marshmallows */}
       <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.06, 16]} />
         <meshBasicMaterial color="#8A5A3B" />
+      </mesh>
+      <mesh position={[-0.015, 0.066, 0.012]} rotation={[0.2, 0.5, 0]}>
+        <boxGeometry args={[0.022, 0.012, 0.022]} />
+        <meshBasicMaterial color="#FFFDF8" />
+      </mesh>
+      <mesh position={[0.018, 0.066, -0.01]} rotation={[0, -0.4, 0.15]}>
+        <boxGeometry args={[0.02, 0.012, 0.02]} />
+        <meshBasicMaterial color="#FFF4E4" />
       </mesh>
       {[0, 1, 2].map(i => (
         <mesh key={i} ref={(el) => { steam.current[i] = el; }} position={[0, 0.12, 0]}>
@@ -710,8 +808,8 @@ function Cat() {
           {[-0.06, 0, 0.05].map((wy, i) => (
             <group key={i}>
               <mesh position={[0.1, -0.03 + wy * 0.3, 0.115]} rotation={[0, 0.45, 0.12 + wy]}>
-                <cylinderGeometry args={[0.0022, 0.0022, 0.11, 4]} />
-                <meshBasicMaterial color="#FFFDF8" />
+                <cylinderGeometry args={[0.0014, 0.0014, 0.085, 4]} />
+                <meshBasicMaterial color="#FFFDF8" transparent opacity={0.85} />
               </mesh>
             </group>
           ))}
@@ -720,6 +818,10 @@ function Cat() {
             <coneGeometry args={[0.038, 0.075, 4]} />
             <Toon color={FUR_DARK} />
             <Outlines thickness={0.008} color={INK} />
+          </mesh>
+          <mesh position={[-0.033, 0.092, 0.045]} rotation={[0, 0, 0.22]}>
+            <coneGeometry args={[0.02, 0.04, 4]} />
+            <meshBasicMaterial color="#F0B4BE" />
           </mesh>
           <mesh ref={earR} position={[0.055, 0.095, -0.01]} rotation={[0, 0, -0.18]}>
             <coneGeometry args={[0.038, 0.075, 4]} />
@@ -760,6 +862,12 @@ function Cat() {
           <Toon color={CREAM} />
           <Outlines thickness={0.007} color={INK} />
         </mesh>
+        {/* hind haunch */}
+        <mesh position={[-0.12, 0.15, -0.02]} scale={[0.9, 0.75, 0.85]}>
+          <sphereGeometry args={[0.13, 16, 12]} />
+          <Toon color={FUR} />
+          <Outlines thickness={0.012} color={INK} />
+        </mesh>
         {/* striped tail wrapped around the body */}
         <mesh ref={tail} position={[-0.14, 0.07, 0.08]} rotation={[Math.PI / 2, 0, 0.15]}>
           <torusGeometry args={[0.15, 0.034, 8, 16, Math.PI * 1.25]} />
@@ -774,6 +882,40 @@ function Cat() {
           </mesh>
         ))}
       </group>
+    </group>
+  );
+}
+
+/* ---------------- a wall clock that actually ticks ---------------- */
+function WallClock() {
+  const minute = useRef<THREE.Mesh>(null);
+  const hour = useRef<THREE.Mesh>(null);
+  useFrame((st) => {
+    const t = st.clock.elapsedTime;
+    if (minute.current) minute.current.rotation.z = -t * 0.105; // ~1 turn/min
+    if (hour.current) hour.current.rotation.z = -t * 0.0087;
+  });
+  return (
+    <group position={[1.7, 2.35, -3.18]}>
+      <mesh>
+        <cylinderGeometry args={[0.22, 0.22, 0.04, 24]} />
+        <Toon color="#FFFDF8" />
+        <Outlines thickness={0.012} color={INK} />
+      </mesh>
+      <group rotation={[Math.PI / 2, 0, 0]}>
+        <mesh ref={minute} position={[0, 0, -0.03]}>
+          <boxGeometry args={[0.016, 0.15, 0.008]} />
+          <meshBasicMaterial color={INK} />
+        </mesh>
+        <mesh ref={hour} position={[0, 0, -0.032]}>
+          <boxGeometry args={[0.02, 0.1, 0.008]} />
+          <meshBasicMaterial color={INK} />
+        </mesh>
+      </group>
+      <mesh position={[0, 0, 0.026]} rotation={[Math.PI / 2, 0, 0]}>
+        <sphereGeometry args={[0.018, 10, 8]} />
+        <meshBasicMaterial color="#ED9C74" />
+      </mesh>
     </group>
   );
 }
@@ -853,17 +995,39 @@ function Lamp() {
   const on = useRef(true);
   const light = useRef<THREE.PointLight>(null);
   const bulb = useRef<THREE.Mesh>(null);
+  const chain = useRef<THREE.Group>(null);
+  const pullT = useRef(-10);
   const litColor = useMemo(() => new THREE.Color('#FFF3D0'), []);
   const offColor = useMemo(() => new THREE.Color('#CDBFA8'), []);
-  useFrame((_, dt) => {
+  useFrame((st, dt) => {
+    const t = st.clock.elapsedTime;
     if (light.current) light.current.intensity = damp(light.current.intensity, on.current ? 3.2 : 0, 8, dt);
     if (bulb.current) (bulb.current.material as THREE.MeshBasicMaterial).color.lerp(on.current ? litColor : offColor, Math.min(1, dt * 8));
+    // the pull-chain swings after a tug, then settles
+    if (chain.current) {
+      const e = t - pullT.current;
+      const amp = e > 0 && e < 2.4 ? Math.exp(-e * 2.2) * 0.5 : 0;
+      chain.current.rotation.z = Math.sin(e * 14) * amp;
+      chain.current.rotation.x = Math.cos(e * 11) * amp * 0.4;
+    }
   });
   return (
     <group position={[1.95, 0, -1.55]}
-      onClick={(e) => { e.stopPropagation(); on.current = !on.current; }}
+      onClick={(e) => { e.stopPropagation(); on.current = !on.current; pullT.current = performance.now() / 1000; }}
       onPointerOver={() => { gl.domElement.style.cursor = 'pointer'; }}
       onPointerOut={() => { gl.domElement.style.cursor = 'grab'; }}>
+      {/* pull chain — give it a tug */}
+      <group ref={chain} position={[0.16, 1.42, 0]}>
+        <mesh position={[0, -0.07, 0]}>
+          <cylinderGeometry args={[0.005, 0.005, 0.14, 6]} />
+          <Toon color="#B5A188" />
+        </mesh>
+        <mesh position={[0, -0.16, 0]}>
+          <sphereGeometry args={[0.018, 8, 6]} />
+          <Toon color="#F5CE74" />
+          <Outlines thickness={0.006} color={INK} />
+        </mesh>
+      </group>
       <mesh position={[0, 0.03, 0]}>
         <cylinderGeometry args={[0.17, 0.2, 0.06, 18]} />
         <Toon color="#CBBCEE" />
@@ -1101,6 +1265,8 @@ function RoomScene({ state }: { state: OrbState }) {
         </mesh>
       </group>
 
+      <WallClock />
+
       {/* memory notes pinned to the wall */}
       <WallNote x={0.55} y={2.15} color="#F5CE74" tilt={-0.09} />
       <WallNote x={1.05} y={1.92} color="#C2E6D2" tilt={0.07} />
@@ -1213,10 +1379,30 @@ function RoomScene({ state }: { state: OrbState }) {
           <Toon color="#F0D9B4" />
           <Outlines thickness={0.025} color={INK} />
         </mesh>
-        <mesh position={[0, 0.28, 0]}>
-          <cylinderGeometry args={[0.06, 0.06, 0.5, 12]} />
+        <mesh position={[0, 0.36, 0]}>
+          <cylinderGeometry args={[0.05, 0.06, 0.32, 12]} />
           <Toon color="#E3C397" />
           <Outlines thickness={0.012} color={INK} />
+        </mesh>
+        <mesh position={[0, 0.18, 0]}>
+          <sphereGeometry args={[0.085, 12, 10]} />
+          <Toon color="#D9B583" />
+          <Outlines thickness={0.01} color={INK} />
+        </mesh>
+        <mesh position={[0, 0.09, 0]}>
+          <cylinderGeometry args={[0.05, 0.07, 0.12, 12]} />
+          <Toon color="#E3C397" />
+        </mesh>
+        {/* coasters under the mugs */}
+        <mesh position={[-0.2, 0.6, 0.08]}>
+          <cylinderGeometry args={[0.095, 0.095, 0.014, 18]} />
+          <Toon color="#D8CCF2" />
+          <Outlines thickness={0.008} color={INK} />
+        </mesh>
+        <mesh position={[0.21, 0.6, -0.05]}>
+          <cylinderGeometry args={[0.095, 0.095, 0.014, 18]} />
+          <Toon color="#D8CCF2" />
+          <Outlines thickness={0.008} color={INK} />
         </mesh>
         <mesh position={[0, 0.03, 0]}>
           <cylinderGeometry args={[0.24, 0.28, 0.06, 24]} />
@@ -1273,7 +1459,7 @@ export default function ImmersiveRoom3D({ state, apiRef, onFail }: {
         dpr={[1, 1.75]}
         shadows
         flat
-        camera={{ fov: 56, near: 0.1, far: 30, position: [0, 1.22, 2.9] }}
+        camera={{ fov: 60, near: 0.1, far: 30, position: [0, 1.22, 2.9] }}
         gl={{ antialias: true, powerPreference: 'low-power' }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); onFail?.(); });
