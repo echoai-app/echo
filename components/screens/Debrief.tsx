@@ -38,9 +38,9 @@ export default function Debrief() {
         <div className="screen-pad" style={{ maxWidth: 1000, margin: '0 auto', position: 'relative', zIndex: 2 }}>
           {/* verdict */}
           <div className="up d1 card card-lg" style={{ background: 'var(--sage)', padding: 28, marginBottom: 18 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 22, alignItems: 'center' }}>
-              <div className="tile" style={{ width: 88, height: 88, display: 'grid', placeItems: 'center', background: 'var(--paper)' }}><EchoLogo size={64} /></div>
-              <div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 22, alignItems: 'center' }}>
+              <div className="tile" style={{ width: 88, height: 88, flex: '0 0 88px', display: 'grid', placeItems: 'center', background: 'var(--paper)' }}><EchoLogo size={64} /></div>
+              <div style={{ flex: 1, minWidth: 220 }}>
                 <Eyebrow>your reflection · gathered</Eyebrow>
                 <h2 className="display" style={{ margin: '10px 0 8px' }}>You let some weight down.</h2>
                 <p style={{ margin: 0, fontWeight: 600, fontSize: 17, lineHeight: 1.5 }}>{summaryLine}</p>

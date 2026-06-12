@@ -24,7 +24,7 @@ export default function Onboarding() {
   const next = () => (last ? go('consent') : setI(i + 1));
 
   return (
-    <div className="bg-cream2" style={{ height: '100%', display: 'grid', placeItems: 'center', position: 'relative' }}>
+    <div className="bg-cream2 ob-page" style={{ height: '100%', position: 'relative' }}>
       <Doodles />
 
       <div className="card card-lg up" key={i} style={{ width: 'min(940px,92vw)', background: c.color, padding: 'clamp(26px,4vw,40px)', position: 'relative', zIndex: 2, minHeight: 424, display: 'flex', alignItems: 'center', overflow: 'hidden', animation: 'up .45s cubic-bezier(.2,.8,.2,1) both' }}>
@@ -69,7 +69,7 @@ export default function Onboarding() {
       </div>
 
       {/* progress + nav */}
-      <div style={{ position: 'absolute', bottom: 30, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, zIndex: 3 }}>
+      <div className="ob-nav">
         <div className="pdots">{ONBOARD.map((_, k) => <span key={k} className={'pdot ' + (k === i ? 'on' : '')} />)}</div>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 14 }}>
           {i > 0 && <Btn icon="arrowL" onClick={() => setI(i - 1)}>Back</Btn>}

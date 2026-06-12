@@ -154,7 +154,7 @@ export default function InspectPage() {
           <span style={{ letterSpacing: '-.01em' }}>ech<span style={{ color: 'var(--peach-deep)' }}>o</span></span>
         </Link>
         <span className="chip" style={{ boxShadow: '2px 3px 0 var(--ink)' }}><Ic name="lens" size={16} /> Memory Inspector</span>
-        <Link href="/" className="chip chip-btn" style={{ textDecoration: 'none', color: 'var(--ink)' }}><Ic name="arrowL" size={14} /> Back to app</Link>
+        <Link href="/" className="chip chip-btn" style={{ textDecoration: 'none', color: 'var(--ink)' }}><Ic name="arrowL" size={14} /><span className="insp-back-label"> Back to app</span></Link>
       </div>
 
       <div className="screen-pad" style={{ maxWidth: 880, margin: '0 auto' }}>

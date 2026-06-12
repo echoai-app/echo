@@ -68,7 +68,7 @@ export function SessionBar({ step = 0, risk = false, action }: {
         <div className="session-brand" title="Echo"><EchoLogo size={30} /><span>ech<span style={{ color: 'var(--peach-deep)' }}>o</span></span></div>
         <SessionProgress step={step} />
         {action && (
-          <button className="session-action" onClick={action.onClick} disabled={action.disabled}>
+          <button className="session-action" onClick={action.onClick} disabled={action.disabled} title={action.label} aria-label={action.label}>
             <Ic name="check" size={15} sw={3} /><span>{action.label}</span>
           </button>
         )}

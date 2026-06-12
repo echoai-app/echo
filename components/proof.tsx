@@ -72,7 +72,7 @@ export function ProofModal({ open, onClose, proof, count }: {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(53,42,31,.42)', zIndex: 80, display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} className="card card-lg" style={{ width: 'min(560px,94vw)', padding: 0, overflow: 'hidden', animation: 'up .4s both' }}>
+      <div onClick={e => e.stopPropagation()} className="card card-lg" style={{ width: 'min(560px,94vw)', maxHeight: '92dvh', padding: 0, overflowY: 'auto', animation: 'up .4s both' }}>
         <div style={{ background: pending ? 'var(--cream-2)' : 'var(--mint)', padding: '22px 26px', borderBottom: '3px solid var(--ink)', display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ width: 56, height: 56, borderRadius: 16, border: '3px solid var(--ink)', display: 'grid', placeItems: 'center', background: 'var(--paper)', boxShadow: '2px 3px 0 var(--ink)' }}><Ic name="anchor" size={30} /></div>
           <div style={{ flex: 1 }}>

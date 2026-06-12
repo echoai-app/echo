@@ -776,7 +776,7 @@ input,textarea{font-family:var(--body);}
   .mic-cap,.ctrl-cap{font-size:9px;}
 }
 
-.transcript{position:absolute;top:0;right:0;bottom:0;width:min(354px,88vw);z-index:6;background:var(--paper);
+.transcript{position:absolute;top:0;right:0;bottom:0;width:min(354px,88vw);z-index:8;background:var(--paper);
   border-left:var(--b) solid var(--ink);display:flex;flex-direction:column;box-shadow:-9px 0 34px rgba(53,42,31,.12);
   animation:slideIn .34s cubic-bezier(.2,.8,.2,1);}
 @keyframes slideIn{from{transform:translateX(102%);}to{transform:translateX(0);}}
@@ -883,3 +883,24 @@ input,textarea{font-family:var(--body);}
 .mic-hint{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;color:var(--ink);
   background:var(--sun);border:2.5px solid var(--ink);border-radius:99px;padding:7px 14px;
   box-shadow:2px 3px 0 var(--ink);animation:popIn .4s ease both;}
+
+/* ---------- onboarding page layout (no nav overlap, ever) ---------- */
+.ob-page{display:grid;place-items:center;grid-template-rows:1fr auto;}
+.ob-page > .card{align-self:center;}
+.ob-nav{display:flex;flex-direction:column;align-items:center;gap:14px;z-index:3;padding:18px 0 26px;}
+@media (min-width:761px){
+  .ob-page{display:grid;place-items:center;grid-template-rows:none;}
+  .ob-nav{position:absolute;bottom:30px;left:0;right:0;padding:0;}
+}
+@media (max-width:760px){
+  .ob-page{overflow-y:auto;align-items:start;padding-top:14px;}
+  .ob-page > .card{min-height:0;}
+}
+
+/* floating calm button must never cover the last content on phones */
+@media (max-width:680px){
+  .screen-pad{padding-bottom:96px;}
+  .calm-btn{width:48px;height:48px;}
+}
+
+@media (max-width:680px){.insp-back-label{display:none;}}
