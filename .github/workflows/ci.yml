@@ -15,7 +15,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # npm install (not ci): the lockfile is maintained on Windows, and npm has a
+      # long-standing bug where platform-specific optional deps (@emnapi/* etc.)
+      # never sync perfectly across OSes — npm ci then hard-fails. install
+      # reconciles them on the runner and is deterministic enough for CI.
+      - run: npm install --no-audit --no-fund
       - run: npx tsc --noEmit
       - run: npm run lint
       - run: npm run build
