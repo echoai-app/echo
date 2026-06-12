@@ -45,6 +45,8 @@ interface EchoState {
   recalled: RecalledMemory[];
   journey: Journey | null;
   lastTheme: string;                  // for "continue from last time"
+  lastIndexBlob: string | null;       // latest Walrus index blob — lets any
+                                      // serverless instance restore stats/recall
 
   prefs: Prefs;
 
@@ -64,6 +66,7 @@ interface EchoState {
   setSaved: (s: SavedArtifact[], proof: WalrusProof | null) => void;
   setRecalled: (r: RecalledMemory[]) => void;
   setJourney: (j: Journey | null) => void;
+  setLastIndexBlob: (b: string | null) => void;
   setPref: (k: keyof Prefs, v: boolean) => void;
   resetSession: () => void;
 }
@@ -99,6 +102,7 @@ export const useEcho = create<EchoState>()(
       recalled: [],
       journey: null,
       lastTheme: 'work deadlines & lost sleep',
+      lastIndexBlob: null,
 
       prefs: { voiceReplies: true, saveToWalrus: true, reducedMotion: false },
 
@@ -122,6 +126,7 @@ export const useEcho = create<EchoState>()(
       setSaved: (saved, proof) => set({ saved, proof }),
       setRecalled: (recalled) => set({ recalled }),
       setJourney: (journey) => set({ journey }),
+      setLastIndexBlob: (lastIndexBlob) => set({ lastIndexBlob }),
       setPref: (k, v) => set((st) => ({ prefs: { ...st.prefs, [k]: v } })),
       resetSession: () => set({ session: newSession(), transcript: [], proposed: null, saved: [], proof: null }),
     }),
@@ -129,7 +134,7 @@ export const useEcho = create<EchoState>()(
       name: 'echo-app',
       storage: createJSONStorage(() => localStorage),
       // Persist only durable preferences/identity — not transient session state.
-      partialize: (s) => ({ name: s.name, pfp: s.pfp, prefs: s.prefs, account: s.account, onboarded: s.onboarded }),
+      partialize: (s) => ({ name: s.name, pfp: s.pfp, prefs: s.prefs, account: s.account, onboarded: s.onboarded, lastIndexBlob: s.lastIndexBlob }),
     },
   ),
 );

@@ -65,7 +65,8 @@ export default function Room() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/recall?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}&context=${encodeURIComponent(session.modeTitle)}`);
+        const blob = useEcho.getState().lastIndexBlob;
+        const res = await fetch(`/api/recall?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}&context=${encodeURIComponent(session.modeTitle)}${blob ? `&index_blob_id=${encodeURIComponent(blob)}` : ''}`);
         const data = await res.json();
         if (!cancelled && Array.isArray(data.recalled) && data.recalled.length) setRecalled(data.recalled);
       } catch { /* session still works without recall */ }

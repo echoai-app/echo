@@ -98,7 +98,7 @@ function PmToggle({ on, set, ic, label, sub }: { on: boolean; set: () => void; i
 }
 
 function ProfileMenu({ onClose }: { onClose: () => void }) {
-  const { go, resetTo, prefs, setPref, setOnboarded, name, pfp, journey, setJourney } = useEcho();
+  const { go, resetTo, prefs, setPref, setOnboarded, name, pfp, journey, setJourney, lastIndexBlob } = useEcho();
   const id = useIdentity();
   const { mutate: disconnect } = useDisconnectWallet();
   const navTo = (s: ScreenId) => () => { onClose(); go(s); };
@@ -109,7 +109,7 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/journey?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}`);
+        const res = await fetch(`/api/journey?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}${lastIndexBlob ? `&index_blob_id=${encodeURIComponent(lastIndexBlob)}` : ''}`);
         const data = await res.json();
         if (!cancelled) setJourney(data);
       } catch { /* ignore */ }

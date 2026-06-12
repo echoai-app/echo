@@ -40,13 +40,13 @@ export default function Welcome() {
 
         <div className="up d4" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginTop: 4 }}>
           <Btn variant="primary" size="lg" icon="play" onClick={() => go('onboard')}>Begin reflecting</Btn>
-          <button className="linkbtn" onClick={() => go('recall')}>
+          <button className="linkbtn" onClick={() => go('consent')} title="Sign back in — connect your wallet to recover your memories">
             <Ic name="rewind" size={16} /> I&apos;ve been here before
           </button>
         </div>
       </div>
 
-      <div className="up d5" style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'center' }}>
+      <div className="up d5 landing-foot" style={{ position: 'relative', zIndex: 2 }}>
         <PoweredBy variant="named" size={20} boxed />
       </div>
     </div>

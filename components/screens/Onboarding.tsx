@@ -27,7 +27,7 @@ export default function Onboarding() {
     <div className="bg-cream2 ob-page" style={{ height: '100%', position: 'relative' }}>
       <Doodles />
 
-      <div className="card card-lg up" key={i} style={{ width: 'min(940px,92vw)', background: c.color, padding: 'clamp(26px,4vw,40px)', position: 'relative', zIndex: 2, minHeight: 424, display: 'flex', alignItems: 'center', overflow: 'hidden', animation: 'up .45s cubic-bezier(.2,.8,.2,1) both' }}>
+      <div className="card card-lg up" key={i} style={{ width: 'min(940px,92vw)', background: c.color, padding: 'clamp(26px,4vw,40px)', position: 'relative', zIndex: 2, minHeight: 'min(424px, 62dvh)', display: 'flex', alignItems: 'center', overflow: 'hidden', animation: 'up .45s cubic-bezier(.2,.8,.2,1) both' }}>
         {/* big faint step number watermark */}
         <div style={{ position: 'absolute', right: 'clamp(10px,3vw,40px)', top: -18, fontFamily: 'var(--display)', fontWeight: 800, fontSize: 'clamp(150px,22vw,240px)', color: 'rgba(53,42,31,.07)', lineHeight: 1, pointerEvents: 'none', zIndex: 0, userSelect: 'none' }}>{c.num}</div>
 
@@ -44,8 +44,8 @@ export default function Onboarding() {
           {/* content */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Eyebrow ic={c.ic}>{c.num} · {c.tag}</Eyebrow>
-            <h2 className="display" style={{ fontSize: 'clamp(28px,3.6vw,42px)', lineHeight: 1.05 }}>{c.title}</h2>
-            <p style={{ margin: 0, fontSize: 17.5, lineHeight: 1.55, fontWeight: 600, maxWidth: 470 }}>{c.body}</p>
+            <h2 className="display" style={{ fontSize: 'clamp(23px,3.4vw,42px)', lineHeight: 1.08 }}>{c.title}</h2>
+            <p style={{ margin: 0, fontSize: 'clamp(14px,1.6vw,17.5px)', lineHeight: 1.5, fontWeight: 600, maxWidth: 470 }}>{c.body}</p>
             {c.loop && (
               <div className="tile" style={{ background: 'var(--paper)', padding: '15px 18px', marginTop: 6, boxShadow: '3px 4px 0 var(--ink)' }}>
                 <div className="kicker" style={{ marginBottom: 11, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 7 }}><Ic name="rewind" size={14} /> the reflection loop</div>

@@ -41,7 +41,7 @@ function SavingBar({ phase }: { phase: 'walrus' | 'sui' }) {
 }
 
 export default function MemoryReview() {
-  const { go, session, proposed, setSaved, setJourney } = useEcho();
+  const { go, session, proposed, setSaved, setJourney, setLastIndexBlob } = useEcho();
   const id = useIdentity();
   const account = useCurrentAccount();
   const client = useSuiClient();
@@ -104,6 +104,7 @@ export default function MemoryReview() {
         }
       }
 
+      if (indexBlobId && !indexBlobId.startsWith('local-')) setLastIndexBlob(indexBlobId);
       setSaved(data.saved ?? [], proof);
     } catch {
       setSaved([], null);

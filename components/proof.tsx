@@ -14,6 +14,35 @@ export function ProofBadge({ onClick, pending, sui }: { onClick: () => void; pen
   );
 }
 
+/* hover (or tap) an id → a popover with the full value, copy, and explorer link */
+function IdPopover({ value, link, label }: { value: string; link?: string; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1400); } catch { /* visible anyway */ }
+  };
+  return (
+    <span className="idpop-wrap" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <span className="v mono idpop-trigger" style={{ fontSize: 12.5, color: 'var(--ink)' }}
+        role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
+        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setOpen(o => !o)}>
+        {short(value)}{link ? ' ↗' : ''}
+      </span>
+      {open && (
+        <span className="idpop" onClick={e => e.stopPropagation()}>
+          {label && <b style={{ fontSize: 10.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--ink-soft)', display: 'block', marginBottom: 5 }}>{label}</b>}
+          <span className="full mono">{value}</span>
+          <span className="acts">
+            <button onClick={copy}><Ic name={copied ? 'check' : 'chat'} size={12} /> {copied ? 'Copied' : 'Copy'}</button>
+            {link && <a href={link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}><Ic name="db" size={12} /> Open</a>}
+          </span>
+        </span>
+      )}
+    </span>
+  );
+}
+
 function short(s?: string, head = 10, tail = 8): string {
   if (!s) return '—';
   if (s.length <= head + tail + 1) return s;
@@ -90,7 +119,7 @@ export function ProofModal({ open, onClose, proof, count }: {
               </p>
             </>
           )}
-          <div className="proof-row"><span className="k">Blob ID</span><span className="v mono" style={{ fontSize: 12.5, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{proof.blob_id}</span></div>
+          <div className="proof-row"><span className="k">Blob ID</span><IdPopover value={proof.blob_id} link={walruscan} label="Walrus memory blob" /></div>
           <div className="proof-row"><span className="k">Sui object</span><span className="v mono">{short(proof.sui_object)}</span></div>
           <div className="proof-row"><span className="k">Stored at epoch</span><span className="v">{proof.epoch ?? '—'} {proof.expiry != null && <span className="muted" style={{ fontWeight: 600 }}>· through {proof.expiry}</span>}</span></div>
           <div className="proof-row"><span className="k">Size · cost</span><span className="v">{proof.size ?? '—'}{proof.cost ? ` · ${proof.cost}` : ''}</span></div>
@@ -103,9 +132,9 @@ export function ProofModal({ open, onClose, proof, count }: {
                 <LogoMark brand="sui" size={18} /> Pointer registered on Sui · {proof.sui_registry.network}
               </div>
               <div style={{ padding: '4px 14px 10px' }}>
-                <div className="proof-row"><span className="k">Sui tx</span><a className="v mono" style={{ fontSize: 12.5, color: 'var(--ink)' }} href={suiscanTxUrl(proof.sui_registry.digest)} target="_blank" rel="noreferrer">{short(proof.sui_registry.digest)} ↗</a></div>
-                {proof.sui_registry.object_id && <div className="proof-row"><span className="k">Pointer object</span><a className="v mono" style={{ fontSize: 12.5, color: 'var(--ink)' }} href={suiscanObjectUrl(proof.sui_registry.object_id)} target="_blank" rel="noreferrer">{short(proof.sui_registry.object_id)} ↗</a></div>}
-                <div className="proof-row"><span className="k">Points to index</span><a className="v mono" style={{ fontSize: 12, color: 'var(--ink)' }} href={indexScan} target="_blank" rel="noreferrer">{short(proof.sui_registry.index_blob_id)} ↗</a></div>
+                <div className="proof-row"><span className="k">Sui tx</span><IdPopover value={proof.sui_registry.digest} link={suiscanTxUrl(proof.sui_registry.digest)} label="wallet-signed transaction" /></div>
+                {proof.sui_registry.object_id && <div className="proof-row"><span className="k">Pointer object</span><IdPopover value={proof.sui_registry.object_id} link={suiscanObjectUrl(proof.sui_registry.object_id)} label="your MemoryPointer on Sui" /></div>}
+                <div className="proof-row"><span className="k">Points to index</span><IdPopover value={proof.sui_registry.index_blob_id} link={indexScan} label="Walrus index blob" /></div>
               </div>
             </div>
           )}

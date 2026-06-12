@@ -22,7 +22,7 @@ function bubbleText(recalled: RecalledMemory[]): string {
 }
 
 export default function Recall() {
-  const { go, recalled, setRecalled, lastTheme, startSession } = useEcho();
+  const { go, recalled, setRecalled, lastTheme, startSession, lastIndexBlob } = useEcho();
   const id = useIdentity();
   const account = useCurrentAccount();
   const client = useSuiClient();
@@ -37,11 +37,11 @@ export default function Recall() {
       // Wallet recovery: wallet → on-chain MemoryPointer → Walrus index blob.
       // The blob id rides along on the recall request so the SAME serverless
       // instance restores the index and answers — no cross-instance race.
-      let indexBlobId: string | undefined;
+      let indexBlobId: string | undefined = lastIndexBlob ?? undefined;
       if (id.mode === 'wallet' && account?.address && registryEnabled()) {
         try {
           const ptr = await getMemoryPointer(client, account.address);
-          indexBlobId = ptr?.indexBlobId;
+          indexBlobId = ptr?.indexBlobId ?? indexBlobId;
         } catch { /* fall through to local recall */ }
       }
       try {

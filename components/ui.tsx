@@ -109,7 +109,7 @@ export function EchoLogo({ size = 40, className, style }: { size?: number; class
 }
 
 /* ---------- ecosystem logo marks (real brand glyphs in sticker circles) ---------- */
-export function LogoMark({ brand, size = 20 }: { brand: 'mnemos' | 'walrus' | 'sui'; size?: number }) {
+export function LogoMark({ brand, size = 20, link = false }: { brand: 'mnemos' | 'walrus' | 'sui'; size?: number; link?: boolean }) {
   const g = size * 0.66;
   const marks: Record<string, { bg: string; el: React.ReactNode }> = {
     // Mnemos — the real memory-loop mark (cyan→indigo→violet gradient).
@@ -136,10 +136,15 @@ export function LogoMark({ brand, size = 20 }: { brand: 'mnemos' | 'walrus' | 's
       </svg>) },
   };
   const m = marks[brand];
-  return (
+  const urls: Record<string, string> = { mnemos: 'https://github.com/i-anasop/Mnemos', walrus: 'https://walrus.xyz', sui: 'https://sui.io' };
+  const mark = (
     <span className="logo-mark" style={{ width: size, height: size, background: m.bg }} title={brand[0].toUpperCase() + brand.slice(1)}>
       {m.el}
     </span>
+  );
+  if (!link) return mark;
+  return (
+    <a className="logo-link" href={urls[brand]} target="_blank" rel="noreferrer" aria-label={'Open ' + brand}>{mark}</a>
   );
 }
 
@@ -150,7 +155,7 @@ export function PoweredBy({ variant = 'marks', size = 20, boxed = false }: {
   if (variant === 'bare') {
     return (
       <span className={'powered-logos' + (boxed ? ' boxed' : '')} title="Powered by Mnemos · Walrus · Sui">
-        <span className="marks">{brands.map(b => <LogoMark key={b} brand={b} size={size} />)}</span>
+        <span className="marks">{brands.map(b => <LogoMark key={b} brand={b} size={size} link />)}</span>
       </span>
     );
   }
@@ -160,7 +165,7 @@ export function PoweredBy({ variant = 'marks', size = 20, boxed = false }: {
         <span>powered by</span>
         <span className="marks" style={{ gap: 11 }}>
           {brands.map(b => (
-            <span key={b} className="mname"><LogoMark brand={b} size={size} /><b>{b[0].toUpperCase() + b.slice(1)}</b></span>
+            <span key={b} className="mname"><LogoMark brand={b} size={size} link /><b>{b[0].toUpperCase() + b.slice(1)}</b></span>
           ))}
         </span>
       </span>
@@ -169,7 +174,7 @@ export function PoweredBy({ variant = 'marks', size = 20, boxed = false }: {
   return (
     <span className={'powered-logos' + (boxed ? ' boxed' : '')}>
       <span>powered by</span>
-      <span className="marks">{brands.map(b => <LogoMark key={b} brand={b} size={size} />)}</span>
+      <span className="marks">{brands.map(b => <LogoMark key={b} brand={b} size={size} link />)}</span>
     </span>
   );
 }

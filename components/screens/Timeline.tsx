@@ -27,6 +27,7 @@ interface InsightResult {
    and stores that report back to Walrus as a durable artifact. */
 function InsightAgentCard() {
   const id = useIdentity();
+  const lastIndexBlob = useEcho(s => s.lastIndexBlob);
   const account = useCurrentAccount();
   const client = useSuiClient();
   const [busy, setBusy] = useState(false);
@@ -38,9 +39,9 @@ function InsightAgentCard() {
     try {
       // wallet mode: ride the on-chain pointer along so a cold serverless
       // instance can restore the shared memory before the agent reads it
-      let indexBlobId: string | undefined;
+      let indexBlobId: string | undefined = lastIndexBlob ?? undefined;
       if (id.mode === 'wallet' && account?.address && registryEnabled()) {
-        try { indexBlobId = (await getMemoryPointer(client, account.address))?.indexBlobId; } catch { /* local memory may still work */ }
+        try { indexBlobId = (await getMemoryPointer(client, account.address))?.indexBlobId ?? indexBlobId; } catch { /* local memory may still work */ }
       }
       const r = await fetch('/api/insight', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -185,7 +186,7 @@ function JStat({ n, label, ic, bg }: { n: number; label: string; ic: string; bg:
 }
 
 export default function Timeline() {
-  const { go, journey, setJourney, proof } = useEcho();
+  const { go, journey, setJourney, proof, lastIndexBlob } = useEcho();
   const id = useIdentity();
   const [showProof, setShowProof] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -195,7 +196,7 @@ export default function Timeline() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/journey?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}`);
+        const res = await fetch(`/api/journey?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}${lastIndexBlob ? `&index_blob_id=${encodeURIComponent(lastIndexBlob)}` : ''}`);
         const data = await res.json();
         if (!cancelled) setJourney(data);
       } catch {

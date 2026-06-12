@@ -101,12 +101,15 @@ export default function Consent() {
         </div>
 
         {/* the promises, as one friendly breath — not a contract */}
-        <div className="up d2 tile" style={{ marginTop: 18, padding: '16px 22px', display: 'flex', alignItems: 'center', gap: '14px 26px', flexWrap: 'wrap', justifyContent: 'center', background: 'var(--paper)', boxShadow: '3px 4px 0 var(--ink)' }}>
+        <div className="up d2 tile" style={{ marginTop: 18, padding: '14px 18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(215px, 1fr))', gap: 12, background: 'var(--paper)', boxShadow: '3px 4px 0 var(--ink)' }}>
           {PROMISES.map((p, k) => (
-            <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontWeight: 700, fontSize: 14 }} title={p.d}>
-              <span style={{ width: 30, height: 30, borderRadius: 10, border: '2.4px solid var(--ink)', display: 'grid', placeItems: 'center', background: p.tone, flex: '0 0 30px' }}><Ic name={p.ic} size={16} /></span>
-              {p.t}
-            </span>
+            <div key={k} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <span style={{ width: 32, height: 32, borderRadius: 10, border: '2.4px solid var(--ink)', display: 'grid', placeItems: 'center', background: p.tone, flex: '0 0 32px' }}><Ic name={p.ic} size={17} /></span>
+              <span style={{ minWidth: 0 }}>
+                <b style={{ fontSize: 14, display: 'block', lineHeight: 1.2 }}>{p.t}</b>
+                <span className="muted" style={{ fontWeight: 600, fontSize: 12, lineHeight: 1.35 }}>{p.d}</span>
+              </span>
+            </div>
           ))}
         </div>
 

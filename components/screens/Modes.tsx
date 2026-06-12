@@ -18,7 +18,7 @@ function greetCtx() {
 }
 
 export default function Modes() {
-  const { go, name, startSession, lastTheme, journey, setJourney } = useEcho();
+  const { go, name, startSession, lastTheme, journey, setJourney, lastIndexBlob } = useEcho();
   const id = useIdentity();
   const t = greetCtx();
   // returning users often go straight into a session — pre-warm the 3D room
@@ -29,7 +29,7 @@ export default function Modes() {
     let c = false;
     (async () => {
       try {
-        const r = await fetch(`/api/journey?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}`);
+        const r = await fetch(`/api/journey?user_id=${encodeURIComponent(id.userId!)}&workspace_id=${encodeURIComponent(id.workspaceId!)}${lastIndexBlob ? `&index_blob_id=${encodeURIComponent(lastIndexBlob)}` : ''}`);
         const d = await r.json();
         if (!c) setJourney(d);
       } catch { /* greeting still works */ }
