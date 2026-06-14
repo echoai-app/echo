@@ -7,7 +7,8 @@
 import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Outlines, RoundedBox, ContactShadows, useGLTF, useAnimations } from '@react-three/drei';
+import { Outlines, RoundedBox, ContactShadows, useGLTF } from '@react-three/drei';
+import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import type { OrbState } from '../ui';
 
 /* ============================================================================
@@ -174,62 +175,66 @@ function LookControls({ apiRef }: { apiRef: React.MutableRefObject<Room3DApi | n
   return null;
 }
 
-/* ---------------- the companion — a pre-made CC0 animated character ---------------- */
-// RobotExpressive by Tomás Laulhé / Quaternius — CC0 (public domain), from the
-// three.js examples. Professionally modeled + rigged; we drive its clips from
-// Echo's state: Wave hello on arrival, Yes (a nod) while listening, Idle otherwise.
-const ROBOT_URL = '/models/RobotExpressive.glb';
-useGLTF.preload(ROBOT_URL);
+/* ---------------- the companion — a cute anime VRM character ---------------- */
+// VRM avatar (pixiv Inc. sample, VRM1) loaded with @pixiv/three-vrm. We drive
+// its FACE with VRM expressions: it blinks, smiles, and its mouth moves while
+// Echo speaks; it leans/nods while listening. A real, expressive presence.
+const VRM_URL = '/models/companion.vrm';
+const registerVrm = (loader: { register: (cb: (parser: object) => object) => void }) =>
+  loader.register((parser) => new VRMLoaderPlugin(parser as never));
+useGLTF.preload(VRM_URL, undefined, undefined, registerVrm as never);
 
 function CompanionModel({ state }: { state: OrbState }) {
   const root = useRef<THREE.Group>(null);
-  const rig = useRef<THREE.Group>(null);
   const aura = useRef<THREE.Mesh>(null);
-  const { scene, animations } = useGLTF(ROBOT_URL);
-  const { actions, mixer } = useAnimations(animations, rig);
-  const cur = useRef<string>('');
-  const arrived = useRef(false);
+  const gltf = useGLTF(VRM_URL, undefined, undefined, registerVrm as never);
+  const vrm = (gltf.userData as { vrm?: VRM }).vrm;
+  const talk = useRef(0);
+  const arrivedAt = useRef(-1);
 
-  // soft shadows, room-appropriate
+  // one-time setup: orient toward the user, soften the pose, no frustum culling
   useMemo(() => {
-    scene.traverse((o) => {
+    if (!vrm) return;
+    VRMUtils.rotateVRM0(vrm); // normalize VRM0 facing (no-op for VRM1)
+    vrm.scene.traverse((o) => {
       const m = o as THREE.Mesh;
-      if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; }
+      if (m.isMesh) { m.castShadow = true; m.frustumCulled = false; }
     });
-  }, [scene]);
+    const arm = (name: 'leftUpperArm' | 'rightUpperArm', z: number) => {
+      const b = vrm.humanoid?.getNormalizedBoneNode(name);
+      if (b) b.rotation.z = z; // bring the arms down from the T/A-pose to rest
+    };
+    arm('leftUpperArm', -1.2);
+    arm('rightUpperArm', 1.2);
+  }, [vrm]);
 
-  const fadeTo = (name: string, loop = true) => {
-    const next = actions[name];
-    if (!next || cur.current === name) return;
-    const prev = cur.current ? actions[cur.current] : null;
-    next.reset();
-    next.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
-    next.clampWhenFinished = !loop;
-    next.fadeIn(0.3).play();
-    if (prev) prev.fadeOut(0.3);
-    cur.current = name;
-  };
-  const applyState = () => fadeTo(state === 'listening' ? 'Yes' : 'Idle');
-
-  // arrival: wave hello, then settle into the state-driven loop
-  useEffect(() => {
-    fadeTo('Wave', false);
-    const onFinished = () => { arrived.current = true; applyState(); };
-    mixer.addEventListener('finished', onFinished);
-    return () => { mixer.removeEventListener('finished', onFinished); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  useEffect(() => {
-    if (arrived.current) applyState();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
-
-  // gentle conversational sway + a warm aura that breathes while speaking; leans in to listen
   useFrame((st, dt) => {
+    if (!vrm) return;
     const t = st.clock.elapsedTime;
+    if (arrivedAt.current < 0) arrivedAt.current = t;
+    const em = vrm.expressionManager;
+    // natural blink: a quick close every ~4.2s (+ an occasional double)
+    const cyc = t % 4.2;
+    const dbl = Math.floor(t / 4.2) % 3 === 1;
+    const blink = cyc < 0.12 || (dbl && cyc > 0.3 && cyc < 0.42) ? 1 : 0;
+    em?.setValue('blink', blink);
+    // mouth moves while speaking ("aa"), eased so it never snaps
+    const target = state === 'speaking' ? Math.min(1, Math.abs(Math.sin(t * 8.5)) * 0.55 + Math.abs(Math.sin(t * 12.7)) * 0.25 + 0.06) : 0;
+    talk.current = damp(talk.current, target, 16, dt);
+    em?.setValue('aa', talk.current);
+    // a soft, warm baseline smile — a touch brighter while listening
+    em?.setValue('happy', state === 'listening' ? 0.45 : 0.28);
+    // head: empathic nod while listening, otherwise a gentle idle bob
+    const neck = vrm.humanoid?.getNormalizedBoneNode('neck');
+    if (neck) neck.rotation.x = damp(neck.rotation.x, state === 'listening' ? Math.sin(t * 1.9) * 0.07 + 0.05 : Math.sin(t * 0.9) * 0.02, 5, dt);
+    const spine = vrm.humanoid?.getNormalizedBoneNode('spine');
+    if (spine) spine.rotation.x = damp(spine.rotation.x, state === 'listening' ? 0.08 : 0.02 + Math.sin(t * 1.2) * 0.012, 5, dt);
+
+    vrm.update(dt);
+
     if (root.current) {
-      root.current.rotation.z = damp(root.current.rotation.z, state === 'speaking' ? Math.sin(t * 1.9) * 0.02 : 0, 5, dt);
-      root.current.position.z = damp(root.current.position.z, state === 'listening' ? -1.42 : -1.5, 5, dt);
+      root.current.rotation.z = damp(root.current.rotation.z, state === 'speaking' ? Math.sin(t * 1.9) * 0.015 : 0, 5, dt);
+      root.current.position.z = damp(root.current.position.z, state === 'listening' ? -1.46 : -1.54, 5, dt);
     }
     if (aura.current) {
       const on = state === 'speaking' ? 1 : 0;
@@ -239,16 +244,15 @@ function CompanionModel({ state }: { state: OrbState }) {
     }
   });
 
+  if (!vrm) return null;
   return (
-    <group ref={root} position={[-0.4, 0.02, -1.5]}>
+    <group ref={root} position={[-0.35, 0.0, -1.54]}>
       {/* soft warm aura behind — breathes while Echo speaks */}
-      <mesh ref={aura} position={[0, 1.0, -0.25]}>
+      <mesh ref={aura} position={[0, 1.05, -0.25]}>
         <sphereGeometry args={[0.85, 20, 16]} />
         <meshBasicMaterial color="#F4B89A" transparent opacity={0} depthWrite={false} />
       </mesh>
-      <group ref={rig} rotation={[0, 0, 0]} scale={0.28}>
-        <primitive object={scene} />
-      </group>
+      <primitive object={vrm.scene} rotation={[0, 0, 0]} scale={0.92} />
     </group>
   );
 }
