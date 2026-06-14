@@ -942,21 +942,17 @@ input,textarea{font-family:var(--body);}
 .idpop .acts a:hover,.idpop .acts button:hover{background:var(--sun);}
 .idpop-trigger{cursor:pointer;border-bottom:2px dotted var(--ink-faint);}
 
-/* ---------- landing: social-proof teaser + testimonials ---------- */
-.scroll-cue{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:13px;color:var(--ink-soft);
-  background:var(--paper);border:2.4px solid var(--ink);border-radius:99px;padding:7px 15px;cursor:pointer;
-  box-shadow:2px 3px 0 var(--ink);transition:transform .14s ease,box-shadow .14s ease;margin-top:2px;}
-.scroll-cue:hover{transform:translateY(-2px);box-shadow:3px 5px 0 var(--ink);}
-.scroll-cue .scroll-hearts{display:inline-flex;}
-.scroll-cue .scroll-hearts svg:last-child{margin-left:-6px;}
-
-.landing-proof{position:relative;z-index:2;padding:clamp(34px,6vw,64px) 24px clamp(40px,7vw,72px);
-  background:linear-gradient(180deg,#FBEFDD 0%,#FBF1E0 100%);border-top:3px solid var(--ink);}
-.tcard{display:flex;flex-direction:column;gap:14px;background:var(--paper);border:var(--b) solid var(--ink);
-  border-radius:var(--rad);box-shadow:var(--shadow);padding:24px 26px;margin:0;}
-.tcard blockquote{margin:0;font-weight:600;font-size:16.5px;line-height:1.5;color:var(--ink);}
-.tcard figcaption{display:flex;align-items:center;gap:12px;margin-top:auto;}
-.tavatar{width:42px;height:42px;flex:0 0 42px;border-radius:50%;border:var(--b) solid var(--ink);
-  display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:19px;box-shadow:2px 3px 0 var(--ink);}
-.tcard figcaption b{font-family:var(--display);font-size:17px;}
-@media (max-width:680px){.tcard{padding:20px;}.tcard blockquote{font-size:15.5px;}}
+/* ---------- landing: compact rotating testimonial ---------- */
+.testimonial-card{max-width:430px;width:100%;background:var(--paper);border:2.6px solid var(--ink);border-radius:20px;
+  box-shadow:3px 4px 0 var(--ink);padding:14px 18px;display:flex;flex-direction:column;gap:8px;text-align:left;}
+.testimonial-card > p{margin:0;font-weight:600;font-size:14.5px;line-height:1.5;color:var(--ink);min-height:44px;
+  animation:tfade .5s ease;}
+@keyframes tfade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+.testimonial-card .t-by{display:flex;align-items:center;gap:8px;font-size:13.5px;}
+.testimonial-card .t-by b{font-family:var(--display);}
+.t-av{width:28px;height:28px;flex:0 0 28px;border-radius:50%;border:2.2px solid var(--ink);display:grid;place-items:center;
+  font-family:var(--display);font-weight:800;font-size:13px;box-shadow:1.5px 2px 0 var(--ink);}
+.t-dots{margin-left:auto;display:inline-flex;gap:5px;}
+.t-dot{width:7px;height:7px;border-radius:50%;background:var(--cream-3);transition:background .2s;}
+.t-dot.on{background:var(--peach-deep);}
+@media (max-height:720px){.testimonial-card{display:none;}}
