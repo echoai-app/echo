@@ -354,72 +354,94 @@ function Companion3D({ state }: { state: OrbState }) {
             ))}
           </group>
 
-          {/* head */}
+          {/* head — a touch bigger than life for sweet chibi proportions */}
           <group ref={head} position={[0, 1.52, 0]}>
             <mesh castShadow>
-              <sphereGeometry args={[0.34, 30, 24]} />
+              <sphereGeometry args={[0.37, 32, 26]} />
               <Toon color={skin} />
               <Outlines thickness={0.025} color={INK} />
             </mesh>
-            {/* soft hair cap */}
-            <mesh position={[0, 0.07, -0.05]} rotation={[-0.35, 0, 0]}>
-              <sphereGeometry args={[0.355, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.52]} />
-              <Toon color="#7A6A58" />
+            {/* soft rounded hair cap */}
+            <mesh position={[0, 0.06, -0.05]} rotation={[-0.32, 0, 0]}>
+              <sphereGeometry args={[0.388, 30, 20, 0, Math.PI * 2, 0, Math.PI * 0.54]} />
+              <Toon color="#8B7459" />
               <Outlines thickness={0.02} color={INK} />
             </mesh>
-            {/* eyes — pupils + sparkles ride a gaze group that drifts when glancing */}
+            {/* a little cowlick tuft — charm on top */}
+            <mesh position={[0.05, 0.36, -0.02]} rotation={[0.35, 0, 0.55]} scale={[0.62, 1.15, 0.62]}>
+              <sphereGeometry args={[0.052, 12, 9]} />
+              <Toon color="#8B7459" />
+              <Outlines thickness={0.012} color={INK} />
+            </mesh>
+            {/* a sweet little hair bow on the side — a bit of personality */}
+            <group position={[0.21, 0.25, 0.16]} rotation={[0.1, 0.4, -0.35]}>
+              <mesh position={[-0.052, 0, 0]} scale={[1, 0.72, 0.5]}>
+                <sphereGeometry args={[0.056, 12, 10]} />
+                <Toon color="#F2A7BC" />
+                <Outlines thickness={0.01} color={INK} />
+              </mesh>
+              <mesh position={[0.052, 0, 0]} scale={[1, 0.72, 0.5]}>
+                <sphereGeometry args={[0.056, 12, 10]} />
+                <Toon color="#F2A7BC" />
+                <Outlines thickness={0.01} color={INK} />
+              </mesh>
+              <mesh>
+                <sphereGeometry args={[0.027, 10, 8]} />
+                <Toon color="#E68AA3" />
+                <Outlines thickness={0.008} color={INK} />
+              </mesh>
+            </group>
+            {/* eyes — big & glossy: the heart of the cuteness. A dark round iris
+                with a large catchlight + a small secondary sparkle, nested inside
+                each eye so they blink together. Wide-set and low for a baby face. */}
             <group ref={gaze}>
-              <mesh ref={eyeL} position={[-0.115, 0.015, 0.305]}>
-                <sphereGeometry args={[0.038, 12, 10]} />
-                <meshBasicMaterial color={INK} />
+              <mesh ref={eyeL} position={[-0.132, -0.012, 0.285]}>
+                <sphereGeometry args={[0.07, 20, 18]} />
+                <meshBasicMaterial color="#2B2233" />
+                <mesh position={[0.026, 0.032, 0.052]}><sphereGeometry args={[0.028, 12, 10]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+                <mesh position={[-0.024, -0.028, 0.054]}><sphereGeometry args={[0.014, 8, 6]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
               </mesh>
-              <mesh ref={eyeR} position={[0.115, 0.015, 0.305]}>
-                <sphereGeometry args={[0.038, 12, 10]} />
-                <meshBasicMaterial color={INK} />
-              </mesh>
-              <mesh position={[-0.103, 0.032, 0.335]}>
-                <sphereGeometry args={[0.011, 8, 6]} />
-                <meshBasicMaterial color="#FFFFFF" />
-              </mesh>
-              <mesh position={[0.127, 0.032, 0.335]}>
-                <sphereGeometry args={[0.011, 8, 6]} />
-                <meshBasicMaterial color="#FFFFFF" />
+              <mesh ref={eyeR} position={[0.132, -0.012, 0.285]}>
+                <sphereGeometry args={[0.07, 20, 18]} />
+                <meshBasicMaterial color="#2B2233" />
+                <mesh position={[0.026, 0.032, 0.052]}><sphereGeometry args={[0.028, 12, 10]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
+                <mesh position={[-0.024, -0.028, 0.054]}><sphereGeometry args={[0.014, 8, 6]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
               </mesh>
             </group>
-            {/* little nose + ears */}
-            <mesh position={[0, -0.035, 0.33]} scale={[1, 0.8, 0.7]}>
-              <sphereGeometry args={[0.032, 10, 8]} />
-              <Toon color="#F3D4BC" />
+            {/* tiny button nose + soft ears */}
+            <mesh position={[0, -0.05, 0.355]} scale={[1, 0.85, 0.7]}>
+              <sphereGeometry args={[0.02, 10, 8]} />
+              <Toon color="#EFC3A6" />
             </mesh>
-            <mesh position={[-0.33, -0.01, 0.04]} scale={[0.6, 1, 0.8]}>
-              <sphereGeometry args={[0.055, 12, 8]} />
+            <mesh position={[-0.36, -0.01, 0.04]} scale={[0.6, 1, 0.8]}>
+              <sphereGeometry args={[0.058, 12, 8]} />
               <Toon color={skin} />
               <Outlines thickness={0.008} color={INK} />
             </mesh>
-            <mesh position={[0.33, -0.01, 0.04]} scale={[0.6, 1, 0.8]}>
-              <sphereGeometry args={[0.055, 12, 8]} />
+            <mesh position={[0.36, -0.01, 0.04]} scale={[0.6, 1, 0.8]}>
+              <sphereGeometry args={[0.058, 12, 8]} />
               <Toon color={skin} />
               <Outlines thickness={0.008} color={INK} />
             </mesh>
-            {/* brows — lift when listening */}
+            {/* brows — soft little arcs that lift when listening */}
             <group ref={brows}>
-              <mesh position={[-0.115, 0.1, 0.295]} rotation={[0.25, 0, 0.12]}>
-                <torusGeometry args={[0.05, 0.011, 6, 12, Math.PI * 0.75]} />
-                <meshBasicMaterial color="#7A6A58" />
+              <mesh position={[-0.132, 0.115, 0.305]} rotation={[0.25, 0, 0.12]}>
+                <torusGeometry args={[0.052, 0.011, 6, 12, Math.PI * 0.7]} />
+                <meshBasicMaterial color="#8B7459" />
               </mesh>
-              <mesh position={[0.115, 0.1, 0.295]} rotation={[0.25, 0, Math.PI - 0.12 - Math.PI * 0.75]}>
-                <torusGeometry args={[0.05, 0.011, 6, 12, Math.PI * 0.75]} />
-                <meshBasicMaterial color="#7A6A58" />
+              <mesh position={[0.132, 0.115, 0.305]} rotation={[0.25, 0, Math.PI - 0.12 - Math.PI * 0.7]}>
+                <torusGeometry args={[0.052, 0.011, 6, 12, Math.PI * 0.7]} />
+                <meshBasicMaterial color="#8B7459" />
               </mesh>
             </group>
-            {/* blush */}
-            <mesh position={[-0.18, -0.08, 0.27]} scale={[1, 0.7, 0.5]}>
-              <sphereGeometry args={[0.055, 12, 10]} />
-              <meshBasicMaterial color="#F3A8B6" transparent opacity={0.75} />
+            {/* rosy cheeks — bigger and lower, right under the eyes */}
+            <mesh position={[-0.205, -0.105, 0.265]} scale={[1, 0.72, 0.5]}>
+              <sphereGeometry args={[0.07, 14, 12]} />
+              <meshBasicMaterial color="#F5A0B0" transparent opacity={0.8} />
             </mesh>
-            <mesh position={[0.18, -0.08, 0.27]} scale={[1, 0.7, 0.5]}>
-              <sphereGeometry args={[0.055, 12, 10]} />
-              <meshBasicMaterial color="#F3A8B6" transparent opacity={0.75} />
+            <mesh position={[0.205, -0.105, 0.265]} scale={[1, 0.72, 0.5]}>
+              <sphereGeometry args={[0.07, 14, 12]} />
+              <meshBasicMaterial color="#F5A0B0" transparent opacity={0.8} />
             </mesh>
             {/* resting smile — fades out while the open mouth talks */}
             <mesh ref={smile} position={[0, -0.1, 0.31]} rotation={[0.15, 0, Math.PI]}>
