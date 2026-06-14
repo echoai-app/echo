@@ -27,9 +27,9 @@ export default function Onboarding() {
     <div className="bg-cream2 ob-page" style={{ height: '100%', position: 'relative' }}>
       <Doodles />
 
-      <div className="card card-lg up" key={i} style={{ width: 'min(940px,92vw)', background: c.color, padding: 'clamp(26px,4vw,40px)', position: 'relative', zIndex: 2, minHeight: 'min(424px, 62dvh)', display: 'flex', alignItems: 'center', overflow: 'hidden', animation: 'up .45s cubic-bezier(.2,.8,.2,1) both' }}>
+      <div className="card card-lg up" key={i} style={{ width: 'min(940px,92vw)', background: c.color, padding: 'clamp(26px,4vw,40px)', position: 'relative', zIndex: 2, minHeight: 'min(424px, 56dvh)', display: 'flex', alignItems: 'center', overflow: 'hidden', animation: 'up .45s cubic-bezier(.2,.8,.2,1) both' }}>
         {/* big faint step number watermark */}
-        <div style={{ position: 'absolute', right: 'clamp(10px,3vw,40px)', top: -18, fontFamily: 'var(--display)', fontWeight: 800, fontSize: 'clamp(150px,22vw,240px)', color: 'rgba(53,42,31,.07)', lineHeight: 1, pointerEvents: 'none', zIndex: 0, userSelect: 'none' }}>{c.num}</div>
+        <div style={{ position: 'absolute', right: 'clamp(10px,3vw,40px)', top: -18, fontFamily: 'var(--display)', fontWeight: 800, fontSize: 'clamp(96px,18vw,240px)', color: 'rgba(53,42,31,.07)', lineHeight: 1, pointerEvents: 'none', zIndex: 0, userSelect: 'none' }}>{c.num}</div>
 
         <div className="ob-grid" style={{ position: 'relative', zIndex: 1 }}>
           {/* illustrated sticker disc */}

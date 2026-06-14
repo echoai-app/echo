@@ -956,4 +956,23 @@ input,textarea{font-family:var(--body);}
 .t-dot{width:8px;height:8px;border-radius:50%;background:var(--cream-3);border:none;padding:0;cursor:pointer;transition:background .2s,transform .15s;}
 .t-dot:hover{transform:scale(1.25);}
 .t-dot.on{background:var(--peach-deep);}
-@media (max-height:720px){.testimonial-card{display:none;}}
+@media (max-height:640px){.testimonial-card{display:none;}}
+
+/* ---------- phone polish: testimonial + onboarding compaction ---------- */
+@media (max-width:680px){
+  .testimonial-card{max-width:330px;padding:11px 14px;gap:6px;border-radius:16px;}
+  .testimonial-card > p{font-size:13px;min-height:0;line-height:1.42;}
+  .testimonial-card .t-by{font-size:12px;}
+  .t-av{width:24px;height:24px;flex:0 0 24px;font-size:11px;}
+}
+/* onboarding card fits a phone without crowding the nav */
+@media (max-width:760px){
+  .ob-grid{gap:14px;}
+  .ob-grid .ob-disc{width:118px!important;height:118px!important;}
+  .ob-grid .ob-disc svg.spark{width:62px!important;height:62px!important;}
+  .ob-page > .card{padding:18px 18px 16px!important;}
+}
+@media (max-width:680px){
+  .ob-page > .card .tile{padding:11px 12px!important;}
+  .ob-page > .card .tile .chip.sm{font-size:11px!important;padding:5px 9px!important;}
+}
