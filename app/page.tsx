@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useEcho, type ScreenId } from '@/lib/store';
 import { CalmCorner } from '@/components/CalmCorner';
+import { FeedbackButton } from '@/components/Feedback';
 import BootSkeleton from '@/components/BootSkeleton';
 
 import Welcome from '@/components/screens/Welcome';
@@ -98,6 +99,8 @@ export default function EchoApp() {
         <Active />
       </div>
       <CalmCorner />
+      {/* feedback fab — hidden where the bottom corners are busy (room dock, landing) */}
+      {screen !== 'room' && screen !== 'welcome' && <FeedbackButton screen={screen} />}
     </div>
   );
 }
