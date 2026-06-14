@@ -191,16 +191,38 @@ function CompanionModel({ state }: { state: OrbState }) {
   const mouth = useRef<THREE.Mesh>(null);
   const waveArm = useRef<THREE.Group>(null);
   const aura = useRef<THREE.Mesh>(null);
+  const shadow = useRef<THREE.Mesh>(null);
+  const cheeks = useRef<THREE.Group>(null);
   const waveT0 = useRef(-1);
   const talk = useRef(0);
 
   useFrame((st, dt) => {
     const t = st.clock.elapsedTime;
-    // floaty idle bob + drift; leans in a touch while listening
+    // floaty idle bob with a springy squash-&-stretch + an occasional happy hop
+    const bob = Math.sin(t * 1.6);
+    const hop = Math.pow(Math.max(0, Math.sin(t * 0.55)), 8); // a little jump now and then
     if (root.current) {
-      root.current.position.y = 1.16 + Math.sin(t * 1.5) * 0.05;
-      root.current.rotation.z = damp(root.current.rotation.z, Math.sin(t * 0.7) * 0.05 + (state === 'speaking' ? Math.sin(t * 2.0) * 0.02 : 0), 4, dt);
+      const y = 1.05 + bob * 0.045 + hop * 0.09;
+      root.current.position.y = y;
+      const sx = 1 + bob * 0.025 - hop * 0.05;
+      const sy = 1 - bob * 0.025 + hop * 0.07;
+      root.current.scale.set(0.64 * sx, 0.64 * sy, 0.64 * sx);
+      root.current.rotation.z = damp(root.current.rotation.z, Math.sin(t * 0.7) * 0.055 + (state === 'speaking' ? Math.sin(t * 2.0) * 0.02 : 0), 4, dt);
       root.current.position.z = damp(root.current.position.z, state === 'listening' ? -1.16 : -1.26, 5, dt);
+      // ground shadow on the couch shrinks/fades as it floats higher
+      if (shadow.current) {
+        const lift = y - 1.05;
+        const s = Math.max(0.45, 1 - lift * 4);
+        shadow.current.scale.set(s, s, s);
+        (shadow.current.material as THREE.MeshBasicMaterial).opacity = 0.2 * s;
+      }
+    }
+    // cheeks blush a little brighter while listening — bashful & sweet
+    if (cheeks.current) {
+      cheeks.current.children.forEach((c) => {
+        const m = (c as THREE.Mesh).material as THREE.MeshBasicMaterial;
+        m.opacity = damp(m.opacity, state === 'listening' ? 0.92 : 0.72, 4, dt);
+      });
     }
     // head: cute idle tilt; dips down to listen
     if (head.current) {
@@ -235,7 +257,13 @@ function CompanionModel({ state }: { state: OrbState }) {
   });
 
   return (
-    <group ref={root} position={[-0.3, 1.16, -1.26]} scale={0.64}>
+   <>
+    {/* a soft shadow on the couch cushion — grounds the floaty bot in the room */}
+    <mesh ref={shadow} position={[-0.3, 0.54, -1.18]} rotation={[-Math.PI / 2, 0, 0]}>
+      <circleGeometry args={[0.42, 28]} />
+      <meshBasicMaterial color="#6E4B36" transparent opacity={0.2} depthWrite={false} />
+    </mesh>
+    <group ref={root} position={[-0.3, 1.05, -1.26]} scale={0.64}>
       {/* glow aura */}
       <mesh ref={aura} position={[0, 0, -0.3]}>
         <sphereGeometry args={[0.95, 20, 16]} />
@@ -248,11 +276,19 @@ function CompanionModel({ state }: { state: OrbState }) {
           <Toon color={BOT_WHITE} />
           <Outlines thickness={0.012} color={INK} />
         </RoundedBox>
-        {/* little top nub */}
+        {/* little top nub + a glowing antenna bead */}
         <RoundedBox args={[0.34, 0.18, 0.32]} radius={0.08} position={[0.02, 0.52, -0.02]}>
           <Toon color={BOT_WHITE} />
           <Outlines thickness={0.01} color={INK} />
         </RoundedBox>
+        <mesh position={[0.02, 0.66, -0.02]}>
+          <sphereGeometry args={[0.055, 14, 12]} />
+          <meshBasicMaterial color={BOT_TEAL} />
+        </mesh>
+        <mesh position={[0.005, 0.675, 0.01]}>
+          <sphereGeometry args={[0.016, 8, 8]} />
+          <meshBasicMaterial color="#FFFFFF" />
+        </mesh>
         {/* visor */}
         <group position={[0, 0.0, 0.43]}>
           <RoundedBox args={[0.68, 0.52, 0.14]} radius={0.24} smoothness={6}>
@@ -263,19 +299,36 @@ function CompanionModel({ state }: { state: OrbState }) {
             <sphereGeometry args={[0.17, 16, 12]} />
             <meshBasicMaterial color="#86A8FF" transparent opacity={0.5} />
           </mesh>
-          {/* happy glowing eyes */}
-          <group ref={eyes} position={[0, 0.0, 0.1]}>
-            {[-0.155, 0.155].map((x) => (
-              <mesh key={x} position={[x, 0, 0]}>
-                <torusGeometry args={[0.088, 0.024, 10, 18, Math.PI]} />
-                <meshBasicMaterial color={BOT_GLOW} />
-              </mesh>
+          {/* happy glowing eyes — big curved smiles, with a twinkle each */}
+          <group ref={eyes} position={[0, -0.01, 0.1]}>
+            {[-0.16, 0.16].map((x) => (
+              <group key={x} position={[x, 0, 0]}>
+                <mesh>
+                  <torusGeometry args={[0.1, 0.028, 12, 20, Math.PI]} />
+                  <meshBasicMaterial color={BOT_GLOW} />
+                </mesh>
+                <mesh position={[0.03, 0.06, 0.02]}>
+                  <sphereGeometry args={[0.022, 8, 8]} />
+                  <meshBasicMaterial color="#FFFFFF" />
+                </mesh>
+              </group>
             ))}
           </group>
           {/* mouth — glows + opens when speaking */}
-          <mesh ref={mouth} position={[0, -0.17, 0.1]} scale={[0.55, 0.05, 1]}>
+          <mesh ref={mouth} position={[0, -0.19, 0.1]} scale={[0.55, 0.05, 1]}>
             <sphereGeometry args={[0.07, 14, 10]} />
             <meshBasicMaterial color={BOT_GLOW} transparent opacity={0.18} />
+          </mesh>
+        </group>
+        {/* rosy blush cheeks — pure cuteness */}
+        <group ref={cheeks}>
+          <mesh position={[-0.37, -0.16, 0.34]} scale={[1, 0.72, 0.4]}>
+            <sphereGeometry args={[0.1, 14, 12]} />
+            <meshBasicMaterial color="#FF9FB2" transparent opacity={0.72} />
+          </mesh>
+          <mesh position={[0.37, -0.16, 0.34]} scale={[1, 0.72, 0.4]}>
+            <sphereGeometry args={[0.1, 14, 12]} />
+            <meshBasicMaterial color="#FF9FB2" transparent opacity={0.72} />
           </mesh>
         </group>
         {/* side port (dark) */}
@@ -297,21 +350,21 @@ function CompanionModel({ state }: { state: OrbState }) {
         ))}
       </group>
 
-      {/* body */}
-      <group position={[0, -0.42, 0]}>
-        <mesh scale={[1, 1.08, 0.92]} castShadow>
-          <sphereGeometry args={[0.4, 28, 22]} />
+      {/* body — chubby & round */}
+      <group position={[0, -0.44, 0]}>
+        <mesh scale={[1, 1.04, 0.96]} castShadow>
+          <sphereGeometry args={[0.46, 28, 22]} />
           <Toon color={BOT_WHITE} />
           <Outlines thickness={0.011} color={INK} />
         </mesh>
         {/* thin chest line */}
-        <mesh position={[0, 0.12, 0.33]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.012, 0.012, 0.4, 8]} />
+        <mesh position={[0, 0.13, 0.42]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.012, 0.012, 0.34, 8]} />
           <meshBasicMaterial color="#23223A" />
         </mesh>
-        {/* teal bib */}
-        <mesh position={[0, -0.04, 0.31]} rotation={[Math.PI, 0, 0]} scale={[1, 1, 0.45]}>
-          <coneGeometry args={[0.21, 0.32, 22]} />
+        {/* teal bib — sits proud on the round belly */}
+        <mesh position={[0, -0.02, 0.4]} rotation={[Math.PI, 0, 0]} scale={[1, 1, 0.5]}>
+          <coneGeometry args={[0.2, 0.3, 22]} />
           <Toon color={BOT_TEAL} />
           <Outlines thickness={0.008} color={INK} />
         </mesh>
@@ -329,6 +382,7 @@ function CompanionModel({ state }: { state: OrbState }) {
         </group>
       </group>
     </group>
+   </>
   );
 }
 

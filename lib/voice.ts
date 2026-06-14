@@ -124,9 +124,9 @@ export function useVoice(opts: {
       const voices = voicesRef.current.length ? voicesRef.current : synth.getVoices();
       const voice = chosenVoiceRef.current ?? pickWarmVoice(voices);
       if (voice) u.voice = voice;
-      const natural = !!voice && /natural|neural|google|online/i.test(voice.name);
-      u.rate = natural ? 0.98 : 0.95;     // neural voices are clear; legacy ones read better a bit slower
-      u.pitch = natural ? 1.0 : 1.04;     // small lift warms up the older robotic voices
+      // child-like: a higher pitch + slightly quicker pace = a cute, young voice
+      u.rate = 1.04;
+      u.pitch = 1.5;
       // Chrome quietly pauses long utterances after ~15s — keep nudging it.
       const keepAlive = setInterval(() => { try { if (synth.speaking) synth.resume(); else clearInterval(keepAlive); } catch { clearInterval(keepAlive); } }, 9000);
       const done = () => { clearInterval(keepAlive); onEnd?.(); };
@@ -175,6 +175,12 @@ export function useVoice(opts: {
         if (settled) return; // a newer line already took over
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
+        // Pitch the neural voice up into a sweet, child-like register. Turning
+        // OFF pitch-preservation means a faster playbackRate also raises pitch.
+        type PitchAudio = HTMLAudioElement & { preservesPitch?: boolean; mozPreservesPitch?: boolean; webkitPreservesPitch?: boolean };
+        const pa = audio as PitchAudio;
+        pa.preservesPitch = false; pa.mozPreservesPitch = false; pa.webkitPreservesPitch = false;
+        audio.playbackRate = 1.16; // higher + a touch quicker → cute kid voice
         audioRef.current = audio;
         audio.onended = () => { stopAudio(); finish(); };
         audio.onerror = () => { stopAudio(); if (!settled) browserSpeak(text, finish); };
