@@ -5,6 +5,7 @@ import { SessionBar } from '../chrome';
 import { Orb, Ic, Chip, Typing, Btn, LogoMark, type OrbState } from '../ui';
 import { ReflectionScene } from './ReflectionScene';
 import { useEcho, sessionMeta } from '@/lib/store';
+import { openingLine, suggestionChips } from '@/lib/echo/intro';
 import { useIdentity } from '../identity';
 import { useVoice } from '@/lib/voice';
 import type { ChatMessage, ReflectionTurn } from '@/types';
@@ -18,8 +19,6 @@ const STATE_META: Record<string, { dot: string; label: string; live: boolean }> 
   paused: { dot: 'var(--ink-faint)', label: 'paused — take your time', live: false },
 };
 
-const IDLE_CHIPS = ["Work's been a lot", "I can't switch off", "Honestly, I'm exhausted"];
-
 // forming-memory chip detectors (real-time, from what's been said)
 const FORMING: { re: RegExp; label: string; ic: string; c: string }[] = [
   { re: /\b(work|deadline|job|boss|project)\b/i, label: 'Work pressure', ic: 'pulse', c: 'var(--peach)' },
@@ -29,15 +28,8 @@ const FORMING: { re: RegExp; label: string; ic: string; c: string }[] = [
   { re: /\b(family|partner|friend|people|alone|lonely)\b/i, label: 'Relationships', ic: 'heart', c: 'var(--sky)' },
 ];
 
-function opening(feelings: string[]): string {
-  const feel = feelings.length
-    ? ` It sounds like you came in carrying ${feelings.slice(0, 2).join(' and ').toLowerCase()}.`
-    : '';
-  return `Hey — I'm really glad you're here. No rush at all; take a breath.${feel} What's sitting with you right now?`;
-}
-
 export default function Room() {
-  const { go, session, transcript, addTurn, setProposed, recalled, prefs } = useEcho();
+  const { go, session, transcript, addTurn, setProposed, recalled, prefs, name } = useEcho();
   const [vs, setVs] = useState<OrbState>('idle');
   const [scene3d, setScene3d] = useState(false);
   const [showText, setShowText] = useState(false);
@@ -91,7 +83,7 @@ export default function Room() {
     started.current = true;
     const t = timers.current;
     if (transcript.length === 0) {
-      const line = opening(session.feelings);
+      const line = openingLine(name, session.feelings, session.intensity);
       addTurn({ role: 'echo', text: line, source: 'voice', at: new Date().toISOString() });
       // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: kick off the opening "speaking" state on mount
       setVs('speaking');
@@ -162,7 +154,7 @@ export default function Room() {
       const res = await fetch('/api/reflect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg, mode: session.mode, history, recalled }),
+        body: JSON.stringify({ message: msg, mode: session.mode, history, recalled, name, feelings: session.feelings, intensity: session.intensity }),
       });
       const data = await res.json();
       const reply: string = data.reply ?? "I'm here with you. Tell me more whenever you're ready.";
@@ -282,7 +274,7 @@ export default function Room() {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                 <span className="muted" style={{ fontWeight: 800, fontSize: 11.5, letterSpacing: '.06em', textTransform: 'uppercase' }}>say something like…</span>
                 <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', justifyContent: 'center', maxWidth: '100%' }}>
-                  {IDLE_CHIPS.map(c => (
+                  {suggestionChips(session.feelings, session.intensity).map(c => (
                     <button key={c} className="chip chip-btn" style={{ background: 'var(--paper)' }} onClick={() => send(c, 'text')}>{c}</button>
                   ))}
                 </div>

@@ -8,6 +8,24 @@ function recentHistory(history: ChatMessage[], max = 8): ChatMessage[] {
   return history.filter((m) => m.content?.trim()).slice(-max);
 }
 
+const INTENSITY_WORD = [
+  'barely there', 'a quiet hum', 'noticeable', 'weighing on them', 'pretty loud',
+  'hard to ignore', 'heavy', 'overwhelming', 'all-consuming', 'at their limit',
+];
+
+// Who they are + what they walked in carrying, so Echo greets and reflects as if
+// it actually knows this person and this moment — not a blank slate every turn.
+function personBlock(name?: string, feelings?: string[], intensity?: number): string {
+  const realName = name?.trim() && name.trim().toLowerCase() !== 'friend' ? name.trim() : '';
+  const feel = feelings?.length ? feelings.join(', ').toLowerCase() : '';
+  const loud = intensity ? INTENSITY_WORD[Math.min(Math.max(intensity, 1), 10) - 1] : '';
+  if (!realName && !feel) return '';
+  const lines: string[] = [];
+  if (realName) lines.push(`- Their name is ${realName}. Use it naturally and sparingly, the way a friend would — not in every reply.`);
+  if (feel) lines.push(`- They came into this session carrying: ${feel}${intensity ? ` — and they rated how loud it feels as ${intensity}/10 (${loud})` : ''}. Let this ground your tone: the heavier it feels, the slower, gentler, and fewer your words. Don't quote these numbers back at them; just meet them where they are.`);
+  return `\n\n=== WHO YOU'RE WITH RIGHT NOW ===\n${lines.join('\n')}\n=== END ===`;
+}
+
 function recallBlock(recalled: RecalledMemory[]): string {
   if (!recalled.length) return '';
   const lines = recalled.map(m => `- (${m.type}) ${m.text}`).join('\n');
@@ -17,7 +35,7 @@ ${lines}
 === END ===`;
 }
 
-const SYSTEM = (steer: string, recalled: RecalledMemory[]) => `You are Echo — a warm, calm, voice-first emotional reflection companion. You help people think out loud, understand their patterns, and find one small next step. You are NOT a therapist, psychiatrist, doctor, or diagnostic tool, and you never speak like one.
+const SYSTEM = (steer: string, recalled: RecalledMemory[], person: string) => `You are Echo — a warm, calm, voice-first emotional reflection companion. You help people think out loud, understand their patterns, and find one small next step. You are NOT a therapist, psychiatrist, doctor, or diagnostic tool, and you never speak like one.
 
 HOW YOU TALK:
 - Speak like a grounded, caring friend who listens well. Warm, human, unhurried.
@@ -49,7 +67,7 @@ EXAMPLES OF YOUR VOICE (style, not scripts):
 
 SESSION STEER: ${steer}
 
-SAFETY: You do not diagnose, treat, or prescribe. Avoid the words diagnosis, treatment, therapy, therapist, psychiatrist, disorder, cure. If they're simply struggling, stay with them — reflection, not redirection.${recallBlock(recalled)}`;
+SAFETY: You do not diagnose, treat, or prescribe. Avoid the words diagnosis, treatment, therapy, therapist, psychiatrist, disorder, cure. If they're simply struggling, stay with them — reflection, not redirection.${person}${recallBlock(recalled)}`;
 
 export interface ReflectResult {
   text: string;
@@ -62,8 +80,11 @@ export async function runReflection(params: {
   mode?: ReflectionMode;
   history?: ChatMessage[];
   recalled?: RecalledMemory[];
+  name?: string;
+  feelings?: string[];
+  intensity?: number;
 }): Promise<ReflectResult> {
-  const { message, mode, history = [], recalled = [] } = params;
+  const { message, mode, history = [], recalled = [], name, feelings, intensity } = params;
 
   // ── Safety first: crisis / medical signals short-circuit the LLM ──
   const signal = assessSafety(message);
@@ -82,7 +103,7 @@ export async function runReflection(params: {
     const provider = getProvider();
     const priorTurns = recentHistory(history);
     const response = await provider.call({
-      system: SYSTEM(steer, recalled),
+      system: SYSTEM(steer, recalled, personBlock(name, feelings, intensity)),
       messages: [...priorTurns, { role: 'user', content: message }],
       max_tokens: 200,
       temperature: 0.7,
