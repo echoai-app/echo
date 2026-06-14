@@ -7,8 +7,7 @@
 import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Outlines, RoundedBox, ContactShadows, useGLTF } from '@react-three/drei';
-import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { Outlines, RoundedBox, ContactShadows } from '@react-three/drei';
 import type { OrbState } from '../ui';
 
 /* ============================================================================
@@ -175,84 +174,160 @@ function LookControls({ apiRef }: { apiRef: React.MutableRefObject<Room3DApi | n
   return null;
 }
 
-/* ---------------- the companion — a cute anime VRM character ---------------- */
-// VRM avatar (pixiv Inc. sample, VRM1) loaded with @pixiv/three-vrm. We drive
-// its FACE with VRM expressions: it blinks, smiles, and its mouth moves while
-// Echo speaks; it leans/nods while listening. A real, expressive presence.
-const VRM_URL = '/models/companion.vrm';
-const registerVrm = (loader: { register: (cb: (parser: object) => object) => void }) =>
-  loader.register((parser) => new VRMLoaderPlugin(parser as never));
-useGLTF.preload(VRM_URL, undefined, undefined, registerVrm as never);
+/* ---------------- the companion — a cute mascot robot ---------------- */
+// A chubby white + cyan helper-bot with a glowing visor and happy eyes, built
+// to match the reference. Fully gesture-driven: floats and bobs, blinks, waves
+// hello on arrival, leans + nods while listening, and its eyes/mouth glow-pulse
+// while Echo speaks.
+const BOT_WHITE = '#ECEFF5';
+const BOT_TEAL = '#5BD2D8';
+const BOT_GLOW = '#D2E8FF';
+const BOT_VISOR = '#2540E6';
 
 function CompanionModel({ state }: { state: OrbState }) {
   const root = useRef<THREE.Group>(null);
+  const head = useRef<THREE.Group>(null);
+  const eyes = useRef<THREE.Group>(null);
+  const mouth = useRef<THREE.Mesh>(null);
+  const waveArm = useRef<THREE.Group>(null);
   const aura = useRef<THREE.Mesh>(null);
-  const gltf = useGLTF(VRM_URL, undefined, undefined, registerVrm as never);
-  const vrm = (gltf.userData as { vrm?: VRM }).vrm;
+  const waveT0 = useRef(-1);
   const talk = useRef(0);
-  const arrivedAt = useRef(-1);
-
-  // one-time setup: orient toward the user, soften the pose, no frustum culling
-  useMemo(() => {
-    if (!vrm) return;
-    VRMUtils.rotateVRM0(vrm); // normalize VRM0 facing (no-op for VRM1)
-    vrm.scene.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (m.isMesh) { m.castShadow = true; m.frustumCulled = false; }
-    });
-    const arm = (name: 'leftUpperArm' | 'rightUpperArm', z: number) => {
-      const b = vrm.humanoid?.getNormalizedBoneNode(name);
-      if (b) b.rotation.z = z; // bring the arms down from the T/A-pose to rest
-    };
-    arm('leftUpperArm', -1.2);
-    arm('rightUpperArm', 1.2);
-  }, [vrm]);
 
   useFrame((st, dt) => {
-    if (!vrm) return;
     const t = st.clock.elapsedTime;
-    if (arrivedAt.current < 0) arrivedAt.current = t;
-    const em = vrm.expressionManager;
-    // natural blink: a quick close every ~4.2s (+ an occasional double)
-    const cyc = t % 4.2;
-    const dbl = Math.floor(t / 4.2) % 3 === 1;
-    const blink = cyc < 0.12 || (dbl && cyc > 0.3 && cyc < 0.42) ? 1 : 0;
-    em?.setValue('blink', blink);
-    // mouth moves while speaking ("aa"), eased so it never snaps
-    const target = state === 'speaking' ? Math.min(1, Math.abs(Math.sin(t * 8.5)) * 0.55 + Math.abs(Math.sin(t * 12.7)) * 0.25 + 0.06) : 0;
-    talk.current = damp(talk.current, target, 16, dt);
-    em?.setValue('aa', talk.current);
-    // a soft, warm baseline smile — a touch brighter while listening
-    em?.setValue('happy', state === 'listening' ? 0.45 : 0.28);
-    // head: empathic nod while listening, otherwise a gentle idle bob
-    const neck = vrm.humanoid?.getNormalizedBoneNode('neck');
-    if (neck) neck.rotation.x = damp(neck.rotation.x, state === 'listening' ? Math.sin(t * 1.9) * 0.07 + 0.05 : Math.sin(t * 0.9) * 0.02, 5, dt);
-    const spine = vrm.humanoid?.getNormalizedBoneNode('spine');
-    if (spine) spine.rotation.x = damp(spine.rotation.x, state === 'listening' ? 0.08 : 0.02 + Math.sin(t * 1.2) * 0.012, 5, dt);
-
-    vrm.update(dt);
-
+    // floaty idle bob + drift; leans in a touch while listening
     if (root.current) {
-      root.current.rotation.z = damp(root.current.rotation.z, state === 'speaking' ? Math.sin(t * 1.9) * 0.015 : 0, 5, dt);
-      root.current.position.z = damp(root.current.position.z, state === 'listening' ? -1.46 : -1.54, 5, dt);
+      root.current.position.y = 1.16 + Math.sin(t * 1.5) * 0.05;
+      root.current.rotation.z = damp(root.current.rotation.z, Math.sin(t * 0.7) * 0.05 + (state === 'speaking' ? Math.sin(t * 2.0) * 0.02 : 0), 4, dt);
+      root.current.position.z = damp(root.current.position.z, state === 'listening' ? -1.16 : -1.26, 5, dt);
     }
+    // head: cute idle tilt; dips down to listen
+    if (head.current) {
+      head.current.rotation.x = damp(head.current.rotation.x, state === 'listening' ? Math.sin(t * 1.9) * 0.06 + 0.13 : Math.sin(t * 1.2) * 0.03, 5, dt);
+      head.current.rotation.z = damp(head.current.rotation.z, Math.sin(t * 0.9) * 0.045, 4, dt);
+    }
+    // blink: squash the happy eyes briefly every ~3.6s
+    const cyc = t % 3.6;
+    const blink = cyc < 0.12 ? 0.12 : 1;
+    if (eyes.current) eyes.current.scale.y = damp(eyes.current.scale.y, blink, 30, dt);
+    // mouth glows + opens while speaking
+    const target = state === 'speaking' ? Math.min(1, Math.abs(Math.sin(t * 8.5)) * 0.7 + 0.18) : 0;
+    talk.current = damp(talk.current, target, 16, dt);
+    if (mouth.current) {
+      mouth.current.scale.set(0.55 + talk.current * 0.5, Math.max(0.05, talk.current), 1);
+      (mouth.current.material as THREE.MeshBasicMaterial).opacity = 0.18 + talk.current * 0.8;
+    }
+    // wave hello on arrival, then the arm settles to a gentle rest
+    if (waveArm.current) {
+      if (waveT0.current < 0) waveT0.current = t;
+      const wt = t - waveT0.current;
+      const tgt = wt > 0.4 && wt < 3.2 ? -2.2 + Math.sin(wt * 8) * 0.35 : -0.55;
+      waveArm.current.rotation.z = damp(waveArm.current.rotation.z, tgt, wt < 3.2 ? 8 : 4, dt);
+    }
+    // soft glow aura, breathes while speaking
     if (aura.current) {
       const on = state === 'speaking' ? 1 : 0;
       const mat = aura.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = damp(mat.opacity, on * (0.13 + Math.sin(t * 2.4) * 0.05), 5, dt);
+      mat.opacity = damp(mat.opacity, on * (0.12 + Math.sin(t * 2.4) * 0.05), 5, dt);
       aura.current.scale.setScalar(1 + (state === 'speaking' ? Math.sin(t * 2.4) * 0.05 : 0));
     }
   });
 
-  if (!vrm) return null;
   return (
-    <group ref={root} position={[-0.35, 0.0, -1.54]}>
-      {/* soft warm aura behind — breathes while Echo speaks */}
-      <mesh ref={aura} position={[0, 1.05, -0.25]}>
-        <sphereGeometry args={[0.85, 20, 16]} />
-        <meshBasicMaterial color="#F4B89A" transparent opacity={0} depthWrite={false} />
+    <group ref={root} position={[-0.3, 1.16, -1.26]} scale={0.64}>
+      {/* glow aura */}
+      <mesh ref={aura} position={[0, 0, -0.3]}>
+        <sphereGeometry args={[0.95, 20, 16]} />
+        <meshBasicMaterial color="#86CCFF" transparent opacity={0} depthWrite={false} />
       </mesh>
-      <primitive object={vrm.scene} rotation={[0, 0, 0]} scale={0.92} />
+
+      {/* head */}
+      <group ref={head} position={[0, 0.26, 0]}>
+        <RoundedBox args={[0.98, 0.86, 0.84]} radius={0.32} smoothness={6} castShadow>
+          <Toon color={BOT_WHITE} />
+          <Outlines thickness={0.012} color={INK} />
+        </RoundedBox>
+        {/* little top nub */}
+        <RoundedBox args={[0.34, 0.18, 0.32]} radius={0.08} position={[0.02, 0.52, -0.02]}>
+          <Toon color={BOT_WHITE} />
+          <Outlines thickness={0.01} color={INK} />
+        </RoundedBox>
+        {/* visor */}
+        <group position={[0, 0.0, 0.43]}>
+          <RoundedBox args={[0.68, 0.52, 0.14]} radius={0.24} smoothness={6}>
+            <meshBasicMaterial color={BOT_VISOR} />
+          </RoundedBox>
+          {/* glossy sheen */}
+          <mesh position={[0.13, 0.14, 0.08]} scale={[1, 0.5, 1]} rotation={[0, 0, -0.3]}>
+            <sphereGeometry args={[0.17, 16, 12]} />
+            <meshBasicMaterial color="#86A8FF" transparent opacity={0.5} />
+          </mesh>
+          {/* happy glowing eyes */}
+          <group ref={eyes} position={[0, 0.0, 0.1]}>
+            {[-0.155, 0.155].map((x) => (
+              <mesh key={x} position={[x, 0, 0]}>
+                <torusGeometry args={[0.088, 0.024, 10, 18, Math.PI]} />
+                <meshBasicMaterial color={BOT_GLOW} />
+              </mesh>
+            ))}
+          </group>
+          {/* mouth — glows + opens when speaking */}
+          <mesh ref={mouth} position={[0, -0.17, 0.1]} scale={[0.55, 0.05, 1]}>
+            <sphereGeometry args={[0.07, 14, 10]} />
+            <meshBasicMaterial color={BOT_GLOW} transparent opacity={0.18} />
+          </mesh>
+        </group>
+        {/* side port (dark) */}
+        <mesh position={[-0.5, 0.02, 0.06]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.11, 0.11, 0.1, 18]} />
+          <Toon color={BOT_WHITE} />
+          <Outlines thickness={0.008} color={INK} />
+        </mesh>
+        <mesh position={[-0.56, 0.02, 0.06]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.055, 0.055, 0.05, 16]} />
+          <meshBasicMaterial color="#23223A" />
+        </mesh>
+        {/* cyan ear fins */}
+        {[-1, 1].map((s) => (
+          <RoundedBox key={s} args={[0.11, 0.36, 0.17]} radius={0.05} position={[s * 0.47, 0.2, -0.12]} rotation={[0.12, 0, s * -0.38]}>
+            <Toon color={BOT_TEAL} />
+            <Outlines thickness={0.008} color={INK} />
+          </RoundedBox>
+        ))}
+      </group>
+
+      {/* body */}
+      <group position={[0, -0.42, 0]}>
+        <mesh scale={[1, 1.08, 0.92]} castShadow>
+          <sphereGeometry args={[0.4, 28, 22]} />
+          <Toon color={BOT_WHITE} />
+          <Outlines thickness={0.011} color={INK} />
+        </mesh>
+        {/* thin chest line */}
+        <mesh position={[0, 0.12, 0.33]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.012, 0.012, 0.4, 8]} />
+          <meshBasicMaterial color="#23223A" />
+        </mesh>
+        {/* teal bib */}
+        <mesh position={[0, -0.04, 0.31]} rotation={[Math.PI, 0, 0]} scale={[1, 1, 0.45]}>
+          <coneGeometry args={[0.21, 0.32, 22]} />
+          <Toon color={BOT_TEAL} />
+          <Outlines thickness={0.008} color={INK} />
+        </mesh>
+      </group>
+
+      {/* arms (capsule + ball hand) */}
+      <group position={[-0.36, -0.28, 0.06]} rotation={[0, 0, 0.62]}>
+        <mesh castShadow><capsuleGeometry args={[0.08, 0.22, 8, 14]} /><Toon color={BOT_WHITE} /><Outlines thickness={0.009} color={INK} /></mesh>
+        <mesh position={[0, -0.2, 0]}><sphereGeometry args={[0.1, 14, 12]} /><Toon color={BOT_WHITE} /><Outlines thickness={0.009} color={INK} /></mesh>
+      </group>
+      <group ref={waveArm} position={[0.36, -0.2, 0.06]}>
+        <group position={[0, -0.18, 0]}>
+          <mesh castShadow><capsuleGeometry args={[0.08, 0.22, 8, 14]} /><Toon color={BOT_WHITE} /><Outlines thickness={0.009} color={INK} /></mesh>
+          <mesh position={[0, -0.2, 0]}><sphereGeometry args={[0.1, 14, 12]} /><Toon color={BOT_WHITE} /><Outlines thickness={0.009} color={INK} /></mesh>
+        </group>
+      </group>
     </group>
   );
 }
