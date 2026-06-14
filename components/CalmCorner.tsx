@@ -4,22 +4,29 @@ import { useEffect, useRef, useState } from 'react';
 import { Ic, EchoLogo } from './ui';
 import { useEcho } from '@/lib/store';
 
-/* The Calm Corner — a small grounding companion in the bottom-left.
-   Three quick tools (Breathe · Ground · Affirm) plus an in-place Support panel.
+/* The Calm Corner — a small companion in the bottom-left.
+   Two quick tools (Breathe · Affirm) plus an in-place Support panel.
    Nothing here navigates away. */
 
 const SUPPORT_EMAIL = 'echo.gethelp@gmail.com';
-type Tab = 'breathe' | 'ground' | 'affirm' | 'support';
+type Tab = 'breathe' | 'affirm' | 'support';
 
+// Short, punchy lines — a mix of comfort and quiet motivation.
 const AFFIRMATIONS = [
-  'You’re allowed to take up space.',
-  'This feeling is real — and it will pass.',
-  'You’re doing better than you think.',
-  'One small step is still a step.',
-  'It’s okay to rest. Rest is doing something.',
-  'You came back. That matters.',
-  'You don’t have to carry it all at once.',
-  'Be as kind to yourself as you’d be to a friend.',
+  'Small steps still move mountains.',
+  'You can do hard things.',
+  'Progress, not perfection.',
+  'You are not behind — you’re on your way.',
+  'Storms pass. You remain.',
+  'Courage is just showing up again.',
+  'Your pace is the right pace.',
+  'You’ve survived every hard day so far.',
+  'Start where you are. It’s enough.',
+  'Rest isn’t quitting — it’s refuelling.',
+  'One breath at a time, you’ve got this.',
+  'Be brave enough to be kind to yourself.',
+  'The fact that you care means you’re trying.',
+  'Fall seven times, rise eight.',
 ];
 
 // Inhale → hold → exhale, with a longer, calming out-breath.
@@ -29,23 +36,12 @@ const PHASES = [
   { label: 'Breathe out…', ms: 6000, scale: 0.86 },
 ];
 
-// 5-4-3-2-1 grounding.
-const GROUND = [
-  { n: 5, text: 'things you can see', color: 'var(--sky)' },
-  { n: 4, text: 'things you can feel', color: 'var(--peach)' },
-  { n: 3, text: 'sounds you can hear', color: 'var(--lav)' },
-  { n: 2, text: 'things you can smell', color: 'var(--mint)' },
-  { n: 1, text: 'thing you can taste', color: 'var(--sun)' },
-];
-
 export function CalmCorner() {
   const { prefs } = useEcho();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('breathe');
   const [phase, setPhase] = useState(0);
   const [affirm, setAffirm] = useState(0);
-  const [gIdx, setGIdx] = useState(0);
-  const [taps, setTaps] = useState(0);
   const [breaths, setBreaths] = useState(0);
   const [burst, setBurst] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -67,7 +63,7 @@ export function CalmCorner() {
   }, [open, tab, prefs.reducedMotion]);
 
   const openPanel = () => {
-    setTab('breathe'); setPhase(0); setGIdx(0); setTaps(0); setBreaths(0);
+    setTab('breathe'); setPhase(0); setBreaths(0);
     setAffirm(Math.floor(Math.random() * AFFIRMATIONS.length));
     setOpen(true);
   };
@@ -76,7 +72,6 @@ export function CalmCorner() {
   const cur = PHASES[phase];
   const coreScale = prefs.reducedMotion ? 1 : cur.scale;
   const haloScale = prefs.reducedMotion ? 1.3 : cur.scale * 1.55;
-  const g = GROUND[gIdx];
 
   return (
     <>
@@ -113,7 +108,6 @@ export function CalmCorner() {
             <>
               <div className="calm-tabs">
                 <button className={'calm-tab' + (tab === 'breathe' ? ' on' : '')} onClick={() => setTab('breathe')}><Ic name="breeze" size={15} /> Breathe</button>
-                <button className={'calm-tab' + (tab === 'ground' ? ' on' : '')} onClick={() => setTab('ground')}><Ic name="anchor" size={15} /> Ground</button>
                 <button className={'calm-tab' + (tab === 'affirm' ? ' on' : '')} onClick={() => setTab('affirm')}><Ic name="heart" size={15} /> Affirm</button>
               </div>
 
@@ -131,22 +125,6 @@ export function CalmCorner() {
                   <p className="muted tc" style={{ fontWeight: 600, fontSize: 12.5, margin: '6px 0 10px' }}>In through your nose, out through your mouth.</p>
                   {breaths > 0 && <div className="tc"><span className="breath-count"><Ic name="leaf" size={13} /> {breaths} {breaths === 1 ? 'breath' : 'breaths'} together</span></div>}
                 </>
-              )}
-
-              {tab === 'ground' && (
-                <div className="tc">
-                  <div className="muted" style={{ fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>5 · 4 · 3 · 2 · 1 — come back to now</div>
-                  <div className="ground-num ground-tap" style={{ background: g.color }} role="button" tabIndex={0}
-                    onClick={() => {
-                      const nt = taps + 1;
-                      setTaps(nt);
-                      if (nt >= g.n) setTimeout(() => { setGIdx(i => (i + 1) % GROUND.length); setTaps(0); }, 420);
-                    }}>{g.n - Math.min(taps, g.n) || '✓'}</div>
-                  <div className="display" style={{ fontSize: 18, marginTop: 12 }}>{g.text}</div>
-                  <div className="muted" style={{ fontWeight: 600, fontSize: 12.5, marginTop: 3 }}>tap the circle for each one you notice</div>
-                  <div className="tap-dots">{Array.from({ length: g.n }).map((_, i) => <span key={i} className={'tap-dot' + (i < taps ? ' on' : '')} />)}</div>
-                  <div className="ground-dots">{GROUND.map((_, i) => <span key={i} className={'ground-dot' + (i <= gIdx ? ' on' : '')} />)}</div>
-                </div>
               )}
 
               {tab === 'affirm' && (
