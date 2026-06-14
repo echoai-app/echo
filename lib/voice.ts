@@ -41,6 +41,9 @@ export function useVoice(opts: {
   const chosenVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   // Holds the currently-playing neural-TTS clip so it can be interrupted.
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Web Audio graph for the robotic voice effect (ring modulation).
+  const ctxRef = useRef<AudioContext | null>(null);
+  const srcRef = useRef<AudioBufferSourceNode | null>(null);
   // After a cloud-TTS request 5xx's (e.g. terms not accepted), stop retrying it
   // for the rest of the session and just use the browser voice.
   const cloudTtsOff = useRef(false);
@@ -124,9 +127,9 @@ export function useVoice(opts: {
       const voices = voicesRef.current.length ? voicesRef.current : synth.getVoices();
       const voice = chosenVoiceRef.current ?? pickWarmVoice(voices);
       if (voice) u.voice = voice;
-      // youthful but composed — a gentle lift, not a cartoon
-      u.rate = 1.0;
-      u.pitch = 1.18;
+      // deep + a touch monotone for a robotic, masculine fallback tone
+      u.rate = 0.96;
+      u.pitch = 0.7;
       // Chrome quietly pauses long utterances after ~15s — keep nudging it.
       const keepAlive = setInterval(() => { try { if (synth.speaking) synth.resume(); else clearInterval(keepAlive); } catch { clearInterval(keepAlive); } }, 9000);
       const done = () => { clearInterval(keepAlive); onEnd?.(); };
@@ -145,6 +148,46 @@ export function useVoice(opts: {
     if (a) {
       try { a.pause(); a.onended = null; a.onerror = null; if (a.src) URL.revokeObjectURL(a.src); } catch { /* noop */ }
       audioRef.current = null;
+    }
+    const s = srcRef.current;
+    if (s) {
+      try { s.onended = null; s.stop(); } catch { /* already stopped */ }
+      srcRef.current = null;
+    }
+  }, []);
+
+  // Play the TTS clip through a ring-modulator so the male voice reads as a
+  // friendly robot — a sine "carrier" mixed with the dry voice so words stay
+  // clear. Returns false if Web Audio is unavailable so we can fall back.
+  const playRobotic = useCallback(async (data: ArrayBuffer, onEnd: () => void): Promise<boolean> => {
+    try {
+      const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctor) return false;
+      const ctx = ctxRef.current ?? new Ctor();
+      ctxRef.current = ctx;
+      if (ctx.state === 'suspended') await ctx.resume();
+      const buffer = await ctx.decodeAudioData(data.slice(0));
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.playbackRate.value = 0.96; // a touch deeper / more machine-like
+      // ring modulation: multiply the voice by a low sine to get a robotic timbre
+      const ring = ctx.createGain(); ring.gain.value = 0;
+      const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 44;
+      osc.connect(ring.gain);
+      // mix wet (robotic) with dry (clear) so it stays intelligible; soften highs
+      const wet = ctx.createGain(); wet.gain.value = 0.7;
+      const dry = ctx.createGain(); dry.gain.value = 0.5;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3400;
+      src.connect(ring); ring.connect(wet); wet.connect(lp);
+      src.connect(dry); dry.connect(lp);
+      lp.connect(ctx.destination);
+      osc.start();
+      src.onended = () => { try { osc.stop(); } catch { /* noop */ } onEnd(); };
+      srcRef.current = src;
+      src.start();
+      return true;
+    } catch {
+      return false;
     }
   }, []);
 
@@ -170,17 +213,19 @@ export function useVoice(opts: {
         // Any non-2xx means cloud TTS won't work this session (terms not
         // accepted, key/quota, etc.) — stop retrying it and use the browser voice.
         if (!res.ok) { cloudTtsOff.current = true; throw new Error('tts ' + res.status); }
-        const blob = await res.blob();
-        if (!blob.size) throw new Error('empty audio');
+        const data = await res.arrayBuffer();
+        if (!data.byteLength) throw new Error('empty audio');
         if (settled) return; // a newer line already took over
-        const url = URL.createObjectURL(blob);
+        // primary: robotic-male effect via Web Audio
+        const ok = await playRobotic(data, () => { stopAudio(); finish(); });
+        if (ok) return;
+        // fallback: plain element playback, pitched down a touch for a deeper tone
+        const url = URL.createObjectURL(new Blob([data], { type: 'audio/wav' }));
         const audio = new Audio(url);
-        // Pitch the neural voice up into a sweet, child-like register. Turning
-        // OFF pitch-preservation means a faster playbackRate also raises pitch.
         type PitchAudio = HTMLAudioElement & { preservesPitch?: boolean; mozPreservesPitch?: boolean; webkitPreservesPitch?: boolean };
         const pa = audio as PitchAudio;
         pa.preservesPitch = false; pa.mozPreservesPitch = false; pa.webkitPreservesPitch = false;
-        audio.playbackRate = 1.07; // a slight lift — youthful but still grounded
+        audio.playbackRate = 0.94;
         audioRef.current = audio;
         audio.onended = () => { stopAudio(); finish(); };
         audio.onerror = () => { stopAudio(); if (!settled) browserSpeak(text, finish); };
@@ -189,7 +234,7 @@ export function useVoice(opts: {
         if (!settled) browserSpeak(text, finish);
       }
     })();
-  }, [browserSpeak, stopAudio]);
+  }, [browserSpeak, stopAudio, playRobotic]);
 
   const cancelSpeech = useCallback(() => {
     try { window.speechSynthesis?.cancel?.(); } catch { /* noop */ }
@@ -197,7 +242,11 @@ export function useVoice(opts: {
   }, [stopAudio]);
 
   // Make sure neural audio never outlives the room.
-  useEffect(() => () => stopAudio(), [stopAudio]);
+  useEffect(() => () => {
+    stopAudio();
+    try { ctxRef.current?.close(); } catch { /* noop */ }
+    ctxRef.current = null;
+  }, [stopAudio]);
 
   return { supported, ttsSupported, listening, partial, startListening, stopListening, speak, cancelSpeech };
 }

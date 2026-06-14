@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { SessionBar } from '../chrome';
-import { Orb, Ic, Chip, Typing, Btn, LogoMark, type OrbState } from '../ui';
+import { Orb, Ic, Chip, Typing, Btn, type OrbState } from '../ui';
 import { ReflectionScene } from './ReflectionScene';
 import { useEcho, sessionMeta } from '@/lib/store';
 import { openingLine, suggestionChips } from '@/lib/echo/intro';
@@ -219,16 +219,9 @@ export default function Room() {
             </div>
           </div>
 
-          {docked && (
-            <div style={{ position: 'absolute', top: 18, right: 372, zIndex: 4 }}>
-              <span className="chip sm deco" style={{ background: 'var(--mint)', boxShadow: '2px 3px 0 var(--ink)' }}>
-                <LogoMark brand="walrus" size={15} /> kept memories save to Walrus
-              </span>
-            </div>
-          )}
           {!showTr && (
-            <button className="btn ghost sm" style={{ position: 'absolute', top: 14, right: 16, zIndex: 6 }} onClick={() => setShowTr(true)}>
-              <Ic name="chat" size={16} /> Transcript
+            <button className="room-tool" style={{ position: 'absolute', top: 16, right: 16, zIndex: 6 }} onClick={() => setShowTr(true)} title="Show transcript">
+              <Ic name="chat" size={17} /> <span>Transcript</span>
             </button>
           )}
 
@@ -286,7 +279,7 @@ export default function Room() {
               </div>
             )}
             <div className="dock-bar">
-              <div className="dock-col">
+              <div className="dock-mic">
                 <button className={'mic-btn' + (vs === 'listening' ? ' listening' : '') + ((vs === 'thinking' || vs === 'saving') ? ' busy' : '')}
                   onClick={micTap} disabled={vs === 'thinking' || vs === 'saving'} aria-label="Talk to Echo">
                   <span className="mic-ring" /><span className="mic-ring r2" />
@@ -297,20 +290,14 @@ export default function Room() {
                 <span className="mic-cap">
                   {vs === 'idle' ? (voice.supported ? 'Tap to talk' : 'Tap to type')
                     : vs === 'listening' ? 'Listening…'
-                      : vs === 'thinking' ? '…'
-                        : vs === 'speaking' ? 'Echo speaking' : '…'}
+                      : vs === 'thinking' ? 'Thinking…'
+                        : vs === 'speaking' ? 'Echo is speaking' : '…'}
                 </span>
               </div>
-
-              <div className="dock-div" />
-
-              <div className="dock-col">
-                <button className={'ctrl-btn' + (showText ? ' on' : '')} onClick={() => setShowText(s => !s)} aria-label="Type instead">
-                  <Ic name="keyboard" size={22} />
-                </button>
-                <span className="ctrl-cap">Type</span>
-              </div>
-
+              {/* one quiet secondary action: type instead of talking */}
+              <button className={'dock-type' + (showText ? ' on' : '')} onClick={() => setShowText(s => !s)} aria-label="Type instead of talking">
+                <Ic name="keyboard" size={18} /> Type
+              </button>
             </div>
           </div>
         </div>

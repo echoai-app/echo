@@ -683,9 +683,9 @@ input,textarea{font-family:var(--body);}
   color:var(--ink);background:var(--paper);border:2.6px solid var(--ink);border-radius:99px;padding:7px 13px;
   box-shadow:2px 3px 0 var(--ink);animation:hintPulse 2.4s ease-in-out infinite;}
 @keyframes hintPulse{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
-.scene-reset{position:absolute;left:16px;bottom:108px;z-index:8;pointer-events:auto;
-  display:inline-flex;align-items:center;gap:7px;font-family:var(--display);font-weight:800;font-size:13px;
-  color:var(--ink);background:var(--paper);border:2.6px solid var(--ink);border-radius:99px;padding:7px 13px 7px 11px;
+.scene-reset{position:absolute;left:16px;bottom:96px;z-index:8;pointer-events:auto;
+  display:grid;place-items:center;width:42px;height:42px;
+  color:var(--ink);background:var(--paper);border:2.6px solid var(--ink);border-radius:50%;
   box-shadow:2px 3px 0 var(--ink);cursor:pointer;opacity:.92;transition:transform .12s,box-shadow .12s,background .15s;}
 .scene-reset:hover{transform:translateY(-2px);box-shadow:3px 5px 0 var(--ink);background:var(--sun);opacity:1;}
 .scene-reset:active{transform:translateY(1px);box-shadow:1px 2px 0 var(--ink);}
@@ -739,12 +739,26 @@ input,textarea{font-family:var(--body);}
 
 .voice-dock{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:7;
   display:flex;flex-direction:column;align-items:center;gap:12px;}
-.dock-bar{display:flex;align-items:flex-start;justify-content:center;gap:22px;
-  background:rgba(255,253,248,.92);backdrop-filter:blur(10px);
-  border:2.6px solid var(--ink);border-radius:999px;padding:12px 26px 10px;
+.dock-bar{display:flex;align-items:center;justify-content:center;gap:18px;
+  background:rgba(255,253,248,.94);backdrop-filter:blur(10px);
+  border:2.6px solid var(--ink);border-radius:999px;padding:12px 20px 12px 22px;
   box-shadow:3px 5px 0 var(--ink), 0 18px 40px rgba(53,42,31,.16);}
-.dock-col{display:flex;flex-direction:column;align-items:center;gap:6px;}
-.dock-div{width:2px;align-self:center;height:40px;background:var(--cream-3);border-radius:9px;}
+.dock-mic{display:flex;flex-direction:column;align-items:center;gap:6px;}
+/* quiet secondary "Type" pill — clearly secondary to the mic */
+.dock-type{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:13px;
+  color:var(--ink-soft);background:var(--cream-2);border:2.4px solid var(--ink);border-radius:99px;
+  padding:9px 15px;cursor:pointer;box-shadow:0 3px 0 var(--ink);
+  transition:transform .14s ease,box-shadow .14s ease,background .15s ease;}
+.dock-type:hover{transform:translateY(-2px);box-shadow:0 5px 0 var(--ink);background:var(--sun);}
+.dock-type:active{transform:translateY(1px);box-shadow:0 1px 0 var(--ink);}
+.dock-type.on{background:var(--sun);}
+/* floating tool button (e.g. Transcript) — consistent, calm, one of a kind */
+.room-tool{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:13px;color:var(--ink);
+  background:rgba(255,253,248,.92);backdrop-filter:blur(8px);border:2.4px solid var(--ink);border-radius:99px;
+  padding:8px 14px;cursor:pointer;box-shadow:2px 3px 0 var(--ink);
+  transition:transform .14s ease,box-shadow .14s ease,background .15s ease;}
+.room-tool:hover{transform:translateY(-2px);box-shadow:2px 5px 0 var(--ink);background:var(--sun);}
+.room-tool:active{transform:translateY(1px);box-shadow:1px 1px 0 var(--ink);}
 
 .mic-btn{position:relative;width:82px;height:82px;border-radius:50%;border:2.8px solid var(--ink);
   background:linear-gradient(145deg,#F8C5A6 0%,var(--peach) 55%,var(--peach-deep) 130%);
@@ -769,11 +783,10 @@ input,textarea{font-family:var(--body);}
 .ctrl-cap{font-weight:800;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);}
 
 @media (max-width:680px){
-  .dock-bar{gap:14px;padding:10px 16px 8px;}
-  .dock-div{display:none;}
+  .dock-bar{gap:12px;padding:10px 14px;}
   .mic-btn{width:66px;height:66px;}
-  .ctrl-btn{width:42px;height:42px;}
-  .mic-cap,.ctrl-cap{font-size:9px;}
+  .dock-type{font-size:12px;padding:8px 12px;}
+  .mic-cap{font-size:9px;}
 }
 
 .transcript{position:absolute;top:0;right:0;bottom:0;width:min(354px,88vw);z-index:8;background:var(--paper);

@@ -279,8 +279,8 @@ function CssReflectionScene({ state = 'idle' }: { state?: OrbState }) {
 
       {/* look-around hint (fades on first drag) + reset view */}
       {!hintGone && <div className="scene-hint"><Ic name="lens" size={15} /> drag to look · tap the room</div>}
-      <button className="scene-reset" onClick={reset} title="Reset view" aria-label="Reset view">
-        <Ic name="rewind" size={16} sw={2.7} /> <span>Reset view</span>
+      <button className="scene-reset" onClick={reset} title="Recenter view" aria-label="Recenter view">
+        <Ic name="rewind" size={17} sw={2.7} />
       </button>
 
       {/* unobtrusive positioning note */}
@@ -344,8 +344,8 @@ export function ReflectionScene({ state = 'idle', onMode }: { state?: OrbState; 
       <div className="scene-vignette" style={{ zIndex: 4 }} />
 
       {!hintGone && <div className="scene-hint"><Ic name="lens" size={15} /> drag to look · tap the room</div>}
-      <button className="scene-reset" onClick={() => api.current?.reset()} title="Reset view" aria-label="Reset view">
-        <Ic name="rewind" size={16} sw={2.7} /> <span>Reset view</span>
+      <button className="scene-reset" onClick={() => api.current?.reset()} title="Recenter view" aria-label="Recenter view">
+        <Ic name="rewind" size={17} sw={2.7} />
       </button>
 
       <div className="scene-note">Echo is for reflection &amp; self-awareness — not medical or crisis care.</div>
