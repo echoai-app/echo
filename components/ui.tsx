@@ -14,7 +14,7 @@ export function Ic({ name, size = 30, stroke = 'var(--ink)', sw = 2.6, fill = 'n
   const p = { fill: 'none', stroke, strokeWidth: sw, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   const paths: Record<string, React.ReactNode> = {
     spark: <path d="M12 2c.6 4.5 2.5 6.4 7 7-4.5.6-6.4 2.5-7 7-.6-4.5-2.5-6.4-7-7 4.5-.6 6.4-2.5 7-7Z" {...p} fill={fill} />,
-    star: <path d="M12 3l2.5 5.3 5.8.7-4.3 4 1.1 5.8L12 21l-5.1-2.2 1.1-5.8-4.3-4 5.8-.7L12 3Z" {...p} fill={fill} />,
+    star: <path d="M12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26Z" {...p} fill={fill} />,
     heart: <path d="M12 20s-7-4.4-9-9.2C1.6 7.2 3.6 4 7 4c2 0 3.4 1.1 5 3 1.6-1.9 3-3 5-3 3.4 0 5.4 3.2 4 6.8C19 15.6 12 20 12 20Z" {...p} fill={fill} />,
     cloud: <path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6 9.5 4.2 4.2 0 0 0 7 18Z" {...p} fill={fill} />,
     chat: <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V16H6.5A2.5 2.5 0 0 1 4 13.5v-7Z" {...p} fill={fill} />,
