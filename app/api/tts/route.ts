@@ -31,8 +31,9 @@ export async function POST(req: NextRequest) {
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: process.env.GROQ_TTS_MODEL ?? 'canopylabs/orpheus-v1-english',
-        // "tara" is a warm, calm female voice — a good fit for Echo.
-        voice: voice || process.env.GROQ_TTS_VOICE || 'tara',
+        // Orpheus voices: autumn diana hannah (female) · austin daniel troy (male).
+        // "autumn" is warm and calm — a good fit for Echo.
+        voice: voice || process.env.GROQ_TTS_VOICE || 'autumn',
         input: text.slice(0, 1200),
         response_format: 'wav',
       }),
