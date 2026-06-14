@@ -175,8 +175,8 @@ export function useVoice(opts: {
       const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 60;
       osc.connect(ring.gain);
       // mostly the clear voice with just a hint of robotic shimmer on top
-      const wet = ctx.createGain(); wet.gain.value = 0.22;
-      const dry = ctx.createGain(); dry.gain.value = 0.95;
+      const wet = ctx.createGain(); wet.gain.value = 0.12;
+      const dry = ctx.createGain(); dry.gain.value = 1.0;
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200;
       src.connect(ring); ring.connect(wet); wet.connect(lp);
       src.connect(dry); dry.connect(lp);
