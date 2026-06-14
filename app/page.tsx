@@ -93,7 +93,7 @@ export default function EchoApp() {
   if (!booted) return <BootSkeleton />;
 
   return (
-    <div className={'stage' + (prefs.reducedMotion ? ' calm' : '')}>
+    <div className={'stage' + (prefs.reducedMotion ? ' calm' : '')} data-screen={screen}>
       <div className="screen is-active" key={screen}>
         <Active />
       </div>

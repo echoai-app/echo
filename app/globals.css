@@ -893,8 +893,9 @@ input,textarea{font-family:var(--body);}
   .ob-nav{position:absolute;bottom:30px;left:0;right:0;padding:0;}
 }
 @media (max-width:760px){
-  .ob-page{overflow-y:auto;align-items:start;padding-top:14px;}
-  .ob-page > .card{min-height:0;}
+  /* flex column: card scrolls inside, nav is ALWAYS visible at the bottom */
+  .ob-page{display:flex;flex-direction:column;overflow:hidden;padding:12px 10px 0;}
+  .ob-page > .card{flex:1 1 auto;min-height:0;overflow-y:auto;margin:0 auto;}
 }
 
 /* floating calm button must never cover the last content on phones */
@@ -977,4 +978,19 @@ input,textarea{font-family:var(--body);}
 @media (max-width:680px){
   .ob-page > .card .tile{padding:11px 12px!important;}
   .ob-page > .card .tile .chip.sm{font-size:11px!important;padding:5px 9px!important;}
+}
+
+/* onboarding nav: pinned + fully visible on phones, lifted clear of the
+   fixed Calm-corner heart (bottom-left, ~66px tall) and the corner doodles */
+@media (max-width:760px){
+  .ob-nav{position:static;flex:0 0 auto;padding:12px 0 78px;gap:10px;background:transparent;}
+  .ob-nav > div{flex-wrap:wrap;justify-content:center;gap:10px;}
+  /* keep the Calm-corner button tucked in the very corner, below the nav row */
+  .stage[data-screen="onboard"] .calm-btn{bottom:14px;left:14px;width:44px;height:44px;}
+  /* the page-corner heart/star/cloud sit low-left/low-right and clashed with the
+     nav — lift them up so they stay decorative background, never over buttons */
+  .ob-page > .doodles .doodle{opacity:.5;}
+  .ob-page > .doodles .doodle:nth-child(2){top:46% !important;}  /* star */
+  .ob-page > .doodles .doodle:nth-child(3){top:58% !important;}  /* heart */
+  .ob-page > .doodles .doodle:nth-child(5){top:52% !important;}  /* cloud */
 }
