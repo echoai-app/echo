@@ -45,6 +45,12 @@ export async function pushFeedback(item: Feedback): Promise<boolean> {
   return !!out && !out.error;
 }
 
+/** Delete all feedback. Returns false if the store isn't configured. */
+export async function clearFeedback(): Promise<boolean> {
+  const out = await cmd(['DEL', KEY]);
+  return !!out && !out.error;
+}
+
 /** Most-recent-first list of all feedback (null if the store isn't configured). */
 export async function listFeedback(): Promise<Feedback[] | null> {
   const out = await cmd(['LRANGE', KEY, 0, -1]);

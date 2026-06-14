@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pushFeedback, listFeedback, feedbackConfigured, type Feedback } from '@/lib/feedback-store';
+import { pushFeedback, listFeedback, clearFeedback, feedbackConfigured, type Feedback } from '@/lib/feedback-store';
 
 export const runtime = 'nodejs';
 
@@ -40,4 +40,12 @@ export async function GET(req: NextRequest) {
   if (!feedbackConfigured()) return NextResponse.json({ ok: true, configured: false, items: [] });
   const items = (await listFeedback()) ?? [];
   return NextResponse.json({ ok: true, configured: true, items });
+}
+
+// DELETE /api/feedback?key=... — owner-only: clear all feedback.
+export async function DELETE(req: NextRequest) {
+  const key = req.nextUrl.searchParams.get('key') ?? '';
+  if (key !== ADMIN_KEY) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  const ok = await clearFeedback();
+  return NextResponse.json({ ok });
 }
