@@ -4,10 +4,10 @@
    mutating the camera / three objects inside useEffect & useFrame is the
    idiomatic (and only performant) way to animate; these are not React state. */
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Outlines, RoundedBox, ContactShadows } from '@react-three/drei';
+import { Outlines, RoundedBox, ContactShadows, useGLTF, useAnimations } from '@react-three/drei';
 import type { OrbState } from '../ui';
 
 /* ============================================================================
@@ -174,308 +174,81 @@ function LookControls({ apiRef }: { apiRef: React.MutableRefObject<Room3DApi | n
   return null;
 }
 
-/* ---------------- the 3D doodle companion ---------------- */
-function Companion3D({ state }: { state: OrbState }) {
-  const lean = useRef<THREE.Group>(null);
-  const breath = useRef<THREE.Group>(null);
-  const head = useRef<THREE.Group>(null);
-  const eyeL = useRef<THREE.Mesh>(null);
-  const eyeR = useRef<THREE.Mesh>(null);
-  const gaze = useRef<THREE.Group>(null);
-  const brows = useRef<THREE.Group>(null);
-  const smile = useRef<THREE.Mesh>(null);
-  const openMouth = useRef<THREE.Group>(null);
-  const think = useRef<THREE.Group>(null);
-  const aura = useRef<THREE.Mesh>(null);
-  const waveArm = useRef<THREE.Group>(null);
-  const waveT0 = useRef(-1);
-  const legs = useRef<THREE.Group>(null);
-  const gate = useRef(0);
-  const talk = useRef(0);
+/* ---------------- the companion — a pre-made CC0 animated character ---------------- */
+// RobotExpressive by Tomás Laulhé / Quaternius — CC0 (public domain), from the
+// three.js examples. Professionally modeled + rigged; we drive its clips from
+// Echo's state: Wave hello on arrival, Yes (a nod) while listening, Idle otherwise.
+const ROBOT_URL = '/models/RobotExpressive.glb';
+useGLTF.preload(ROBOT_URL);
 
+function CompanionModel({ state }: { state: OrbState }) {
+  const root = useRef<THREE.Group>(null);
+  const rig = useRef<THREE.Group>(null);
+  const aura = useRef<THREE.Mesh>(null);
+  const { scene, animations } = useGLTF(ROBOT_URL);
+  const { actions, mixer } = useAnimations(animations, rig);
+  const cur = useRef<string>('');
+  const arrived = useRef(false);
+
+  // soft shadows, room-appropriate
+  useMemo(() => {
+    scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; }
+    });
+  }, [scene]);
+
+  const fadeTo = (name: string, loop = true) => {
+    const next = actions[name];
+    if (!next || cur.current === name) return;
+    const prev = cur.current ? actions[cur.current] : null;
+    next.reset();
+    next.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+    next.clampWhenFinished = !loop;
+    next.fadeIn(0.3).play();
+    if (prev) prev.fadeOut(0.3);
+    cur.current = name;
+  };
+  const applyState = () => fadeTo(state === 'listening' ? 'Yes' : 'Idle');
+
+  // arrival: wave hello, then settle into the state-driven loop
+  useEffect(() => {
+    fadeTo('Wave', false);
+    const onFinished = () => { arrived.current = true; applyState(); };
+    mixer.addEventListener('finished', onFinished);
+    return () => { mixer.removeEventListener('finished', onFinished); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (arrived.current) applyState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  // gentle conversational sway + a warm aura that breathes while speaking; leans in to listen
   useFrame((st, dt) => {
     const t = st.clock.elapsedTime;
-    // a little wave when you arrive — then the arm settles back down
-    if (waveArm.current) {
-      if (waveT0.current < 0) waveT0.current = t;
-      const wt = t - waveT0.current;
-      const target = wt > 0.6 && wt < 3.4 ? -1.85 + Math.sin(wt * 7) * 0.35 : 0;
-      waveArm.current.rotation.z = damp(waveArm.current.rotation.z, target, wt < 3.4 ? 7 : 3.5, dt);
+    if (root.current) {
+      root.current.rotation.z = damp(root.current.rotation.z, state === 'speaking' ? Math.sin(t * 1.9) * 0.02 : 0, 5, dt);
+      root.current.position.z = damp(root.current.position.z, state === 'listening' ? -1.42 : -1.5, 5, dt);
     }
-    // breathing — whole figure, from the seat up
-    if (breath.current) {
-      const s = 1 + Math.sin(t * 1.35) * 0.016;
-      breath.current.scale.set(1, s, 1);
-    }
-    // occasional glance toward the window, otherwise eyes on you
-    const glancing = (t % 13) > 9.6 && (t % 13) < 11.0 && state !== 'listening' && state !== 'speaking';
-    // head: faces you (camera sits to its right), bobs gently, tilts with mood
-    if (head.current) {
-      head.current.rotation.y = damp(head.current.rotation.y, glancing ? -0.34 : 0.13, 3.5, dt);
-      // empathic nodding while listening to you
-      head.current.rotation.x = damp(head.current.rotation.x, state === 'listening' ? Math.sin(t * 1.9) * 0.06 + 0.03 : 0, 5, dt);
-      head.current.rotation.z = damp(head.current.rotation.z,
-        Math.sin(t * 0.8) * 0.04
-          + (state === 'thinking' || state === 'saving' ? 0.09 : 0)
-          + (state === 'listening' ? -0.06 : 0), 4, dt);
-      head.current.position.y = 1.52 + Math.sin(t * 1.35) * 0.012;
-    }
-    // pupils drift with the glance — they look AT you the rest of the time
-    if (gaze.current) {
-      gaze.current.position.x = damp(gaze.current.position.x, glancing ? -0.022 : 0.012, 6, dt);
-    }
-    // natural blinks: a regular blink + an occasional quick double-blink
-    const cyc = t % 4.7;
-    const dbl = Math.floor(t / 4.7) % 3 === 1;
-    const blink = cyc < 0.12 || (dbl && cyc > 0.3 && cyc < 0.4) ? 0.1 : 1;
-    if (eyeL.current) eyeL.current.scale.y = damp(eyeL.current.scale.y, blink, 34, dt);
-    if (eyeR.current) eyeR.current.scale.y = damp(eyeR.current.scale.y, blink, 34, dt);
-    // brows lift when listening — attentive, not surprised
-    if (brows.current) {
-      brows.current.position.y = damp(brows.current.position.y, state === 'listening' ? 0.035 : 0, 8, dt);
-    }
-    // ── talking: the mouth actually OPENS — every layer damped so nothing snaps
-    if (openMouth.current && smile.current) {
-      // phrase gate eases in/out (no hard jumps between phrases)
-      gate.current = damp(gate.current, state === 'speaking' ? (Math.sin(t * 1.6) > -0.45 ? 1 : 0.12) : 0, 6, dt);
-      const syllables = Math.max(0, Math.sin(t * 8.6) * 0.6 + Math.sin(t * 13.1 + 1.3) * 0.5);
-      talk.current = damp(talk.current, Math.min(1, syllables * gate.current * 1.5), 14, dt);
-      const o = Math.max(0.001, talk.current);
-      openMouth.current.scale.set(1 - o * 0.15, o, 1);
-      // the resting smile fades out while the mouth is open
-      const s = damp(smile.current.scale.x, talk.current > 0.12 ? 0.001 : 1, 12, dt);
-      smile.current.scale.set(s, s, s);
-    }
-    // legs swing like a kid on a too-big couch
-    if (legs.current) {
-      legs.current.rotation.x = Math.sin(t * 1.05) * 0.05;
-    }
-    // thought dots while reflecting / saving
-    if (think.current) {
-      const on = state === 'thinking' || state === 'saving' ? 1 : 0;
-      const sc = damp(think.current.scale.x, on, 8, dt);
-      think.current.scale.setScalar(Math.max(0.0001, sc));
-      think.current.position.y = 2.0 + Math.sin(t * 2.2) * 0.03;
-    }
-    // lean toward you when listening; a gentle conversational sway while speaking
-    if (lean.current) {
-      lean.current.rotation.x = damp(lean.current.rotation.x, state === 'listening' ? 0.09 : 0, 5, dt);
-      lean.current.position.z = damp(lean.current.position.z, state === 'listening' ? 0.1 : 0, 5, dt);
-      lean.current.rotation.z = damp(lean.current.rotation.z,
-        Math.sin(t * 0.45) * 0.012 + (state === 'speaking' ? Math.sin(t * 1.9) * 0.025 : 0), 5, dt);
-    }
-    // soft aura behind the companion breathes while Echo speaks
     if (aura.current) {
       const on = state === 'speaking' ? 1 : 0;
       const mat = aura.current.material as THREE.MeshBasicMaterial;
       mat.opacity = damp(mat.opacity, on * (0.13 + Math.sin(t * 2.4) * 0.05), 5, dt);
-      const sc = 1 + (state === 'speaking' ? Math.sin(t * 2.4) * 0.05 : 0);
-      aura.current.scale.setScalar(sc);
+      aura.current.scale.setScalar(1 + (state === 'speaking' ? Math.sin(t * 2.4) * 0.05 : 0));
     }
   });
 
-  const skin = '#F8E4D2';
   return (
-    <group position={[-0.52, 0, -1.18]}>
-      <group ref={lean}>
-        <group ref={breath}>
-          {/* one smooth egg body — no lumps, no seams */}
-          <mesh position={[0, 0.92, 0]} scale={[1, 1.16, 0.88]} castShadow>
-            <sphereGeometry args={[0.43, 40, 32]} />
-            <Toon color="#CBBCEE" />
-            <Outlines thickness={0.026} color={INK} />
-          </mesh>
-          {/* neck — the head belongs to the body */}
-          <mesh position={[0, 1.32, 0.02]}>
-            <cylinderGeometry args={[0.09, 0.11, 0.12, 14]} />
-            <Toon color={skin} />
-            <Outlines thickness={0.01} color={INK} />
-          </mesh>
-          {/* left arm — curves gently inward, hand folded in the lap */}
-          <group position={[-0.3, 1.04, 0.04]}>
-            <mesh position={[-0.03, -0.12, 0.05]} rotation={[0.3, 0, 0.32]} castShadow>
-              <capsuleGeometry args={[0.075, 0.18, 8, 16]} />
-              <Toon color="#CBBCEE" />
-              <Outlines thickness={0.013} color={INK} />
-            </mesh>
-            <mesh position={[0.0, -0.27, 0.17]} rotation={[0.95, 0, -0.5]}>
-              <capsuleGeometry args={[0.066, 0.17, 8, 16]} />
-              <Toon color="#CBBCEE" />
-              <Outlines thickness={0.011} color={INK} />
-            </mesh>
-          </group>
-          {/* right arm — same, pivots at the shoulder to wave hello */}
-          <group ref={waveArm} position={[0.3, 1.04, 0.04]}>
-            <mesh position={[0.03, -0.12, 0.05]} rotation={[0.3, 0, -0.32]} castShadow>
-              <capsuleGeometry args={[0.075, 0.18, 8, 16]} />
-              <Toon color="#CBBCEE" />
-              <Outlines thickness={0.013} color={INK} />
-            </mesh>
-            <mesh position={[0.0, -0.27, 0.17]} rotation={[0.95, 0, 0.5]}>
-              <capsuleGeometry args={[0.066, 0.17, 8, 16]} />
-              <Toon color="#CBBCEE" />
-              <Outlines thickness={0.011} color={INK} />
-            </mesh>
-            <mesh position={[-0.06, -0.36, 0.28]} scale={[1, 0.8, 1.1]}>
-              <sphereGeometry args={[0.075, 16, 12]} />
-              <Toon color={skin} />
-              <Outlines thickness={0.011} color={INK} />
-            </mesh>
-          </group>
-          {/* left hand, folded next to the right one in the lap */}
-          <mesh position={[-0.075, 0.71, 0.31]} scale={[1, 0.8, 1.1]}>
-            <sphereGeometry args={[0.075, 16, 12]} />
-            <Toon color={skin} />
-            <Outlines thickness={0.011} color={INK} />
-          </mesh>
-          {/* legs — dangling over the couch edge, swinging gently */}
-          <group ref={legs} position={[0, 0.62, 0.22]}>
-            {[-1, 1].map(s => (
-              <group key={s} position={[s * 0.17, 0, 0]}>
-                {/* thigh */}
-                <mesh position={[0, -0.04, 0.12]} rotation={[1.25, 0, s * 0.06]} castShadow>
-                  <capsuleGeometry args={[0.105, 0.26, 6, 12]} />
-                  <Toon color="#CBBCEE" />
-                  <Outlines thickness={0.018} color={INK} />
-                </mesh>
-                {/* shin hanging down */}
-                <mesh position={[0, -0.26, 0.26]} rotation={[0.18, 0, 0]}>
-                  <capsuleGeometry args={[0.08, 0.24, 6, 12]} />
-                  <Toon color={skin} />
-                  <Outlines thickness={0.014} color={INK} />
-                </mesh>
-                {/* cozy sock foot */}
-                <mesh position={[0, -0.42, 0.32]} scale={[1, 0.75, 1.4]}>
-                  <sphereGeometry args={[0.082, 16, 12]} />
-                  <Toon color="#FFFDF8" />
-                  <Outlines thickness={0.014} color={INK} />
-                </mesh>
-              </group>
-            ))}
-          </group>
-
-          {/* head — a touch bigger than life for sweet chibi proportions */}
-          <group ref={head} position={[0, 1.52, 0]}>
-            <mesh castShadow>
-              <sphereGeometry args={[0.37, 32, 26]} />
-              <Toon color={skin} />
-              <Outlines thickness={0.025} color={INK} />
-            </mesh>
-            {/* soft rounded hair cap */}
-            <mesh position={[0, 0.06, -0.05]} rotation={[-0.32, 0, 0]}>
-              <sphereGeometry args={[0.388, 30, 20, 0, Math.PI * 2, 0, Math.PI * 0.54]} />
-              <Toon color="#8B7459" />
-              <Outlines thickness={0.02} color={INK} />
-            </mesh>
-            {/* a little cowlick tuft — charm on top */}
-            <mesh position={[0.05, 0.36, -0.02]} rotation={[0.35, 0, 0.55]} scale={[0.62, 1.15, 0.62]}>
-              <sphereGeometry args={[0.052, 12, 9]} />
-              <Toon color="#8B7459" />
-              <Outlines thickness={0.012} color={INK} />
-            </mesh>
-            {/* a sweet little hair bow on the side — a bit of personality */}
-            <group position={[0.21, 0.25, 0.16]} rotation={[0.1, 0.4, -0.35]}>
-              <mesh position={[-0.052, 0, 0]} scale={[1, 0.72, 0.5]}>
-                <sphereGeometry args={[0.056, 12, 10]} />
-                <Toon color="#F2A7BC" />
-                <Outlines thickness={0.01} color={INK} />
-              </mesh>
-              <mesh position={[0.052, 0, 0]} scale={[1, 0.72, 0.5]}>
-                <sphereGeometry args={[0.056, 12, 10]} />
-                <Toon color="#F2A7BC" />
-                <Outlines thickness={0.01} color={INK} />
-              </mesh>
-              <mesh>
-                <sphereGeometry args={[0.027, 10, 8]} />
-                <Toon color="#E68AA3" />
-                <Outlines thickness={0.008} color={INK} />
-              </mesh>
-            </group>
-            {/* eyes — big & glossy: the heart of the cuteness. A dark round iris
-                with a large catchlight + a small secondary sparkle, nested inside
-                each eye so they blink together. Wide-set and low for a baby face. */}
-            <group ref={gaze}>
-              <mesh ref={eyeL} position={[-0.132, -0.012, 0.285]}>
-                <sphereGeometry args={[0.07, 20, 18]} />
-                <meshBasicMaterial color="#2B2233" />
-                <mesh position={[0.026, 0.032, 0.052]}><sphereGeometry args={[0.028, 12, 10]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
-                <mesh position={[-0.024, -0.028, 0.054]}><sphereGeometry args={[0.014, 8, 6]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
-              </mesh>
-              <mesh ref={eyeR} position={[0.132, -0.012, 0.285]}>
-                <sphereGeometry args={[0.07, 20, 18]} />
-                <meshBasicMaterial color="#2B2233" />
-                <mesh position={[0.026, 0.032, 0.052]}><sphereGeometry args={[0.028, 12, 10]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
-                <mesh position={[-0.024, -0.028, 0.054]}><sphereGeometry args={[0.014, 8, 6]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
-              </mesh>
-            </group>
-            {/* tiny button nose + soft ears */}
-            <mesh position={[0, -0.05, 0.355]} scale={[1, 0.85, 0.7]}>
-              <sphereGeometry args={[0.02, 10, 8]} />
-              <Toon color="#EFC3A6" />
-            </mesh>
-            <mesh position={[-0.36, -0.01, 0.04]} scale={[0.6, 1, 0.8]}>
-              <sphereGeometry args={[0.058, 12, 8]} />
-              <Toon color={skin} />
-              <Outlines thickness={0.008} color={INK} />
-            </mesh>
-            <mesh position={[0.36, -0.01, 0.04]} scale={[0.6, 1, 0.8]}>
-              <sphereGeometry args={[0.058, 12, 8]} />
-              <Toon color={skin} />
-              <Outlines thickness={0.008} color={INK} />
-            </mesh>
-            {/* brows — soft little arcs that lift when listening */}
-            <group ref={brows}>
-              <mesh position={[-0.132, 0.115, 0.305]} rotation={[0.25, 0, 0.12]}>
-                <torusGeometry args={[0.052, 0.011, 6, 12, Math.PI * 0.7]} />
-                <meshBasicMaterial color="#8B7459" />
-              </mesh>
-              <mesh position={[0.132, 0.115, 0.305]} rotation={[0.25, 0, Math.PI - 0.12 - Math.PI * 0.7]}>
-                <torusGeometry args={[0.052, 0.011, 6, 12, Math.PI * 0.7]} />
-                <meshBasicMaterial color="#8B7459" />
-              </mesh>
-            </group>
-            {/* rosy cheeks — bigger and lower, right under the eyes */}
-            <mesh position={[-0.205, -0.105, 0.265]} scale={[1, 0.72, 0.5]}>
-              <sphereGeometry args={[0.07, 14, 12]} />
-              <meshBasicMaterial color="#F5A0B0" transparent opacity={0.8} />
-            </mesh>
-            <mesh position={[0.205, -0.105, 0.265]} scale={[1, 0.72, 0.5]}>
-              <sphereGeometry args={[0.07, 14, 12]} />
-              <meshBasicMaterial color="#F5A0B0" transparent opacity={0.8} />
-            </mesh>
-            {/* resting smile — fades out while the open mouth talks */}
-            <mesh ref={smile} position={[0, -0.1, 0.31]} rotation={[0.15, 0, Math.PI]}>
-              <torusGeometry args={[0.075, 0.016, 8, 20, Math.PI]} />
-              <meshBasicMaterial color={INK} />
-            </mesh>
-            {/* open mouth — a real rounded "ah" that opens and closes with speech */}
-            <group ref={openMouth} position={[0, -0.115, 0.295]} scale={[1, 0.001, 1]}>
-              <mesh scale={[1, 1, 0.45]}>
-                <sphereGeometry args={[0.062, 16, 12]} />
-                <meshBasicMaterial color="#4A2F33" />
-              </mesh>
-              {/* tongue */}
-              <mesh position={[0, -0.025, 0.018]} scale={[0.75, 0.5, 0.4]}>
-                <sphereGeometry args={[0.045, 12, 8]} />
-                <meshBasicMaterial color="#E58B9B" />
-              </mesh>
-            </group>
-          </group>
-
-          {/* thought dots (shown while reflecting) */}
-          <group ref={think} position={[0.42, 2.0, 0]} scale={0.0001}>
-            <mesh position={[0, 0, 0]}><sphereGeometry args={[0.028, 10, 8]} /><meshBasicMaterial color="#A98FE0" /></mesh>
-            <mesh position={[0.1, 0.12, 0]}><sphereGeometry args={[0.04, 10, 8]} /><meshBasicMaterial color="#A98FE0" /></mesh>
-            <mesh position={[0.22, 0.27, 0]}><sphereGeometry args={[0.055, 10, 8]} /><meshBasicMaterial color="#A98FE0" /></mesh>
-          </group>
-        </group>
-      </group>
-
-      {/* soft warm aura behind the companion — breathes while Echo speaks */}
-      <mesh ref={aura} position={[0, 1.2, -0.25]}>
-        <sphereGeometry args={[0.95, 20, 16]} />
+    <group ref={root} position={[-0.4, 0.02, -1.5]}>
+      {/* soft warm aura behind — breathes while Echo speaks */}
+      <mesh ref={aura} position={[0, 1.0, -0.25]}>
+        <sphereGeometry args={[0.85, 20, 16]} />
         <meshBasicMaterial color="#F4B89A" transparent opacity={0} depthWrite={false} />
       </mesh>
+      <group ref={rig} rotation={[0, 0, 0]} scale={0.28}>
+        <primitive object={scene} />
+      </group>
     </group>
   );
 }
@@ -1492,7 +1265,9 @@ function RoomScene({ state }: { state: OrbState }) {
       </group>
 
       {/* the companion, across the table */}
-      <Companion3D state={state} />
+      <Suspense fallback={null}>
+        <CompanionModel state={state} />
+      </Suspense>
 
       {/* you, seated — knees, hands, feet, cushion */}
       <YourPresence />
