@@ -67,7 +67,7 @@ function FeedbackModal({ screen, onClose }: { screen?: string; onClose: () => vo
               {[1, 2, 3, 4, 5].map((n) => (
                 <button key={n} className={'fb-star' + (n <= shown ? ' on' : '')}
                   onMouseEnter={() => setHover(n)} onClick={() => setRating(n)} aria-label={`${n} star${n > 1 ? 's' : ''}`}>
-                  <Ic name="star" size={30} stroke="var(--ink)" fill={n <= shown ? 'var(--sun)' : 'none'} />
+                  <Ic name="star" size={34} sw={2.2} stroke="var(--ink)" fill={n <= shown ? 'var(--sun)' : 'var(--cream-3)'} />
                 </button>
               ))}
               <span className="fb-rate-label">{RATING_LABEL[shown]}</span>
