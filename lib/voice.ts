@@ -172,12 +172,12 @@ export function useVoice(opts: {
       src.playbackRate.value = 0.96; // a touch deeper / more machine-like
       // ring modulation: multiply the voice by a low sine to get a robotic timbre
       const ring = ctx.createGain(); ring.gain.value = 0;
-      const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 44;
+      const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 60;
       osc.connect(ring.gain);
-      // mix wet (robotic) with dry (clear) so it stays intelligible; soften highs
-      const wet = ctx.createGain(); wet.gain.value = 0.7;
-      const dry = ctx.createGain(); dry.gain.value = 0.5;
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3400;
+      // mostly the clear voice with just a hint of robotic shimmer on top
+      const wet = ctx.createGain(); wet.gain.value = 0.22;
+      const dry = ctx.createGain(); dry.gain.value = 0.95;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200;
       src.connect(ring); ring.connect(wet); wet.connect(lp);
       src.connect(dry); dry.connect(lp);
       lp.connect(ctx.destination);
