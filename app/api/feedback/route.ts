@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
   const item: Feedback = {
     rating,
     message,
+    name: (body.name ?? '').toString().slice(0, 60).trim() || undefined,
     contact: (body.contact ?? '').toString().slice(0, 200).trim() || undefined,
     screen: (body.screen ?? '').toString().slice(0, 40) || undefined,
     at: new Date().toISOString(),

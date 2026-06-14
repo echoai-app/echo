@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Ic, EchoLogo } from '@/components/ui';
 
-interface Feedback { rating: number; message: string; contact?: string; screen?: string; at: string }
+interface Feedback { rating: number; message: string; name?: string; contact?: string; screen?: string; at: string }
 
 export default function FeedbackViewer() {
   const [key, setKey] = useState('');
@@ -74,7 +74,10 @@ export default function FeedbackViewer() {
               {items.map((f, i) => (
                 <div key={i} className="fbv-item">
                   <div className="fbv-item-top">
-                    <span className="fbv-rate">{'★'.repeat(f.rating)}<span style={{ opacity: .25 }}>{'★'.repeat(5 - f.rating)}</span></span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+                      <span className="fbv-rate">{'★'.repeat(f.rating)}<span style={{ opacity: .25 }}>{'★'.repeat(5 - f.rating)}</span></span>
+                      {f.name && <b style={{ fontFamily: 'var(--display)', fontSize: 15 }}>{f.name}</b>}
+                    </span>
                     <span className="muted" style={{ fontSize: 12, fontWeight: 600 }}>
                       {new Date(f.at).toLocaleString()}{f.screen ? ` · ${f.screen}` : ''}
                     </span>

@@ -1011,6 +1011,9 @@ input,textarea{font-family:var(--body);}
 .fb-head{display:flex;align-items:center;gap:13px;margin-bottom:18px;padding-right:30px;}
 .fb-head-ic{width:46px;height:46px;flex:0 0 46px;border-radius:14px;border:2.6px solid var(--ink);background:var(--lav);
   display:grid;place-items:center;box-shadow:2px 3px 0 var(--ink);}
+.fb-as{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:12.5px;color:var(--ink-soft);
+  background:var(--cream-2);border:2px solid var(--ink);border-radius:99px;padding:4px 11px;margin-bottom:14px;}
+.fb-as b{font-family:var(--display);color:var(--ink);}
 .fb-stars{display:flex;align-items:center;gap:4px;margin-bottom:16px;flex-wrap:wrap;}
 .fb-star{background:none;border:none;padding:2px;cursor:pointer;transition:transform .12s ease;line-height:0;}
 .fb-star:hover{transform:scale(1.18) rotate(-6deg);}

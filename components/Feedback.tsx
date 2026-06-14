@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Ic, Btn, EchoLogo } from './ui';
+import { useEcho, displayName } from '@/lib/store';
 
 const RATING_LABEL = ['', 'Not great', 'Meh', 'Okay', 'Good', 'Love it'];
 
@@ -19,6 +20,7 @@ export function FeedbackButton({ screen }: { screen?: string }) {
 }
 
 function FeedbackModal({ screen, onClose }: { screen?: string; onClose: () => void }) {
+  const name = useEcho(s => s.name);
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [message, setMessage] = useState('');
@@ -33,7 +35,7 @@ function FeedbackModal({ screen, onClose }: { screen?: string; onClose: () => vo
       await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating, message, contact, screen }),
+        body: JSON.stringify({ rating, message, contact, screen, name: name?.trim() ? displayName(name) : undefined }),
       });
     } catch { /* thank them anyway */ }
     setSending(false);
@@ -62,6 +64,10 @@ function FeedbackModal({ screen, onClose }: { screen?: string; onClose: () => vo
                 <div className="muted" style={{ fontWeight: 600, fontSize: 13 }}>A few words help more than you&apos;d think.</div>
               </div>
             </div>
+
+            {name?.trim() && (
+              <div className="fb-as"><Ic name="heart" size={13} stroke="var(--rose-deep)" fill="var(--rose)" /> Sending as <b>{displayName(name)}</b></div>
+            )}
 
             <div className="fb-stars" onMouseLeave={() => setHover(0)}>
               {[1, 2, 3, 4, 5].map((n) => (

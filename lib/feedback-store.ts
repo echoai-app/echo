@@ -5,6 +5,7 @@
 export interface Feedback {
   rating: number;        // 1..5
   message: string;
+  name?: string;         // the name they chose in onboarding
   contact?: string;      // optional email / handle
   screen?: string;       // where they were
   at: string;            // ISO timestamp
