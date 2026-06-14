@@ -882,7 +882,21 @@ input,textarea{font-family:var(--body);}
   .navpills{padding:3px;}
   .session-bar{padding:8px 10px;gap:8px;}
   .pm-stats{gap:8px;}
-  .profile-menu{width:min(340px,94vw);}
+  /* compact profile menu on phones so it never swallows the whole screen */
+  .profile-menu{position:fixed;top:62px;right:8px;left:auto;width:min(290px,86vw);
+    max-height:min(74dvh,560px);border-radius:20px;box-shadow:4px 6px 0 var(--ink);}
+  .profile-menu .pm-head{padding:13px 14px;gap:11px;}
+  .profile-menu .pm-head .avatar{width:42px;height:42px;font-size:18px;}
+  .profile-menu .pm-head .display{font-size:18px !important;}
+  .profile-menu .pm-stat{padding:9px 4px;}
+  .profile-menu .pm-stat b{font-size:18px;}
+  .profile-menu .pm-stat span{font-size:9.5px;}
+  .profile-menu .pm-sec{padding:6px;}
+  .profile-menu .pm-row{padding:8px 9px;font-size:14px;gap:10px;}
+  .profile-menu .pm-row .pic{width:30px;height:30px;flex:0 0 30px;}
+  .profile-menu .pm-row .sub{font-size:11.5px;}
+  .profile-menu .pm-logout{padding:10px;font-size:14px;margin:6px 8px 10px;}
+  .profile-menu .pm-foot{padding:0 12px 12px;}
   .calm-pop{width:min(330px,92vw);}
   .say{font-size:15.5px;padding:13px 16px;max-width:86vw;}
   .mem{padding:14px 14px;}
@@ -945,9 +959,9 @@ input,textarea{font-family:var(--body);}
 
 /* hover/tap popover for proof ids */
 .idpop-wrap{position:relative;display:inline-flex;}
-.idpop{position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:min(290px,80vw);
-  background:var(--paper);border:2.6px solid var(--ink);border-radius:14px;box-shadow:4px 5px 0 var(--ink);
-  padding:12px 14px;text-align:left;animation:popIn .18s ease both;}
+/* rendered into <body> with inline position:fixed — sits above the modal (z 80) */
+.idpop{z-index:95;background:var(--paper);border:2.6px solid var(--ink);border-radius:14px;box-shadow:4px 5px 0 var(--ink);
+  padding:12px 14px;text-align:left;animation:popIn .15s ease both;}
 .idpop .full{font-size:11px;word-break:break-all;line-height:1.45;display:block;margin-bottom:9px;}
 .idpop .acts{display:flex;gap:8px;}
 .idpop .acts a,.idpop .acts button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
@@ -955,6 +969,22 @@ input,textarea{font-family:var(--body);}
   background:var(--cream-2);color:var(--ink);text-decoration:none;}
 .idpop .acts a:hover,.idpop .acts button:hover{background:var(--sun);}
 .idpop-trigger{cursor:pointer;border-bottom:2px dotted var(--ink-faint);}
+
+/* ---------- proof modal: tidy scrollbar + phone padding ---------- */
+.proof-mod-head{padding:22px 26px;}
+.proof-mod-body{padding:10px 26px 22px;}
+.proof-modal{scrollbar-width:thin;scrollbar-color:var(--cream-3) transparent;}
+.proof-modal::-webkit-scrollbar{width:10px;}
+.proof-modal::-webkit-scrollbar-track{background:transparent;margin:14px 0;}
+.proof-modal::-webkit-scrollbar-thumb{background:var(--cream-3);border-radius:99px;border:2.5px solid var(--paper);}
+.proof-modal::-webkit-scrollbar-thumb:hover{background:var(--ink-faint);}
+@media (max-width:680px){
+  .proof-mod-head{padding:16px 16px;gap:12px;}
+  .proof-mod-head .display{font-size:19px !important;}
+  .proof-mod-body{padding:8px 16px 18px;}
+  .proof-row{font-size:12.5px;gap:10px;padding:11px 0;}
+  .proof-row .v{font-size:12px;}
+}
 
 /* ---------- feedback fab + modal ---------- */
 .fb-fab{position:fixed;right:18px;bottom:18px;z-index:55;display:inline-flex;align-items:center;gap:0;

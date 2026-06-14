@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Ic, Btn, LogoMark } from './ui';
 import { suiscanTxUrl, suiscanObjectUrl } from '@/lib/sui/registry';
 import type { WalrusProof } from '@/types';
@@ -14,32 +15,72 @@ export function ProofBadge({ onClick, pending, sui }: { onClick: () => void; pen
   );
 }
 
-/* hover (or tap) an id → a popover with the full value, copy, and explorer link */
+/* Tap an id → a popover (rendered to <body>, so it's never clipped by the
+   modal's scroll area) with the full value, copy, and explorer link. Click-to-
+   toggle + close-on-outside-click means you can actually move to the buttons. */
 function IdPopover({ value, link, label }: { value: string; link?: string; label?: string }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const triggerRef = useRef<HTMLSpanElement>(null);
+
+  const place = () => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const w = Math.min(300, window.innerWidth - 24);
+    const left = Math.max(12, Math.min(r.right - w, window.innerWidth - w - 12));
+    const estH = 138;
+    const top = r.bottom + 8 + estH > window.innerHeight - 12 ? Math.max(12, r.top - estH - 8) : r.bottom + 8;
+    setPos({ top, left, width: w });
+  };
+  const toggle = () => { if (!open) place(); setOpen(o => !o); };
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (triggerRef.current?.contains(t) || document.getElementById('idpop-live')?.contains(t)) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open]);
+
   const copy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1400); } catch { /* visible anyway */ }
   };
+
   return (
-    <span className="idpop-wrap" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      <span className="v mono idpop-trigger" style={{ fontSize: 12.5, color: 'var(--ink)' }}
-        role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
-        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setOpen(o => !o)}>
+    <>
+      <span ref={triggerRef} className="v mono idpop-trigger" style={{ fontSize: 12.5, color: 'var(--ink)' }}
+        role="button" tabIndex={0} onClick={toggle}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}>
         {short(value)}{link ? ' ↗' : ''}
       </span>
-      {open && (
-        <span className="idpop" onClick={e => e.stopPropagation()}>
+      {open && pos && typeof document !== 'undefined' && createPortal(
+        <span id="idpop-live" className="idpop" style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
+          onClick={e => e.stopPropagation()}>
           {label && <b style={{ fontSize: 10.5, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--ink-soft)', display: 'block', marginBottom: 5 }}>{label}</b>}
           <span className="full mono">{value}</span>
           <span className="acts">
             <button onClick={copy}><Ic name={copied ? 'check' : 'chat'} size={12} /> {copied ? 'Copied' : 'Copy'}</button>
             {link && <a href={link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}><Ic name="db" size={12} /> Open</a>}
           </span>
-        </span>
+        </span>,
+        document.body
       )}
-    </span>
+    </>
   );
 }
 
@@ -101,8 +142,8 @@ export function ProofModal({ open, onClose, proof, count }: {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(53,42,31,.42)', zIndex: 80, display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} className="card card-lg" style={{ width: 'min(560px,94vw)', maxHeight: '92dvh', padding: 0, overflowY: 'auto', animation: 'up .4s both' }}>
-        <div style={{ background: pending ? 'var(--cream-2)' : 'var(--mint)', padding: '22px 26px', borderBottom: '3px solid var(--ink)', display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div onClick={e => e.stopPropagation()} className="card card-lg proof-modal" style={{ width: 'min(560px,94vw)', maxHeight: '92dvh', padding: 0, overflowY: 'auto', animation: 'up .4s both' }}>
+        <div className="proof-mod-head" style={{ background: pending ? 'var(--cream-2)' : 'var(--mint)', borderBottom: '3px solid var(--ink)', display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ width: 56, height: 56, borderRadius: 16, border: '3px solid var(--ink)', display: 'grid', placeItems: 'center', background: 'var(--paper)', boxShadow: '2px 3px 0 var(--ink)' }}><Ic name="anchor" size={30} /></div>
           <div style={{ flex: 1 }}>
             <div className="display" style={{ fontSize: 22 }}>{pending ? 'Saving to Walrus' : 'Stored on Walrus'}</div>
@@ -110,7 +151,7 @@ export function ProofModal({ open, onClose, proof, count }: {
           </div>
           <button onClick={onClose} className="chip" style={{ cursor: 'pointer', boxShadow: '2px 3px 0 var(--ink)' }}><Ic name="x" size={16} /></button>
         </div>
-        <div style={{ padding: '10px 26px 22px' }}>
+        <div className="proof-mod-body">
           {!pending && (
             <>
               <ProofChain signed={!!reg} />
