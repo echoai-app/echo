@@ -943,7 +943,7 @@ input,textarea{font-family:var(--body);}
 .idpop-trigger{cursor:pointer;border-bottom:2px dotted var(--ink-faint);}
 
 /* ---------- landing: compact rotating testimonial ---------- */
-.testimonial-card{max-width:430px;width:100%;background:var(--paper);border:2.6px solid var(--ink);border-radius:20px;
+.testimonial-card{max-width:430px;width:100%;touch-action:pan-y;user-select:none;background:var(--paper);border:2.6px solid var(--ink);border-radius:20px;
   box-shadow:3px 4px 0 var(--ink);padding:14px 18px;display:flex;flex-direction:column;gap:8px;text-align:left;}
 .testimonial-card > p{margin:0;font-weight:600;font-size:14.5px;line-height:1.5;color:var(--ink);min-height:44px;
   animation:tfade .5s ease;}
@@ -953,6 +953,7 @@ input,textarea{font-family:var(--body);}
 .t-av{width:28px;height:28px;flex:0 0 28px;border-radius:50%;border:2.2px solid var(--ink);display:grid;place-items:center;
   font-family:var(--display);font-weight:800;font-size:13px;box-shadow:1.5px 2px 0 var(--ink);}
 .t-dots{margin-left:auto;display:inline-flex;gap:5px;}
-.t-dot{width:7px;height:7px;border-radius:50%;background:var(--cream-3);transition:background .2s;}
+.t-dot{width:8px;height:8px;border-radius:50%;background:var(--cream-3);border:none;padding:0;cursor:pointer;transition:background .2s,transform .15s;}
+.t-dot:hover{transform:scale(1.25);}
 .t-dot.on{background:var(--peach-deep);}
 @media (max-height:720px){.testimonial-card{display:none;}}

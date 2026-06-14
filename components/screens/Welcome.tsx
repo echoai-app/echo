@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Doodles, Btn, Ic, PoweredBy, EchoLogo } from '../ui';
 import { useEcho } from '@/lib/store';
 
@@ -12,19 +12,38 @@ const TESTIMONIALS = [
 
 function TestimonialRotator() {
   const [i, setI] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const touch = useRef<number | null>(null);
+  const go = (n: number) => setI((n + TESTIMONIALS.length) % TESTIMONIALS.length);
+  const nudge = (dir: number) => { go(i + dir); setPaused(true); setTimeout(() => setPaused(false), 9000); };
+
   useEffect(() => {
+    if (paused) return;
     const t = setInterval(() => setI(v => (v + 1) % TESTIMONIALS.length), 5200);
     return () => clearInterval(t);
-  }, []);
+  }, [paused]);
+
   const t = TESTIMONIALS[i];
   return (
-    <div className="testimonial-card" role="group" aria-label="early tester reflection">
+    <div className="testimonial-card" role="group" aria-label="early tester reflection"
+      onTouchStart={e => { touch.current = e.touches[0].clientX; }}
+      onTouchEnd={e => {
+        if (touch.current == null) return;
+        const dx = e.changedTouches[0].clientX - touch.current;
+        if (Math.abs(dx) > 36) nudge(dx < 0 ? 1 : -1);
+        touch.current = null;
+      }}>
       <Ic name="chat" size={18} stroke="var(--ink-faint)" />
       <p key={i}>&ldquo;{t.quote}&rdquo;</p>
       <div className="t-by">
         <span className="t-av" style={{ background: t.tone }}>{t.initial}</span>
         <b>{t.name}</b><span className="muted">· early tester</span>
-        <span className="t-dots">{TESTIMONIALS.map((_, k) => <span key={k} className={'t-dot' + (k === i ? ' on' : '')} />)}</span>
+        <span className="t-dots">
+          {TESTIMONIALS.map((_, k) => (
+            <button key={k} className={'t-dot' + (k === i ? ' on' : '')} aria-label={`reflection ${k + 1}`}
+              onClick={() => { go(k); setPaused(true); setTimeout(() => setPaused(false), 9000); }} />
+          ))}
+        </span>
       </div>
     </div>
   );
