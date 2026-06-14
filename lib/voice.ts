@@ -124,9 +124,9 @@ export function useVoice(opts: {
       const voices = voicesRef.current.length ? voicesRef.current : synth.getVoices();
       const voice = chosenVoiceRef.current ?? pickWarmVoice(voices);
       if (voice) u.voice = voice;
-      // child-like: a higher pitch + slightly quicker pace = a cute, young voice
-      u.rate = 1.04;
-      u.pitch = 1.5;
+      // youthful but composed — a gentle lift, not a cartoon
+      u.rate = 1.0;
+      u.pitch = 1.18;
       // Chrome quietly pauses long utterances after ~15s — keep nudging it.
       const keepAlive = setInterval(() => { try { if (synth.speaking) synth.resume(); else clearInterval(keepAlive); } catch { clearInterval(keepAlive); } }, 9000);
       const done = () => { clearInterval(keepAlive); onEnd?.(); };
@@ -180,7 +180,7 @@ export function useVoice(opts: {
         type PitchAudio = HTMLAudioElement & { preservesPitch?: boolean; mozPreservesPitch?: boolean; webkitPreservesPitch?: boolean };
         const pa = audio as PitchAudio;
         pa.preservesPitch = false; pa.mozPreservesPitch = false; pa.webkitPreservesPitch = false;
-        audio.playbackRate = 1.16; // higher + a touch quicker → cute kid voice
+        audio.playbackRate = 1.07; // a slight lift — youthful but still grounded
         audioRef.current = audio;
         audio.onended = () => { stopAudio(); finish(); };
         audio.onerror = () => { stopAudio(); if (!settled) browserSpeak(text, finish); };

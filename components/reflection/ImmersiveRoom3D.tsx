@@ -198,14 +198,13 @@ function CompanionModel({ state }: { state: OrbState }) {
 
   useFrame((st, dt) => {
     const t = st.clock.elapsedTime;
-    // floaty idle bob with a springy squash-&-stretch + an occasional happy hop
-    const bob = Math.sin(t * 1.6);
-    const hop = Math.pow(Math.max(0, Math.sin(t * 0.55)), 8); // a little jump now and then
+    // a gentle, settled hover — subtle bob with the faintest squash, no jelly
+    const bob = Math.sin(t * 1.25);
     if (root.current) {
-      const y = 1.05 + bob * 0.045 + hop * 0.09;
+      const y = 1.05 + bob * 0.018;
       root.current.position.y = y;
-      const sx = 1 + bob * 0.025 - hop * 0.05;
-      const sy = 1 - bob * 0.025 + hop * 0.07;
+      const sx = 1 + bob * 0.008;
+      const sy = 1 - bob * 0.008;
       root.current.scale.set(0.64 * sx, 0.64 * sy, 0.64 * sx);
       root.current.rotation.z = damp(root.current.rotation.z, Math.sin(t * 0.7) * 0.055 + (state === 'speaking' ? Math.sin(t * 2.0) * 0.02 : 0), 4, dt);
       root.current.position.z = damp(root.current.position.z, state === 'listening' ? -1.16 : -1.26, 5, dt);
