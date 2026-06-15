@@ -6,16 +6,17 @@ import { Ic, EchoLogo } from '@/components/ui';
 interface Feedback { rating: number; message: string; name?: string; contact?: string; screen?: string; at: string }
 
 export default function FeedbackViewer() {
-  const [key, setKey] = useState('');
+  // Pre-fill the key from ?key=... in the URL (lazy init, not a setState-in-effect).
+  const [key, setKey] = useState(() =>
+    typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('key') ?? '');
   const [items, setItems] = useState<Feedback[] | null>(null);
   const [configured, setConfigured] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Allow ?key=... in the URL so a bookmark just works.
+  // If a key arrived in the URL, load straight away.
   useEffect(() => {
-    const k = new URLSearchParams(window.location.search).get('key');
-    if (k) { setKey(k); load(k); }
+    if (key) load(key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
