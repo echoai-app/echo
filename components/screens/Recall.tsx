@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useCurrentAccount, useSuiClient } from '@mysten/dapp-kit';
 import { AppBar } from '../chrome';
-import { Doodles, Eyebrow, Btn, Chip, Ic, Orb } from '../ui';
+import { Doodles, Eyebrow, Btn, Chip, Ic, EchoLogo } from '../ui';
 import { ProofBadge } from '../proof';
 import { useEcho } from '@/lib/store';
 import { useIdentity } from '../identity';
@@ -78,7 +78,7 @@ export default function Recall() {
         <Doodles />
         <div className="screen-pad" style={{ maxWidth: 980, margin: '0 auto', position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 30, alignItems: 'center', marginBottom: 28 }}>
-            <div className="up d1" style={{ display: 'grid', placeItems: 'center' }}><Orb size={140} listening /></div>
+            <div className="up d1" style={{ display: 'grid', placeItems: 'center' }}><EchoLogo size={120} style={{ filter: 'drop-shadow(0 12px 26px rgba(237,156,116,.4))' }} /></div>
             <div className="up d2">
               <Eyebrow ic="rewind">welcome back</Eyebrow>
               <h2 className="display" style={{ margin: '10px 0 14px' }}>Good to see you again.</h2>

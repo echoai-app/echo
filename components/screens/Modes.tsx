@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { AppBar } from '../chrome';
-import { Doodles, Ic, Orb } from '../ui';
+import { Doodles, Ic, EchoLogo } from '../ui';
 import { useEcho, displayName } from '@/lib/store';
 import { useIdentity } from '../identity';
 import { MODES, type EchoMode } from '@/lib/echo/modes';
@@ -72,7 +72,7 @@ export default function Modes() {
 
           {/* a calm, living greeting */}
           <div className="up d1 home2-greet">
-            <div className="home2-orb"><Orb size={110} state="idle" mood={t.mood} /></div>
+            <div className="home2-orb"><EchoLogo size={96} style={{ filter: 'drop-shadow(0 12px 26px rgba(237,156,116,.42))' }} /></div>
             <h2 className="display" style={{ fontSize: 'clamp(26px,4vw,40px)', lineHeight: 1.05 }}>{t.text}, <span style={{ color: 'var(--peach-deep)' }}>{displayName(name)}</span>.</h2>
             <p className="lede" style={{ margin: 0, maxWidth: 380 }}>{t.sub}</p>
             {hasHistory && <span className="home2-count"><Ic name="leaf" size={13} /> {reflections} reflection{reflections === 1 ? '' : 's'} kept</span>}
