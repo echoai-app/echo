@@ -902,6 +902,26 @@ input,textarea{font-family:var(--body);}
   .mem{padding:14px 14px;}
   .mode-card{padding:20px;}
   .exit-card{padding:24px 20px;}
+  /* global scale-down so nothing feels oversized on phones */
+  .screen-pad{padding:18px 13px 90px;}
+  .screen-pad .card{padding:15px !important;}
+  .card{border-radius:18px;}
+  .btn{font-size:15px;padding:11px 18px;}
+  .btn.lg{font-size:16px;padding:13px 22px;}
+  .btn.sm{font-size:13px;padding:8px 14px;}
+  .chip{font-size:12.5px;padding:6px 11px;}
+  .chip.sm{font-size:11px;padding:5px 9px;}
+  .chip-btn{font-size:12.5px !important;padding:7px 12px !important;}
+  .kicker{font-size:10px;letter-spacing:.09em;}
+  .lede{font-size:13.5px;line-height:1.5;}
+  .eyebrow{font-size:11px;padding:5px 11px;}
+}
+/* extra-small phones: a touch tighter still */
+@media (max-width:400px){
+  .screen-pad{padding:14px 11px 88px;}
+  .screen-pad .card{padding:13px !important;}
+  h2.display{font-size:clamp(23px,7vw,30px);}
+  .chip-btn{font-size:12px !important;padding:6px 10px !important;gap:5px;}
 }
 
 @keyframes drawline{to{stroke-dashoffset:0;}}
