@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { AppBar } from '../chrome';
-import { Doodles, Ic } from '../ui';
+import { Doodles, Ic, Orb } from '../ui';
 import { useEcho, displayName } from '@/lib/store';
 import { useIdentity } from '../identity';
 import { MODES, type EchoMode } from '@/lib/echo/modes';
@@ -11,9 +11,27 @@ type CSS = React.CSSProperties;
 
 function greetCtx() {
   const h = new Date().getHours();
-  if (h < 12) return { text: 'Good morning', ic: 'sun', bg: 'var(--sun)' };
-  if (h < 18) return { text: 'Good afternoon', ic: 'sun', bg: 'var(--peach)' };
-  return { text: 'Good evening', ic: 'moon', bg: 'var(--lav)' };
+  if (h < 12) return { text: 'Good morning', mood: 'peach', sub: 'A fresh start — how are you arriving today?' };
+  if (h < 18) return { text: 'Good afternoon', mood: 'peach', sub: 'A good moment to pause and check in.' };
+  return { text: 'Good evening', mood: 'lav', sub: 'Let’s unwind and reflect on your day.' };
+}
+
+// a small, calm strip of recent reflection intensity — only for returning users
+function RhythmStrip({ trend }: { trend: { when: string; value: number }[] }) {
+  const data = trend.slice(-12);
+  if (!data.length) return null;
+  const band = (v: number) => (v >= 7 ? 'var(--rose)' : v >= 4 ? 'var(--sun)' : 'var(--mint)');
+  return (
+    <div className="up d2 home2-rhythm">
+      <span className="home2-rhythm-label">your recent rhythm</span>
+      <div className="home2-rhythm-bars">
+        {data.map((d, i) => (
+          <span key={i} className="home2-rhythm-bar" style={{ height: `${8 + (Math.min(10, Math.max(1, d.value)) / 10) * 22}px`, background: band(d.value) }}
+            title={`${new Date(d.when).toLocaleDateString()} · ${d.value}/10`} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function Modes() {
@@ -43,6 +61,7 @@ export default function Modes() {
   const begin = () => { startSession({ mode: focus.id, modeTitle: focus.title }); go('setup'); };
   const reflections = journey?.sessions.length ?? 0;
   const hasHistory = reflections > 0;
+  const trend = journey?.intensity_trend ?? [];
 
   return (
     <div className="bg-cream" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -51,15 +70,15 @@ export default function Modes() {
         <Doodles />
         <div className="home2">
 
-          {/* a calm greeting */}
+          {/* a calm, living greeting */}
           <div className="up d1 home2-greet">
-            <div className="home2-greet-ic">
-              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid var(--ink)', background: `radial-gradient(circle at 38% 32%, var(--paper), ${t.bg} 82%)`, boxShadow: '3px 4px 0 var(--ink)' }} />
-              <Ic name={t.ic} size={30} sw={2.3} stroke="var(--ink)" />
-            </div>
+            <div className="home2-orb"><Orb size={110} state="idle" mood={t.mood} /></div>
             <h2 className="display" style={{ fontSize: 'clamp(26px,4vw,40px)', lineHeight: 1.05 }}>{t.text}, <span style={{ color: 'var(--peach-deep)' }}>{displayName(name)}</span>.</h2>
+            <p className="lede" style={{ margin: 0, maxWidth: 380 }}>{t.sub}</p>
             {hasHistory && <span className="home2-count"><Ic name="leaf" size={13} /> {reflections} reflection{reflections === 1 ? '' : 's'} kept</span>}
           </div>
+
+          {hasHistory && <RhythmStrip trend={trend} />}
 
           {/* THE one obvious action */}
           <button className="up d2 home2-start" onClick={begin}>
