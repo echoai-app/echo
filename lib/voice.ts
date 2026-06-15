@@ -25,6 +25,7 @@ export interface VoiceHook {
 
 export function useVoice(opts: {
   onResult: (finalText: string) => void;
+  onInterim?: (text: string) => void;   // fires as the user starts talking (for barge-in)
   enabled?: boolean;
 }): VoiceHook {
   const { onResult } = opts;
@@ -33,9 +34,12 @@ export function useVoice(opts: {
   const [listening, setListening] = useState(false);
   const [partial, setPartial] = useState('');
   const recRef = useRef<any>(null);
+  const keepAlive = useRef(false);       // keep the mic hot (auto-restart on end)
+  const startingRef = useRef(false);     // debounce overlapping start() calls
   const onResultRef = useRef(onResult);
-  // Keep the latest callback without re-creating the recognizer each render.
-  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
+  const onInterimRef = useRef(opts.onInterim);
+  // Keep the latest callbacks without re-creating the recognizer each render.
+  useEffect(() => { onResultRef.current = onResult; onInterimRef.current = opts.onInterim; });
 
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const chosenVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
@@ -66,9 +70,12 @@ export function useVoice(opts: {
     if (SR) {
       sttOk = true;
       const rec = new SR();
-      rec.continuous = false;
+      // Continuous + auto-restart keeps the mic hot the whole conversation, so
+      // it never "stops listening" and barge-in (talking over Echo) just works.
+      rec.continuous = true;
       rec.interimResults = true;
       rec.lang = 'en-US';
+      rec.onstart = () => { startingRef.current = false; };
       rec.onresult = (e: any) => {
         let interim = '';
         let final = '';
@@ -77,14 +84,30 @@ export function useVoice(opts: {
           if (e.results[i].isFinal) final += t;
           else interim += t;
         }
-        setPartial(interim || final);
+        if (interim.trim()) { setPartial(interim); onInterimRef.current?.(interim.trim()); }
         if (final.trim()) {
           onResultRef.current(final.trim());
           setPartial('');
         }
       };
-      rec.onend = () => setListening(false);
-      rec.onerror = () => setListening(false);
+      rec.onend = () => {
+        // restart unless we deliberately stopped — Chrome ends continuous
+        // recognition periodically; we just bring it back.
+        startingRef.current = false;
+        if (keepAlive.current) {
+          setTimeout(() => {
+            const r = recRef.current;
+            if (r && keepAlive.current && !startingRef.current) {
+              startingRef.current = true;
+              try { r.start(); } catch { startingRef.current = false; }
+            }
+          }, 220);
+        } else setListening(false);
+      };
+      rec.onerror = (e: any) => {
+        // permission errors are fatal; 'no-speech'/'aborted'/'network' are not
+        if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') { keepAlive.current = false; setListening(false); }
+      };
       recRef.current = rec;
     }
     const tts = typeof window.speechSynthesis !== 'undefined';
@@ -98,19 +121,25 @@ export function useVoice(opts: {
     };
   }, []);
 
-  const startListening = useCallback(() => {
-    if (!recRef.current) return;
-    try {
-      setPartial('');
-      setListening(true);
-      recRef.current.start();
-    } catch {
-      // start() throws if already started — ignore.
-      setListening(false);
-    }
+  // start() throws if recognition is already running — guard so we never crash
+  // or double-start during the rapid speak→listen→barge-in transitions.
+  const safeStart = useCallback(() => {
+    const rec = recRef.current;
+    if (!rec || !keepAlive.current || startingRef.current) return;
+    startingRef.current = true;
+    try { rec.start(); }
+    catch { startingRef.current = false; /* already running — that's fine */ }
   }, []);
 
+  const startListening = useCallback(() => {
+    if (!recRef.current) return;
+    keepAlive.current = true;
+    setListening(true);
+    safeStart();
+  }, [safeStart]);
+
   const stopListening = useCallback(() => {
+    keepAlive.current = false;
     try { recRef.current?.stop?.(); } catch { /* noop */ }
     setListening(false);
   }, []);
