@@ -115,8 +115,8 @@ export default function Room() {
     if (transcript.length === 0) {
       const line = openingLine(name, session.feelings, session.intensity);
       addTurn({ role: 'echo', text: line, source: 'voice', at: new Date().toISOString() });
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: kick off the opening "speaking" state on mount
-      setVs('speaking');
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: warm up while the opening line's audio loads
+      setVs('thinking');
       speakOrTimeout(line);
     }
     return () => t.forEach(clearTimeout);
@@ -157,11 +157,13 @@ export default function Room() {
     };
     if (prefs.voiceReplies) {
       // speak via the cloud/neural voice (it falls back to the browser voice on
-      // its own). No speechSynthesis gate — that silently muted some replies.
-      voice.speak(line, finish);
+      // its own). The mouth + bubble only turn on when audio REALLY starts
+      // (onStart), so they stay in sync instead of moving during the load.
+      voice.speak(line, finish, () => setVs('speaking'));
       // keep the mic hot DURING speech so the user can talk over Echo (barge-in)
       if (handsFree.current && voice.supported) voice.startListening();
     } else {
+      setVs('speaking');
       const dur = Math.min(4200, 1400 + line.length * 22);
       timers.current.push(setTimeout(finish, dur));
     }
@@ -190,12 +192,10 @@ export default function Room() {
       const data = await res.json();
       const reply: string = data.reply ?? "I'm here with you. Tell me more whenever you're ready.";
       addTurn({ role: 'echo', text: reply, source: 'voice', at: new Date().toISOString() });
-      setVs('speaking');
-      speakOrTimeout(reply);
+      speakOrTimeout(reply); // stays 'thinking' until audio starts, then 'speaking'
     } catch {
       const reply = "I'm here with you — take your time.";
       addTurn({ role: 'echo', text: reply, source: 'voice', at: new Date().toISOString() });
-      setVs('speaking');
       speakOrTimeout(reply);
     }
   }

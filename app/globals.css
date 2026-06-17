@@ -1006,6 +1006,23 @@ input,textarea{font-family:var(--body);}
   .proof-row .v{font-size:12px;}
 }
 
+/* ---------- 3D room loading screen ---------- */
+.room-loading{position:absolute;inset:0;z-index:6;display:grid;place-items:center;
+  background:linear-gradient(180deg,#ECE4F6 0%,#EFE7F3 52%,#F3E6D2 52%,#F7EAD6 100%);
+  animation:fadeIn .25s ease both;}
+.room-loading-card{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:24px;}
+.room-loading-logo{animation:loadpulse 3s ease-in-out infinite;filter:drop-shadow(0 10px 22px rgba(237,156,116,.35));}
+@keyframes loadpulse{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.05)}}
+.room-loading-title{font-family:var(--display);font-weight:800;font-size:20px;color:var(--ink);margin-top:8px;}
+.room-loading-sub{font-weight:600;font-size:13.5px;color:var(--ink-soft);}
+.room-loading-dots{display:flex;gap:7px;margin-top:8px;}
+.room-loading-dots span{width:9px;height:9px;border-radius:50%;background:var(--peach-deep);border:2px solid var(--ink);
+  animation:loadbob 1s ease-in-out infinite;}
+.room-loading-dots span:nth-child(2){animation-delay:.15s;}
+.room-loading-dots span:nth-child(3){animation-delay:.3s;}
+@keyframes loadbob{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(-7px);opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
 /* ---------- simple, obvious home (Modes) ---------- */
 .home2{max-width:540px;margin:0 auto;padding:clamp(34px,7vh,76px) 22px 48px;position:relative;z-index:2;
   display:flex;flex-direction:column;align-items:center;gap:28px;min-height:100%;}

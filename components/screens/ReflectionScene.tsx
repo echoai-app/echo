@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Ic, type OrbState } from '../ui';
+import { Ic, EchoLogo, type OrbState } from '../ui';
 import { useEcho } from '@/lib/store';
 import type { Room3DApi } from '../reflection/ImmersiveRoom3D';
 
@@ -20,6 +20,20 @@ type CSS = React.CSSProperties;
 
 const INK = '#352A1F';
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+
+/* Warm loading screen while the 3D room chunk + scene spin up in the background. */
+function RoomLoading() {
+  return (
+    <div className="room-loading">
+      <div className="room-loading-card">
+        <EchoLogo size={62} className="room-loading-logo" />
+        <div className="room-loading-title">Setting up your room…</div>
+        <div className="room-loading-sub">Loading in the background — just a moment.</div>
+        <div className="room-loading-dots"><span /><span /><span /></div>
+      </div>
+    </div>
+  );
+}
 
 // One parallax layer. `d` = depth (px of travel at full look deflection):
 // bigger = closer to you = moves more.
@@ -296,7 +310,7 @@ function CssReflectionScene({ state = 'idle' }: { state?: OrbState }) {
 // Lazy client-only chunk: three/R3F never load on first paint or for fallback users.
 const ImmersiveRoom3D = dynamic(() => import('../reflection/ImmersiveRoom3D'), {
   ssr: false,
-  loading: () => <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#ECE4F6 0%,#EFE7F3 52%,#F3E6D2 52%,#F7EAD6 100%)' }} />,
+  loading: () => <RoomLoading />,
 });
 
 function webglOK(): boolean {
@@ -331,9 +345,7 @@ export function ReflectionScene({ state = 'idle', onMode }: { state?: OrbState; 
   const fail = () => { setMode('css'); onMode?.('css'); };
 
   if (mode === 'css') return <CssReflectionScene state={state} />;
-  if (mode === 'boot') {
-    return <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#ECE4F6 0%,#EFE7F3 52%,#F3E6D2 52%,#F7EAD6 100%)' }} />;
-  }
+  if (mode === 'boot') return <RoomLoading />;
 
   return (
     <div style={{ position: 'absolute', inset: 0 }} onPointerDownCapture={() => { if (!hintGone) setHintGone(true); }}>

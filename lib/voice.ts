@@ -19,7 +19,7 @@ export interface VoiceHook {
   partial: string;
   startListening: () => void;
   stopListening: () => void;
-  speak: (text: string, onEnd?: () => void) => void;
+  speak: (text: string, onEnd?: () => void, onStart?: () => void) => void;
   cancelSpeech: () => void;
 }
 
@@ -45,9 +45,9 @@ export function useVoice(opts: {
   const chosenVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   // Holds the currently-playing neural-TTS clip so it can be interrupted.
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  // Web Audio graph for the robotic voice effect (ring modulation).
-  const ctxRef = useRef<AudioContext | null>(null);
-  const srcRef = useRef<AudioBufferSourceNode | null>(null);
+  // Increments on every speak/cancel so a slow in-flight request can't play
+  // late and double up with a newer line ("two voices at once").
+  const speakToken = useRef(0);
   // After a cloud-TTS request 5xx's (e.g. terms not accepted), stop retrying it
   // for the rest of the session and just use the browser voice.
   const cloudTtsOff = useRef(false);
@@ -145,7 +145,7 @@ export function useVoice(opts: {
   }, []);
 
   // Fallback: the browser's own speechSynthesis with the warmest local voice.
-  const browserSpeak = useCallback((text: string, onEnd?: () => void) => {
+  const browserSpeak = useCallback((text: string, onEnd?: () => void, onStart?: () => void) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) { onEnd?.(); return; }
     try {
       const synth = window.speechSynthesis;
@@ -162,11 +162,12 @@ export function useVoice(opts: {
       // Chrome quietly pauses long utterances after ~15s — keep nudging it.
       const keepAlive = setInterval(() => { try { if (synth.speaking) synth.resume(); else clearInterval(keepAlive); } catch { clearInterval(keepAlive); } }, 9000);
       const done = () => { clearInterval(keepAlive); onEnd?.(); };
+      u.onstart = () => onStart?.();
       u.onend = done;
       u.onerror = done;
       // cancel() immediately followed by speak() silently drops the utterance
       // on some Chrome builds — give the queue one tick to clear.
-      setTimeout(() => { try { synth.speak(u); } catch { done(); } }, 60);
+      setTimeout(() => { try { synth.speak(u); } catch { done(); } }, 50);
     } catch {
       onEnd?.();
     }
@@ -175,62 +176,26 @@ export function useVoice(opts: {
   const stopAudio = useCallback(() => {
     const a = audioRef.current;
     if (a) {
-      try { a.pause(); a.onended = null; a.onerror = null; if (a.src) URL.revokeObjectURL(a.src); } catch { /* noop */ }
+      try { a.pause(); a.onplaying = null; a.onended = null; a.onerror = null; if (a.src) URL.revokeObjectURL(a.src); } catch { /* noop */ }
       audioRef.current = null;
     }
-    const s = srcRef.current;
-    if (s) {
-      try { s.onended = null; s.stop(); } catch { /* already stopped */ }
-      srcRef.current = null;
-    }
   }, []);
 
-  // Play the TTS clip through a ring-modulator so the male voice reads as a
-  // friendly robot — a sine "carrier" mixed with the dry voice so words stay
-  // clear. Returns false if Web Audio is unavailable so we can fall back.
-  const playRobotic = useCallback(async (data: ArrayBuffer, onEnd: () => void): Promise<boolean> => {
-    try {
-      const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctor) return false;
-      const ctx = ctxRef.current ?? new Ctor();
-      ctxRef.current = ctx;
-      if (ctx.state === 'suspended') await ctx.resume();
-      const buffer = await ctx.decodeAudioData(data.slice(0));
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
-      src.playbackRate.value = 0.96; // a touch deeper / more machine-like
-      // ring modulation: multiply the voice by a low sine to get a robotic timbre
-      const ring = ctx.createGain(); ring.gain.value = 0;
-      const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 60;
-      osc.connect(ring.gain);
-      // mostly the clear voice with just a hint of robotic shimmer on top
-      const wet = ctx.createGain(); wet.gain.value = 0.12;
-      const dry = ctx.createGain(); dry.gain.value = 1.0;
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200;
-      src.connect(ring); ring.connect(wet); wet.connect(lp);
-      src.connect(dry); dry.connect(lp);
-      lp.connect(ctx.destination);
-      osc.start();
-      src.onended = () => { try { osc.stop(); } catch { /* noop */ } onEnd(); };
-      srcRef.current = src;
-      src.start();
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  // Primary: Echo's warm neural voice (Groq PlayAI TTS). Falls back to the
-  // browser voice on any hiccup — autoplay blocks, network, or terms not set.
-  const speak = useCallback((text: string, onEnd?: () => void) => {
+  // Primary: Echo's neural voice (Groq Orpheus). One clean clip — no ring-mod
+  // (that produced a ghostly "second voice"). Falls back to the browser voice on
+  // any hiccup. onStart fires when audio ACTUALLY begins, so the mouth syncs.
+  const speak = useCallback((text: string, onEnd?: () => void, onStart?: () => void) => {
     if (typeof window === 'undefined') { onEnd?.(); return; }
+    const myToken = ++speakToken.current;
+    const current = () => myToken === speakToken.current;
     let settled = false;
     const finish = () => { if (settled) return; settled = true; onEnd?.(); };
+    const start = () => { if (current()) onStart?.(); };
     // stop whatever's currently speaking before starting a new line
     try { window.speechSynthesis?.cancel?.(); } catch { /* noop */ }
     stopAudio();
 
-    if (cloudTtsOff.current) { browserSpeak(text, finish); return; }
+    if (cloudTtsOff.current) { browserSpeak(text, finish, start); return; }
 
     (async () => {
       try {
@@ -242,40 +207,30 @@ export function useVoice(opts: {
         // Any non-2xx means cloud TTS won't work this session (terms not
         // accepted, key/quota, etc.) — stop retrying it and use the browser voice.
         if (!res.ok) { cloudTtsOff.current = true; throw new Error('tts ' + res.status); }
-        const data = await res.arrayBuffer();
-        if (!data.byteLength) throw new Error('empty audio');
-        if (settled) return; // a newer line already took over
-        // primary: robotic-male effect via Web Audio
-        const ok = await playRobotic(data, () => { stopAudio(); finish(); });
-        if (ok) return;
-        // fallback: plain element playback, pitched down a touch for a deeper tone
-        const url = URL.createObjectURL(new Blob([data], { type: 'audio/wav' }));
+        const blob = await res.blob();
+        if (!blob.size) throw new Error('empty audio');
+        if (!current() || settled) return; // a newer line already took over → don't double up
+        const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
-        type PitchAudio = HTMLAudioElement & { preservesPitch?: boolean; mozPreservesPitch?: boolean; webkitPreservesPitch?: boolean };
-        const pa = audio as PitchAudio;
-        pa.preservesPitch = false; pa.mozPreservesPitch = false; pa.webkitPreservesPitch = false;
-        audio.playbackRate = 0.94;
         audioRef.current = audio;
+        audio.onplaying = start;              // mouth + bubble sync to real audio
         audio.onended = () => { stopAudio(); finish(); };
-        audio.onerror = () => { stopAudio(); if (!settled) browserSpeak(text, finish); };
+        audio.onerror = () => { stopAudio(); if (!settled && current()) browserSpeak(text, finish, start); };
         await audio.play();
       } catch {
-        if (!settled) browserSpeak(text, finish);
+        if (!settled && current()) browserSpeak(text, finish, start);
       }
     })();
-  }, [browserSpeak, stopAudio, playRobotic]);
+  }, [browserSpeak, stopAudio]);
 
   const cancelSpeech = useCallback(() => {
+    speakToken.current++;   // invalidate any in-flight request so it can't play late
     try { window.speechSynthesis?.cancel?.(); } catch { /* noop */ }
     stopAudio();
   }, [stopAudio]);
 
   // Make sure neural audio never outlives the room.
-  useEffect(() => () => {
-    stopAudio();
-    try { ctxRef.current?.close(); } catch { /* noop */ }
-    ctxRef.current = null;
-  }, [stopAudio]);
+  useEffect(() => () => { stopAudio(); }, [stopAudio]);
 
   return { supported, ttsSupported, listening, partial, startListening, stopListening, speak, cancelSpeech };
 }
