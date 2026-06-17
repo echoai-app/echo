@@ -1006,6 +1006,81 @@ input,textarea{font-family:var(--body);}
   .proof-row .v{font-size:12px;}
 }
 
+/* ========== animated explainer (/explainer) ========== */
+.exp-stage{position:fixed;inset:0;overflow:hidden;font-family:var(--body);color:var(--ink);
+  background:radial-gradient(120% 90% at 50% 0%, #FBEFE2 0%, var(--cream) 45%, #F3E7F2 100%);}
+.exp-bg{position:absolute;inset:0;pointer-events:none;}
+.exp-doodle{position:absolute;opacity:.5;animation:expDrift 9s ease-in-out infinite;}
+@keyframes expDrift{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-16px) rotate(8deg)}}
+
+.exp-scenes{position:absolute;inset:0;}
+.exp-scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:7vh 7vw;opacity:0;visibility:hidden;transition:opacity .7s ease;}
+.exp-scene.on{opacity:1;visibility:visible;}
+.exp-center{flex-direction:column;text-align:center;gap:4px;}
+.exp-col{max-width:1020px;width:100%;}
+
+.exp-scene .anim{opacity:0;}
+.exp-scene.on .anim{animation:expIn .8s cubic-bezier(.2,.8,.2,1) both;}
+@keyframes expIn{from{opacity:0;transform:translateY(28px) scale(.96)}to{opacity:1;transform:none}}
+
+.exp-logo-spin{animation:expPop .9s cubic-bezier(.2,1.2,.3,1) both !important;filter:drop-shadow(0 16px 34px rgba(237,156,116,.4));}
+@keyframes expPop{from{opacity:0;transform:scale(.5) rotate(-28deg)}to{opacity:1;transform:none}}
+.exp-h1{font-family:var(--display);font-weight:800;font-size:clamp(64px,13vw,150px);letter-spacing:-.04em;line-height:.9;margin:8px 0 0;}
+.exp-tag{font-weight:700;font-size:clamp(18px,2.4vw,26px);color:var(--ink-soft);}
+.exp-tag b{color:var(--peach-deep);}
+.exp-h2{font-size:clamp(30px,5vw,56px);line-height:1.05;}
+.exp-eyebrow{font-weight:800;font-size:clamp(12px,1.4vw,15px);letter-spacing:.16em;text-transform:uppercase;color:var(--peach-deep);margin-bottom:10px;}
+.exp-note{font-weight:600;font-size:clamp(15px,1.8vw,20px);color:var(--ink-soft);margin-top:26px;}
+.exp-note b{color:var(--ink);}
+
+.exp-row{display:flex;gap:18px;flex-wrap:wrap;}
+.exp-card{position:relative;display:inline-flex;align-items:center;gap:11px;font-weight:700;font-size:clamp(15px,1.7vw,20px);
+  background:var(--paper);border:3px solid var(--ink);border-radius:18px;padding:16px 22px;box-shadow:4px 6px 0 var(--ink);overflow:hidden;}
+.exp-erase{position:absolute;inset:0;background:var(--cream);transform:translateX(-101%);}
+.exp-scene.on .exp-erase{animation:expErase 1.3s ease 1.3s forwards;}
+@keyframes expErase{to{transform:translateX(0)}}
+.exp-x{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--rose-deep);border:2px solid var(--ink);margin-left:4px;}
+
+.exp-wave{display:flex;align-items:flex-end;gap:6px;height:60px;margin-top:22px;}
+.exp-wave i{width:9px;border-radius:6px;background:var(--peach-deep);border:2px solid var(--ink);height:14px;animation:expWave 1s ease-in-out infinite;}
+@keyframes expWave{0%,100%{height:14px}50%{height:52px}}
+
+.exp-loop{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px;}
+.exp-chip{font-weight:800;font-size:clamp(13px,1.5vw,17px);background:var(--lav);border:2.6px solid var(--ink);border-radius:99px;padding:9px 16px;box-shadow:2px 3px 0 var(--ink);}
+
+.exp-chain{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:30px;}
+.exp-node{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;font-weight:800;font-size:clamp(13px,1.4vw,16px);
+  background:var(--paper);border:3px solid var(--ink);border-radius:20px;padding:16px 18px;box-shadow:4px 6px 0 var(--ink);min-width:118px;}
+.exp-node small{font-weight:700;font-size:11px;color:var(--ink-soft);}
+.exp-node-walrus{background:var(--mint);}
+.exp-node-sui{background:var(--sky);}
+.exp-arrow{opacity:0;}
+.exp-scene.on .exp-arrow{animation:expIn .5s ease both;}
+
+.exp-stack{display:flex;flex-direction:column;gap:13px;margin-top:26px;transform:rotateX(9deg);}
+.exp-layer{display:flex;align-items:center;gap:14px;border:3px solid var(--ink);border-radius:18px;padding:13px 20px;box-shadow:5px 7px 0 var(--ink);
+  transform:translateZ(var(--lz));}
+.exp-layer-ic{width:42px;height:42px;flex:0 0 42px;border-radius:12px;border:2.6px solid var(--ink);background:var(--paper);display:grid;place-items:center;box-shadow:2px 3px 0 var(--ink);}
+.exp-layer b{font-family:var(--display);font-size:clamp(16px,2vw,22px);display:block;line-height:1.1;}
+.exp-layer span{font-weight:600;font-size:clamp(12px,1.4vw,15px);color:var(--ink-soft);}
+
+.exp-badge{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:clamp(13px,1.5vw,16px);
+  background:var(--paper);border:2.6px solid var(--ink);border-radius:99px;padding:9px 18px;box-shadow:3px 4px 0 var(--ink);margin-top:18px;}
+
+.exp-progress{position:absolute;left:0;right:0;bottom:0;height:6px;background:rgba(53,42,31,.08);z-index:10;}
+.exp-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--peach),var(--peach-deep));
+  animation-name:expProg;animation-timing-function:linear;animation-fill-mode:both;}
+@keyframes expProg{from{width:0}to{width:100%}}
+
+.exp-start{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:20;padding:24px;
+  background:radial-gradient(120% 90% at 50% 0%, #FBEFE2 0%, var(--cream) 45%, #F3E7F2 100%);}
+.exp-play{display:inline-flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:20px;color:var(--ink);
+  background:var(--peach);border:3px solid var(--ink);border-radius:99px;padding:15px 30px;cursor:pointer;box-shadow:4px 6px 0 var(--ink);transition:transform .14s ease,box-shadow .14s ease;}
+.exp-play:hover{transform:translateY(-3px);box-shadow:4px 9px 0 var(--ink);}
+.exp-replay{position:absolute;bottom:22px;right:22px;z-index:20;display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14px;color:var(--ink);
+  background:var(--paper);border:2.6px solid var(--ink);border-radius:99px;padding:9px 16px;cursor:pointer;box-shadow:3px 4px 0 var(--ink);}
+
 /* ---------- 3D room loading screen ---------- */
 .room-loading{position:absolute;inset:0;z-index:6;display:grid;place-items:center;
   background:linear-gradient(180deg,#ECE4F6 0%,#EFE7F3 52%,#F3E6D2 52%,#F7EAD6 100%);
