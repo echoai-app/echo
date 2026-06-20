@@ -1006,6 +1006,29 @@ input,textarea{font-family:var(--body);}
   .proof-row .v{font-size:12px;}
 }
 
+/* ========== outro end-card (/outro) ========== */
+.outro-stage{position:fixed;inset:0;overflow:hidden;font-family:var(--body);color:var(--ink);
+  background:radial-gradient(120% 90% at 50% 18%, #FCEFE0 0%, var(--cream) 50%, #F1E7F3 100%);
+  display:grid;place-items:center;}
+.outro-bg{position:absolute;inset:0;pointer-events:none;}
+.outro-doodle{position:absolute;opacity:.5;animation:expDrift 9s ease-in-out infinite;}
+.outro-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;z-index:2;padding:24px;}
+.outro-logo{filter:drop-shadow(0 16px 36px rgba(237,156,116,.45));
+  animation:outroPop 1s cubic-bezier(.2,1.15,.3,1) both, outroFloat 4.5s ease-in-out 1s infinite;}
+@keyframes outroPop{from{opacity:0;transform:scale(.4) rotate(-30deg)}to{opacity:1;transform:none}}
+@keyframes outroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.outro-slogan{font-size:clamp(40px,8vw,96px);line-height:1.02;letter-spacing:-.02em;margin:6px 0 0;
+  opacity:0;animation:outroUp .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:.45s;}
+.outro-em{position:relative;color:var(--peach-deep);white-space:nowrap;}
+.outro-underline{position:absolute;left:-2%;bottom:-.16em;width:104%;height:.42em;color:var(--sun-deep,#E8A93B);overflow:visible;}
+.outro-underline path{stroke-dasharray:240;stroke-dashoffset:240;animation:outroDraw .9s ease forwards;animation-delay:1.1s;}
+@keyframes outroDraw{to{stroke-dashoffset:0}}
+.outro-sub{font-weight:700;font-size:clamp(16px,2.2vw,24px);color:var(--ink-soft);margin-top:14px;
+  opacity:0;animation:outroUp .9s ease both;animation-delay:.8s;}
+@keyframes outroUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+.outro-replay{position:absolute;bottom:22px;right:22px;z-index:5;display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14px;color:var(--ink);
+  background:var(--paper);border:2.6px solid var(--ink);border-radius:99px;padding:9px 16px;cursor:pointer;box-shadow:3px 4px 0 var(--ink);}
+
 /* ========== light workflow explainer (/explainer2) ========== */
 .ex2-stage{position:fixed;inset:0;overflow:hidden;font-family:var(--body);color:var(--ink);
   background:radial-gradient(120% 90% at 50% 0%, #FBEFE2 0%, var(--cream) 48%, #F1E7F3 100%);}
