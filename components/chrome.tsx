@@ -98,7 +98,7 @@ function PmToggle({ on, set, ic, label, sub }: { on: boolean; set: () => void; i
 }
 
 function ProfileMenu({ onClose }: { onClose: () => void }) {
-  const { go, resetTo, prefs, setPref, setOnboarded, name, pfp, journey, setJourney, lastIndexBlob } = useEcho();
+  const { go, prefs, setPref, name, pfp, journey, setJourney, lastIndexBlob, logout: doLogout } = useEcho();
   const id = useIdentity();
   const { mutate: disconnect } = useDisconnectWallet();
   const navTo = (s: ScreenId) => () => { onClose(); go(s); };
@@ -125,8 +125,7 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
   const logout = () => {
     onClose();
     if (id.mode === 'wallet') { try { disconnect(); } catch { /* noop */ } }
-    setOnboarded(false);    // show the intro again after logging out
-    resetTo('welcome');     // clear history so "back" can't re-enter the app
+    doLogout();             // wipe persisted name/pfp/account + memory, back to welcome
   };
 
   return (

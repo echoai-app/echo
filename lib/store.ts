@@ -69,6 +69,7 @@ interface EchoState {
   setLastIndexBlob: (b: string | null) => void;
   setPref: (k: keyof Prefs, v: boolean) => void;
   resetSession: () => void;
+  logout: () => void;                 // wipe identity + memory so the next sign-in starts fresh
 }
 
 function newSession(): SessionState {
@@ -129,6 +130,15 @@ export const useEcho = create<EchoState>()(
       setLastIndexBlob: (lastIndexBlob) => set({ lastIndexBlob }),
       setPref: (k, v) => set((st) => ({ prefs: { ...st.prefs, [k]: v } })),
       resetSession: () => set({ session: newSession(), transcript: [], proposed: null, saved: [], proof: null }),
+      // Full sign-out: clears the persisted identity (name, pfp, account, index
+      // blob) plus all in-memory session/memory state, and returns to welcome —
+      // so logging back in (or a new person on this device) starts clean.
+      logout: () => set({
+        name: '', pfp: null, account: 'guest', onboarded: false, lastIndexBlob: null,
+        journey: null, recalled: [], saved: [], proof: null, proposed: null,
+        session: newSession(), transcript: [],
+        screen: 'welcome', history: [],
+      }),
     }),
     {
       name: 'echo-app',
