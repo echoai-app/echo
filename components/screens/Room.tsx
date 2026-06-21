@@ -28,20 +28,6 @@ const FORMING: { re: RegExp; label: string; ic: string; c: string }[] = [
   { re: /\b(family|partner|friend|people|alone|lonely)\b/i, label: 'Relationships', ic: 'heart', c: 'var(--sky)' },
 ];
 
-// The mic stays hot while Echo speaks (for barge-in), so it sometimes hears
-// Echo's OWN voice. This filters that out: if what we heard is mostly Echo's
-// current line, it's an echo — not the user talking over it.
-const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-function looksLikeEcho(heard: string, echo: string): boolean {
-  const h = normalize(heard);
-  const e = normalize(echo);
-  if (!h || !e || h.length < 4) return false;
-  if (e.includes(h)) return true;
-  const hw = h.split(' ');
-  const ew = new Set(e.split(' '));
-  return hw.filter(w => ew.has(w)).length / hw.length > 0.6;
-}
-
 export default function Room() {
   const { go, session, transcript, addTurn, setProposed, recalled, prefs, name } = useEcho();
   const [vs, setVs] = useState<OrbState>('idle');
@@ -59,25 +45,11 @@ export default function Room() {
   // Hands-free conversation: after Echo finishes speaking, the mic re-opens by
   // itself — no tapping every turn. Typing (or pausing) hands control back.
   const handsFree = useRef(true);
-  const echoLine = useRef('');     // what Echo is currently saying (self-echo filter)
   const id = useIdentity();
 
-  // Barge-in: the mic is hot even while Echo talks. If the user starts speaking
-  // (and it isn't Echo hearing itself), Echo stops instantly and listens.
-  const voice = useVoice({
-    onResult: (t) => onUserSpeech(t),
-    onInterim: (t) => onUserInterim(t),
-  });
-  function onUserSpeech(t: string) {
-    if (vs === 'speaking' && looksLikeEcho(t, echoLine.current)) return;
-    send(t, 'voice');
-  }
-  function onUserInterim(t: string) {
-    if (vs === 'speaking' && !looksLikeEcho(t, echoLine.current)) {
-      voice.cancelSpeech();
-      setVs('listening');
-    }
-  }
+  // Clean turn-taking: the mic listens only when it's YOUR turn. When you pause,
+  // your turn is sent; Echo answers; then the mic re-opens. No talking over.
+  const voice = useVoice({ onResult: (t) => send(t, 'voice') });
 
   // Every session is memory-aware: quietly recall this user's context at the
   // start (not just on the "continue from last time" path).
@@ -145,23 +117,17 @@ export default function Room() {
   const lastEcho = [...transcript].reverse().find(m => m.role === 'echo')?.text;
 
   function speakOrTimeout(line: string, onDone?: () => void) {
-    echoLine.current = line;
     let done = false;
     const finish = () => {
       if (done) return; done = true;
-      echoLine.current = '';
-      // hands-free: keep the mic hot for their reply
+      // Echo finished — NOW open the mic for their reply (never during speech).
       if (handsFree.current) { voice.startListening(); setVs('listening'); }
       else setVs('idle');
       onDone?.();
     };
     if (prefs.voiceReplies) {
-      // speak via the cloud/neural voice (it falls back to the browser voice on
-      // its own). The mouth + bubble only turn on when audio REALLY starts
-      // (onStart), so they stay in sync instead of moving during the load.
+      voice.stopListening();   // mic off while Echo talks → it never hears itself
       voice.speak(line, finish, () => setVs('speaking'), prefs.studioVoice);
-      // keep the mic hot DURING speech so the user can talk over Echo (barge-in)
-      if (handsFree.current && voice.supported) voice.startListening();
     } else {
       setVs('speaking');
       const dur = Math.min(4200, 1400 + line.length * 22);
@@ -174,6 +140,7 @@ export default function Room() {
     if (!msg || vs === 'thinking' || vs === 'saving') return;
     // typing means they'd rather not be on-mic — stop auto-listening
     if (source === 'text') handsFree.current = false;
+    voice.stopListening();   // mic off while we think + Echo replies
     voice.cancelSpeech();
     setShowText(false); setText('');
 

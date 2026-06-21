@@ -25,7 +25,6 @@ export interface VoiceHook {
 
 export function useVoice(opts: {
   onResult: (finalText: string) => void;
-  onInterim?: (text: string) => void;   // fires as the user starts talking (for barge-in)
   enabled?: boolean;
 }): VoiceHook {
   const { onResult } = opts;
@@ -34,12 +33,14 @@ export function useVoice(opts: {
   const [listening, setListening] = useState(false);
   const [partial, setPartial] = useState('');
   const recRef = useRef<any>(null);
-  const keepAlive = useRef(false);       // keep the mic hot (auto-restart on end)
+  const keepAlive = useRef(false);       // we intend to be listening (auto-restart)
   const startingRef = useRef(false);     // debounce overlapping start() calls
+  const committedRef = useRef(false);    // this turn already sent (ignore late results)
+  const turnTextRef = useRef('');        // best transcript so far this turn
+  const silenceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onResultRef = useRef(onResult);
-  const onInterimRef = useRef(opts.onInterim);
-  // Keep the latest callbacks without re-creating the recognizer each render.
-  useEffect(() => { onResultRef.current = onResult; onInterimRef.current = opts.onInterim; });
+  // Keep the latest callback without re-creating the recognizer each render.
+  useEffect(() => { onResultRef.current = onResult; });
 
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const chosenVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
@@ -70,30 +71,33 @@ export function useVoice(opts: {
     if (SR) {
       sttOk = true;
       const rec = new SR();
-      // Continuous + auto-restart keeps the mic hot the whole conversation, so
-      // it never "stops listening" and barge-in (talking over Echo) just works.
       rec.continuous = true;
       rec.interimResults = true;
       rec.lang = 'en-US';
       rec.onstart = () => { startingRef.current = false; };
+      // Turn-taking by silence: accumulate what's heard, and ~1s after they stop,
+      // commit it as their turn. Robust, and it never waits on a slow "final".
       rec.onresult = (e: any) => {
-        let interim = '';
-        let final = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const t = e.results[i][0].transcript;
-          if (e.results[i].isFinal) final += t;
-          else interim += t;
-        }
-        if (interim.trim()) { setPartial(interim); onInterimRef.current?.(interim.trim()); }
-        if (final.trim()) {
-          onResultRef.current(final.trim());
+        if (committedRef.current) return;
+        let txt = '';
+        for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+        txt = txt.trim();
+        if (!txt) return;
+        turnTextRef.current = txt;
+        setPartial(txt);
+        if (silenceRef.current) clearTimeout(silenceRef.current);
+        silenceRef.current = setTimeout(() => {
+          if (committedRef.current) return;
+          committedRef.current = true;
+          const t = turnTextRef.current.trim();
+          turnTextRef.current = '';
           setPartial('');
-        }
+          if (t) onResultRef.current(t);
+        }, 1050);
       };
       rec.onend = () => {
-        // restart unless we deliberately stopped — Chrome ends continuous
-        // recognition periodically; we just bring it back.
         startingRef.current = false;
+        // keep listening across short gaps until we deliberately stop
         if (keepAlive.current) {
           setTimeout(() => {
             const r = recRef.current;
@@ -101,11 +105,10 @@ export function useVoice(opts: {
               startingRef.current = true;
               try { r.start(); } catch { startingRef.current = false; }
             }
-          }, 220);
+          }, 150);
         } else setListening(false);
       };
       rec.onerror = (e: any) => {
-        // permission errors are fatal; 'no-speech'/'aborted'/'network' are not
         if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') { keepAlive.current = false; setListening(false); }
       };
       recRef.current = rec;
@@ -134,14 +137,23 @@ export function useVoice(opts: {
   const startListening = useCallback(() => {
     if (!recRef.current) return;
     keepAlive.current = true;
+    committedRef.current = false;   // fresh turn
+    turnTextRef.current = '';
+    if (silenceRef.current) { clearTimeout(silenceRef.current); silenceRef.current = null; }
+    setPartial('');
     setListening(true);
     safeStart();
   }, [safeStart]);
 
   const stopListening = useCallback(() => {
     keepAlive.current = false;
+    committedRef.current = true;    // ignore any late results
+    if (silenceRef.current) { clearTimeout(silenceRef.current); silenceRef.current = null; }
+    turnTextRef.current = '';
     try { recRef.current?.stop?.(); } catch { /* noop */ }
+    try { recRef.current?.abort?.(); } catch { /* noop */ }
     setListening(false);
+    setPartial('');
   }, []);
 
   // Fallback: the browser's own speechSynthesis with the warmest local voice.
