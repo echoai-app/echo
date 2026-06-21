@@ -79,9 +79,11 @@ export function useVoice(opts: {
       // commit it as their turn. Robust, and it never waits on a slow "final".
       rec.onresult = (e: any) => {
         if (committedRef.current) return;
+        // join each result with a space (they mash into gibberish otherwise) and
+        // collapse whitespace — this is the clean, readable transcript so far.
         let txt = '';
-        for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
-        txt = txt.trim();
+        for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript + ' ';
+        txt = txt.replace(/\s+/g, ' ').trim();
         if (!txt) return;
         turnTextRef.current = txt;
         setPartial(txt);

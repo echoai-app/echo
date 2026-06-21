@@ -237,7 +237,9 @@ export default function Room() {
             {vs === 'listening' &&
               <div className="say" style={{ animation: 'popIn .3s ease both', display: 'flex', alignItems: 'center', gap: 13, pointerEvents: 'none' }}>
                 <span className="wave"><i /><i /><i /><i /><i /><i /><i /></span>
-                <span style={{ fontWeight: 700 }}>{voice.partial || "I'm listening…"}</span>
+                <span style={{ fontWeight: 700, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {voice.partial ? (voice.partial.length > 64 ? '…' + voice.partial.slice(-64) : voice.partial) : 'Listening…'}
+                </span>
               </div>}
 
             {!scene3d && <Orb size={138} state={vs} mood="lav" />}
