@@ -19,7 +19,7 @@ export interface VoiceHook {
   partial: string;
   startListening: () => void;
   stopListening: () => void;
-  speak: (text: string, onEnd?: () => void, onStart?: () => void) => void;
+  speak: (text: string, onEnd?: () => void, onStart?: () => void, neural?: boolean) => void;
   cancelSpeech: () => void;
 }
 
@@ -184,7 +184,7 @@ export function useVoice(opts: {
   // Primary: Echo's neural voice (Groq Orpheus). One clean clip — no ring-mod
   // (that produced a ghostly "second voice"). Falls back to the browser voice on
   // any hiccup. onStart fires when audio ACTUALLY begins, so the mouth syncs.
-  const speak = useCallback((text: string, onEnd?: () => void, onStart?: () => void) => {
+  const speak = useCallback((text: string, onEnd?: () => void, onStart?: () => void, neural = false) => {
     if (typeof window === 'undefined') { onEnd?.(); return; }
     const myToken = ++speakToken.current;
     const current = () => myToken === speakToken.current;
@@ -195,7 +195,9 @@ export function useVoice(opts: {
     try { window.speechSynthesis?.cancel?.(); } catch { /* noop */ }
     stopAudio();
 
-    if (cloudTtsOff.current) { browserSpeak(text, finish, start); return; }
+    // Default: the INSTANT on-device voice (the neural cloud voice adds 2–5s of
+    // latency per reply, which kills the real-time feel). Neural is opt-in.
+    if (!neural || cloudTtsOff.current) { browserSpeak(text, finish, start); return; }
 
     (async () => {
       try {

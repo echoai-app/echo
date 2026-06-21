@@ -169,6 +169,7 @@ export function Profile() {
         <p className="muted" style={{ fontWeight: 600, fontSize: 13.5, margin: '0 0 8px' }}>Fine-tune how a session feels.</p>
         {([
           ['voiceReplies', 'ear', 'Voice replies', 'Echo speaks responses aloud'],
+          ['studioVoice', 'spark', 'Studio voice', 'Warmer neural voice — but a little slower to start (off = instant)'],
           ['saveToWalrus', 'anchor', 'Save memories to Walrus', 'Always reviewed before anything is kept'],
           ['reducedMotion', 'moon', 'Reduced motion', 'Calmer, simpler animations'],
         ] as const).map(([k, ic, label, sub]) => (

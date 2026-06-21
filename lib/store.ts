@@ -25,6 +25,7 @@ export interface Prefs {
   voiceReplies: boolean;
   saveToWalrus: boolean;
   reducedMotion: boolean;
+  studioVoice: boolean;   // warm neural voice (slower to start) vs instant on-device voice
 }
 
 interface EchoState {
@@ -105,7 +106,7 @@ export const useEcho = create<EchoState>()(
       lastTheme: 'work deadlines & lost sleep',
       lastIndexBlob: null,
 
-      prefs: { voiceReplies: true, saveToWalrus: true, reducedMotion: false },
+      prefs: { voiceReplies: true, saveToWalrus: true, reducedMotion: false, studioVoice: false },
 
       go: (screen) => set((st) => (st.screen === screen ? {} : { screen, history: [...st.history, st.screen].slice(-25) })),
       back: () => set((st) => {

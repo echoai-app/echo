@@ -159,7 +159,7 @@ export default function Room() {
       // speak via the cloud/neural voice (it falls back to the browser voice on
       // its own). The mouth + bubble only turn on when audio REALLY starts
       // (onStart), so they stay in sync instead of moving during the load.
-      voice.speak(line, finish, () => setVs('speaking'));
+      voice.speak(line, finish, () => setVs('speaking'), prefs.studioVoice);
       // keep the mic hot DURING speech so the user can talk over Echo (barge-in)
       if (handsFree.current && voice.supported) voice.startListening();
     } else {
