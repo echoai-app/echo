@@ -23,41 +23,18 @@ export default function BootSkeleton() {
           </div>
         </div>
 
+        {/* mirrors the simple home: a centered logo, greeting, one big Start
+            button, an optional focus line, and two quiet links */}
         <div className="screen-scroll">
-          <div className="screen-pad" style={{ maxWidth: 1180, margin: '0 auto' }}>
-            {/* greeting hero */}
-            <div className="card card-lg sk-hero">
-              <div className="sk-hero-l">
-                <div className="sk sk-circle" />
-                <div className="sk-lines">
-                  <div className="sk" style={{ width: 130, height: 13, borderRadius: 7 }} />
-                  <div className="sk" style={{ width: 'min(58vw,340px)', height: 32, borderRadius: 10 }} />
-                  <div className="sk" style={{ width: 'min(46vw,250px)', height: 14, borderRadius: 7 }} />
-                </div>
-              </div>
-              <div className="sk sk-stat" />
-            </div>
-
-            {/* section label */}
-            <div className="sk-seclabel">
-              <div className="sk" style={{ width: 210, height: 13, borderRadius: 7 }} />
-              <span className="sk-rule" />
-              <div className="sk" style={{ width: 130, height: 13, borderRadius: 7 }} />
-            </div>
-
-            {/* mode grid */}
-            <div className="r-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="mode-card sk-card">
-                  <div className="sk sk-modeic" />
-                  <div className="sk" style={{ width: '68%', height: 21, borderRadius: 8, marginTop: 16 }} />
-                  <div className="sk" style={{ width: '92%', height: 13, borderRadius: 7, marginTop: 9 }} />
-                  <div className="sk-cardfoot">
-                    <div className="sk" style={{ width: 72, height: 26, borderRadius: 99 }} />
-                    <div className="sk" style={{ width: 84, height: 26, borderRadius: 99 }} />
-                  </div>
-                </div>
-              ))}
+          <div className="home2" style={{ alignItems: 'center' }}>
+            <div className="sk" style={{ width: 96, height: 96, borderRadius: '50%' }} />
+            <div className="sk" style={{ width: 'min(72vw,360px)', height: 36, borderRadius: 11, marginTop: 6 }} />
+            <div className="sk" style={{ width: 'min(58vw,300px)', height: 16, borderRadius: 8 }} />
+            <div className="sk" style={{ width: 'min(92vw,520px)', height: 92, borderRadius: 26, marginTop: 8 }} />
+            <div className="sk" style={{ width: 190, height: 16, borderRadius: 8, marginTop: 6 }} />
+            <div style={{ display: 'flex', gap: 18, marginTop: 2 }}>
+              <div className="sk" style={{ width: 150, height: 16, borderRadius: 8 }} />
+              <div className="sk" style={{ width: 110, height: 16, borderRadius: 8 }} />
             </div>
           </div>
         </div>
