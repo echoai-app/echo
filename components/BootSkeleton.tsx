@@ -3,9 +3,10 @@
 import { EchoLogo } from './ui';
 
 // Shown for the brief moment between first paint and store-hydration, in place
-// of the old bare orb. It mirrors the Home (modes) layout — appbar, greeting
-// hero, mode grid — with a sweeping shimmer, so the app "draws itself in" the
-// way big apps (YouTube/Facebook) do, instead of flashing an empty screen.
+// of the old bare orb. It mirrors the simple Home layout — appbar, centered
+// logo, greeting, one big Start button, focus line, two links — with a sweeping
+// shimmer, so the app "draws itself in" the way big apps (YouTube/Facebook) do,
+// instead of flashing a layout that isn't there.
 export default function BootSkeleton() {
   return (
     <div className="stage" aria-busy="true" aria-label="Loading Echo">
